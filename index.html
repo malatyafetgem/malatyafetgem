@@ -31,7 +31,6 @@
 
 <style>
 /* ===== SADELEŞTİRİLMİŞ ÖZEL CSS ===== */
-/* Sadece AdminLTE'nin yapamadığı özel kısımlar bırakıldı */
 #loginScreen { display:flex; justify-content:center; align-items:center; min-height:100vh; background: linear-gradient(135deg,#1e3a5f,#2d6a9f); }
 .login-card { width:100%; max-width:400px; }
 .login-card .card-header { background: linear-gradient(135deg,#1e3a5f,#2d6a9f); border-radius:8px 8px 0 0 !important; }
@@ -45,9 +44,10 @@
 body.dark-mode .absent-row { background: rgba(220,53,69,0.2); color: #dc3545; }
 body.pdf-export-mode thead th { position:static !important; }
 
-/* Admin Yetkisi Olmayanlardan Gizlenecekler */
+/* Admin Yetkisi Olmayanlardan Gizlenecekler (DÜZELTİLDİ) */
 .admin-only { display: none !important; }
-body.is-admin .admin-only { display: inline-block !important; }
+body.is-admin button.admin-only { display: inline-block !important; }
+body.is-admin button.btn-block.admin-only { display: block !important; }
 body.is-admin li.admin-only { display: block !important; }
 </style>
 </head>
@@ -105,7 +105,6 @@ body.is-admin li.admin-only { display: block !important; }
       </li>
     </ul>
     <ul class="navbar-nav ml-auto">
-      <!-- Tema Değiştirme Butonu (Tavsiye 2) -->
       <li class="nav-item">
         <a href="#" class="nav-link" onclick="toggleTheme()" title="Gece/Gündüz Modu">
           <i class="fas fa-moon" id="themeIcon"></i>
@@ -220,8 +219,8 @@ body.is-admin li.admin-only { display: block !important; }
           <div id="anlRes"></div>
         </div>
 
-        <!-- AYARLAR -->
-        <div id="ayarlar" class="pane admin-only" style="display:none;">
+        <!-- AYARLAR (DÜZELTME: class="pane admin-only" kısmından admin-only silindi) -->
+        <div id="ayarlar" class="pane" style="display:none;">
           <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3>
@@ -358,13 +357,13 @@ function applyTheme(isDark) {
     nav.classList.remove('navbar-white', 'navbar-light');
     nav.classList.add('navbar-dark');
     icon.classList.replace('fa-moon', 'fa-sun');
-    Chart.defaults.color = '#adb5bd'; // Koyu mod grafik yazıları
+    Chart.defaults.color = '#adb5bd'; 
   } else {
     document.body.classList.remove('dark-mode');
     nav.classList.remove('navbar-dark');
     nav.classList.add('navbar-white', 'navbar-light');
     icon.classList.replace('fa-sun', 'fa-moon');
-    Chart.defaults.color = '#475569'; // Gündüz mod grafik yazıları
+    Chart.defaults.color = '#475569'; 
   }
   if(c.h) c.h.update(); if(c.a) c.a.update();
 }
@@ -403,7 +402,7 @@ function xXLMul(cId, fn) { let wb=XLSX.utils.book_new(), ts=getEl(cId).getElemen
 function xPD(id, fn, b) { 
   let o=b.innerHTML; b.innerHTML="<i class='fas fa-spinner fa-spin mr-1'></i>"; ld(1,'PDF Hazırlanıyor...'); 
   let wasDark = document.body.classList.contains('dark-mode'); 
-  if(wasDark) applyTheme(false); // PDF temiz çıksın diye aydınlığa çek
+  if(wasDark) applyTheme(false); 
   document.body.classList.add('pdf-export-mode'); window.scrollTo(0,0); 
   setTimeout(()=>{ 
     html2pdf().set({margin:10,filename:fn+'.pdf',html2canvas:{scale:2,useCORS:true},jsPDF:{orientation:'landscape'}}).from(getEl(id)).save().then(()=>{ 
@@ -421,7 +420,7 @@ function init() {
   let st = setTimeout(() => { ld(0); alert('⚠️ İnternet bağlantınızı kontrol edin.'); uDrp(); rTabS(); rTabE(); uStat(); }, 10000);
   database.ref('sinavDB').on('value', (s) => {
     clearTimeout(st);
-    if(s.exists()) { const d = s.val(); DB.s = d.s || []; DB.e = d.e || []; } else { DB = { s:[], e:[] }; }
+    if(s.exists()) { const d = s.val(); DB.s = d.s ||[]; DB.e = d.e || []; } else { DB = { s:[], e:[] }; }
     uDrp(); rTabS(); rTabE(); uStat();
     if(aNo) { if(DB.s.find(x=>String(x.no)===String(aNo))) { rH(); if(getEl('sonuclar').style.display==='block') rAnl(); } else { sAct(null); } }
     ld(0);
@@ -429,7 +428,7 @@ function init() {
 }
 
 function svDB() {
-  if (auth.currentUser.uid !== ADMIN_UID) return; // Sadece admin
+  if (auth.currentUser.uid !== ADMIN_UID) return; 
   ld(1, 'Kaydediliyor...');
   database.ref('sinavDB').set(DB).then(() => ld(0)).catch(e => { alert("Hata: " + e.message); ld(0); });
 }
