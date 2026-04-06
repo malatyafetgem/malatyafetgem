@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="tr" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Deneme Sınav Takip Sistemi</title>
+<!-- GRAFİK VE PDF KÜTÜPHANELERİ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- FIREBASE BULUT VERİTABANI KÜTÜPHANELERİ -->
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
+<style>
+:root { --bg-b: #f4f6f9; --bg-h: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%); --bg-c: white; --tx: #333; --bd: #e0e0e0; --bg-t: #f5f5f5; --bg-i: white; --bg-card: #f9f9f9; --act: #2d6a9f; --act-light: #e8f1fa; --success: #1a7f4b; --danger: #c0392b; }
+[data-theme="dark"] { --bg-b: #0f1117; --bg-h: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%); --bg-c: #1e1e1e; --tx: #e0e0e0; --bd: #3a3a3a; --bg-t: #2d2d2d; --bg-i: #252840; --bg-card: #2a2a2a; --act: #4a9edd; --act-light: #1a2a3a; --success: #2ecc71; --danger: #e74c3c; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; } body { background: var(--bg-b); color: var(--tx); padding: 20px; transition: background .3s; }
+.container { max-width: 1400px; margin: auto; background: var(--bg-c); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; transition: background .3s; display: none; }
+#loginScreen { display: flex; justify-content: center; align-items: center; min-height: 90vh; }
+.login-box { background: var(--bg-c); padding: 40px; border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--bd); }
+.login-box h2 { color: var(--act); margin-bottom: 10px; font-size: 1.8em; } .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; font-size: 1em; border: 1px solid var(--bd); border-radius: 5px; background: var(--bg-i); color: var(--tx); }
+.login-box button { width: 100%; padding: 12px; font-size: 1.1em; background: var(--act); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+.login-error { color: #c0392b; margin-top: 15px; font-weight: bold; display: none; }
+.header { background: var(--bg-h); color: white; padding: 25px; text-align: center; position: relative; display: flex; justify-content: space-between; align-items: center; } .header h1 {font-size: 1.8em; margin:0;}
+.theme-btn { background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer; }
+.tabs { display: flex; background: var(--bg-t); border-bottom: 2px solid var(--bd); } .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; }
+.tab.active { background: var(--bg-c); color: var(--act); border-bottom: 3px solid var(--act); } .content { padding: 25px; } .pane { display: none; } .pane.active { display: block; }
+.card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--bd); margin-bottom: 20px; }
+h2 { border-bottom: 2px solid var(--act); padding-bottom: 10px; margin-bottom: 15px; display:flex; justify-content:space-between; align-items: center;} h3 { margin: 15px 0 10px 0; color: var(--tx); }
+input, select { width: 100%; padding: 10px; border: 1px solid var(--bd); background: var(--bg-i); color: var(--tx); border-radius: 5px; margin-top: 5px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+button { padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; } .btn-p { background: var(--act); } .btn-s { background: #1a7f4b; } .btn-d { background: #c0392b; } .btn-w { background: #d97706; color: #fff; } .btn-ex { background: #1D6F42; } .btn-sm { padding: 5px 10px; font-size: 0.82em; } .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; } .btn-group.right { justify-content: flex-end; margin-bottom: 8px; } .absent-row { opacity: 0.6; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(192,57,43,0.05) 5px, rgba(192,57,43,0.05) 10px); }
+table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } th, td { padding: 10px; border-bottom: 1px solid var(--bd); text-align: left; } th { background: #1e3a5f; color: white; }
+.chart-box { height: 400px; width: 100%; background: var(--bg-c); padding: 15px; border: 1px solid var(--bd); border-radius: 8px; margin-top: 20px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; } .modal.active { display: flex; } .modal-c { background: var(--bg-c); padding: 25px; border-radius: 10px; width: 400px; }
+.loader { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; z-index:9999; justify-content:center; align-items:center; flex-direction:column; font-size:1.2em; } .loader.active { display: flex; } .spin { width: 50px; height: 50px; border: 5px solid transparent; border-top: 5px solid var(--act); border-radius: 50%; animation: sp 1s linear infinite; margin-bottom: 10px; } @keyframes sp { 100% { transform: rotate(360deg); } }
+.s-card { background: var(--bg-h); color: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; } .badge { background: #ffc107; color: #333; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; display: inline-block; } .scroll { overflow-x: auto; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; } .stat-card { background: var(--bg-h); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); } .stat-value { font-size: 2.2em; font-weight: bold; margin: 10px 0; }
+body.pdf-export-mode thead th { position: static !important; }
+</style>
+</head><body>
+
+<div id="loader" class="loader"><div class="spin"></div><div id="l-txt">İşlem Yapılıyor...</div></div>
+
+<!-- ===== LOGIN EKRANI ===== -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>Sınav Analiz Sistemi</h2>
+    <p style="color:var(--tx); margin-bottom:20px;">Sisteme erişmek için giriş yapın.</p>
+    <input type="text" id="loginUser" placeholder="Kullanıcı Adı" value="admin" autocomplete="off">
+    <input type="password" id="loginPass" placeholder="Şifre" onkeypress="if(event.key==='Enter')login()">
+    <button onclick="login()">Giriş Yap</button>
+    <div id="loginError" class="login-error">Hatalı Kullanıcı Adı veya Şifre!</div>
+  </div>
+</div>
+
+<!-- ===== ANA SİSTEM ===== -->
+<div class="container" id="mainApp">
+    <div class="header">
+        <div><h1>📊 Sınav Analiz Sistemi</h1><div style="font-size:0.8em; opacity:0.8; margin-top:5px; text-align:left;">Bulut Tabanlı Eğitim Platformu</div></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <div id="connBadge" style="font-size:0.78em; padding:5px 12px; border-radius:20px; background:rgba(255,255,255,0.15); color:white; display:flex; align-items:center; gap:5px; transition:all 0.4s;">
+                <span id="connDot">⏳</span><span id="connTxt">Bağlanıyor...</span>
+            </div>
+            <button class="theme-btn" onclick="tTheme()">🌓 Tema</button>
+            <button class="btn-d" onclick="logout()" style="border-radius:20px; padding:8px 15px;">🚪 Çıkış</button>
+        </div>
+    </div>
+    <div class="tabs"><div class="tab active" onclick="sTab('anasayfa',this)">🏠 Ana Sayfa</div><div class="tab" onclick="sTab('sonuclar',this)">📈 Sonuçlar</div><div class="tab" onclick="sTab('ayarlar',this)">⚙️ Ayarlar</div></div>
+
+    <div class="content">
+        <!-- ANA SAYFA -->
+        <div id="anasayfa" class="pane active">
+            <div class="card">
+                <h2>Öğrenci Sorgula</h2>
+                <div id="aBadge"></div>
+                <div style="display:flex; gap:10px;"><input type="text" id="sInp" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()"><button class="btn-d" onclick="clrS()">Temizle</button></div>
+                <div id="sRes" style="margin-top:15px;"></div>
+            </div>
+            <div id="homeArea"></div>
+            <div class="card" style="margin-top: 30px; border:none; background:transparent; padding:0;">
+                <h2 style="border-bottom: 2px dashed var(--bd); padding-bottom: 15px; color:var(--tx);">Sistem Özeti (Canlı)</h2>
+                <div class="stats-grid" id="dynamicStatsGrid"></div>
+            </div>
+        </div>
+
+        <!-- SONUÇLAR -->
+        <div id="sonuclar" class="pane">
+            <div class="card">
+                <h2>Analiz Filtreleri</h2>
+                <div class="grid">
+                    <div><label>Analiz Türü</label><select id="aType" onchange="uUI()"><option value="student">Öğrenci Gelişimi (Sınıf Kıyaslamalı)</option><option value="ranking">Öğrenci Sıralama</option><option value="class">Sınıf Analizi</option></select></div>
+                    <div id="gStu"><label>Öğrenci Seçin</label><select id="aStu" onchange="sAct(this.value); rAnl();"></select></div>
+                    <div id="gLvl" style="display:none;"><label>Sınıf Seviyesi</label><select id="aLvl" onchange="rAnl()"><option value="">Tümü</option></select></div>
+                    <div id="gBr" style="display:none;"><label>Şube</label><select id="aBr" onchange="rAnl()"><option value="">Tümü</option></select></div>
+                </div>
+                <div class="grid" style="margin-top:10px;"><div><label>Sınav Türü</label><select id="aEx" onchange="uSub(); rAnl();"></select></div><div id="gSub"><label>Ders</label><select id="aSub" onchange="rAnl()"></select></div></div>
+            </div>
+            <div id="anlRes"></div>
+        </div>
+
+        <!-- AYARLAR -->
+        <div id="ayarlar" class="pane">
+            <div class="card">
+                <h2>Öğrenci Yönetimi <button class="btn-s" onclick="oModAdd()">➕ Ekle</button></h2>
+                <div class="btn-group"><button class="btn-p" onclick="dTpl('s')">📥 Şablon İndir</button><button class="btn-p" onclick="$('fStu').click()">📤 Excel Yükle</button><input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')"></div>
+                <div class="scroll" style="max-height:300px;"><table id="tStu"><thead><tr><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead><tbody></tbody></table></div>
+                <button class="btn-d" style="width:100%; margin-top:10px;" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek?')">🗑️ Tümünü Sil</button>
+            </div>
+            <div class="card">
+                <h2>Sınav Verileri Yükleme</h2>
+                <div class="btn-group"><button class="btn-p" onclick="dTpl('e')">📥 Sınav Şablonu</button><button class="btn-p" onclick="$('fEx').click()">📤 Sonuç Yükle</button><input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')"></div>
+                <div id="tExA" class="scroll" style="margin-top:15px;"></div>
+            </div>
+            <div class="card">
+                <h2 style="border:none;">Sistem Yedekleme (Bulut)</h2>
+                <div class="btn-group"><button class="btn-s" onclick="expDB()">📥 Yedeği İndir (.json)</button><button class="btn-p" onclick="$('fImp').click()">📤 Sisteme Geri Yükle</button><input type="file" id="fImp" style="display:none;" onchange="impDB(event)"><button class="btn-d" style="margin-left:auto;" onclick="cDel('all','HER ŞEY SİLİNECEK?')">⚠️ Tüm Veritabanını Sıfırla</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALLAR -->
+<div id="mConf" class="modal"><div class="modal-c"><h2>⚠️ Onay</h2><p id="cTxt" style="margin:20px 0; color:var(--tx);"></p><div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn-w" onclick="cMod('mConf')">İptal</button><button class="btn-d" onclick="xDel()">Evet, Sil</button></div></div></div>
+<div id="mStu" class="modal"><div class="modal-c"><h2 id="mSTit">Öğrenci İşlemi</h2><input type="text" id="mSNo" placeholder="Öğrenci No (Değiştirilemez)"><input type="text" id="mSNa" placeholder="Ad Soyad"><input type="text" id="mSCl" placeholder="Sınıfı (Örn: 11A)"><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:15px;"><button class="btn-w" onclick="cMod('mStu')">İptal</button><button class="btn-s" onclick="svStu()">Kaydet</button></div></div></div>
+
+<script>
+/* ============================================================
+   FIREBASE (BULUT) BAĞLANTISI
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCbgwrcjkFF8yf2S2zOFzIt8w18oqmI6oQ",
+  authDomain: "fetgemfen-f9580.firebaseapp.com",
+  projectId: "fetgemfen-f9580",
+  storageBucket: "fetgemfen-f9580.firebasestorage.app",
+  messagingSenderId: "220756328676",
+  appId: "1:220756328676:web:def468b1b6a98474acecf1",
+  databaseURL: "https://fetgemfen-f9580-default-rtdb.europe-west1.firebasedatabase.app" // Avrupa sunucu adresi
+};
+
+// Firebase'i Başlat
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+/* ============================================================
+   BAĞLANTI DURUMU GÖSTERGESİ
+   ============================================================ */
+function uConn(online) {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connTxt');
+  const badge = document.getElementById('connBadge');
+  if (!dot) return;
+  if (online) {
+    dot.textContent = '🟢'; txt.textContent = 'Bağlı';
+    badge.style.background = 'rgba(26,127,75,0.7)';
+  } else {
+    dot.textContent = '🔴'; txt.textContent = 'Çevrimdışı';
+    badge.style.background = 'rgba(192,57,43,0.7)';
+  }
+}
+// Firebase'in kendi bağlantı takip mekanizması
+database.ref('.info/connected').on('value', snap => uConn(snap.val() === true));
+
+/* ============================================================
+   KİMLİK DOĞRULAMA (LOGIN)
+   ============================================================ */
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "admin123";
+
+function checkAuth() {
+  if (sessionStorage.getItem('isLoggedIn') === 'true') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    init(); 
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+}
+function login() {
+  if (document.getElementById('loginUser').value === ADMIN_USER && document.getElementById('loginPass').value === ADMIN_PASS) {
+    sessionStorage.setItem('isLoggedIn', 'true');
+    document.getElementById('loginError').style.display = 'none';
+    checkAuth();
+  } else { document.getElementById('loginError').style.display = 'block'; }
+}
+function logout() { sessionStorage.removeItem('isLoggedIn'); document.getElementById('loginPass').value = ''; checkAuth(); }
+
+/* ============================================================
+   TEMEL DEĞİŞKENLER VE ARAÇLAR
+   ============================================================ */
+const $ = i => document.getElementById(i);
+let DB = { s:[], e:[] }, aNo = null, c={h:null,a:null}, cols = ['#2d6a9f','#e6194b','#1a7f4b','#d97706','#7c3aed','#f58231','#0ea5e9','#db2777'], dInf = {}, searchDebounceTimer = null;
+
+function ld(s, m="İşlem yapılıyor...") { $('l-txt').textContent=m; $('loader').className=s?'loader active':'loader'; }
+function tTheme() { let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); localStorage.setItem('thm',t); Chart.defaults.color=t==='dark'?'#94a3b8':'#475569'; if(c.h)c.h.update(); if(c.a)c.a.update(); }
+function sTab(id, el) { document.querySelectorAll('.pane, .tab').forEach(x=>x.classList.remove('active')); $(id).classList.add('active'); el.classList.add('active'); if(id==='anasayfa') { uStat(); if(aNo)rH(); } if(id==='sonuclar') uUI(); if(id==='ayarlar'){ rTabS(); rTabE(); } }
+function normTR(s) { return String(s).replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c'); }
+function pD(v) { if(typeof v==='number'){let d=new Date((v-25569)*86400000);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;} let p=String(v||'').trim().split('.'); return p.length===3?`${p[0].padStart(2,'0')}.${p[1].padStart(2,'0')}.${p[2]}`:String(v||''); }
+function pN(v) { let n=parseFloat(String(v||0).replace(',', '.')); return isNaN(n)?0:n; }
+function srt(a,b) { let x=a.split('.'),y=b.split('.'); return new Date(x[2],x[1]-1,x[0])-new Date(y[2],y[1]-1,y[0]); }
+function cOpt(rev=false) { let t=document.documentElement.getAttribute('data-theme')==='dark'; return { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{x:{grid:{color:t?'#2e3450':'#e2e8f0'}},y:{reverse:rev, min:rev?1:undefined, grid:{color:t?'#2e3450':'#e2e8f0'}}} }; }
+
+function xXL(id, fn) { let wb=XLSX.utils.table_to_book($(id)); XLSX.writeFile(wb, fn+'.xlsx'); }
+function xXLMul(cId, fn) { let wb=XLSX.utils.book_new(), ts=$(cId).getElementsByTagName('table'); for(let i=0;i<ts.length;i++){ XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(ts[i]), ts[i].getAttribute('data-sh')||('Sayfa'+i)); } XLSX.writeFile(wb, fn+'.xlsx'); }
+function xPD(id, fn, b) { let o=b.innerText; b.innerText="⏳"; ld(1,'PDF Hazırlanıyor...'); let t=document.documentElement.getAttribute('data-theme'); document.documentElement.setAttribute('data-theme','light'); document.body.classList.add('pdf-export-mode'); window.scrollTo(0,0); setTimeout(()=>{ html2pdf().set({margin:10,filename:fn+'.pdf',html2canvas:{scale:2,useCORS:true},jsPDF:{orientation:'landscape'}}).from($(id)).save().then(()=>{ b.innerText=o; document.documentElement.setAttribute('data-theme',t); document.body.classList.remove('pdf-export-mode'); ld(0); }); }, 500); }
+
+/* ============================================================
+   BULUT VERİTABANI İŞLEMLERİ (LIVE SYNC)
+   ============================================================ */
+function init() {
+  let t=localStorage.getItem('thm')||'light'; document.documentElement.setAttribute('data-theme',t); Chart.defaults.color=t==='dark'?'#94a3b8':'#475569';
+  
+  ld(1, 'Bulut verileri senkronize ediliyor...');
+
+  // Bağlantı zaman aşımı — 10 sn içinde veri gelmezse hata göster
+  let syncTimeout = setTimeout(() => {
+    ld(0);
+    alert('⚠️ Firebase bağlantısı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.\n\nSistem çevrimdışı modda devam ediyor.');
+    uDrp(); rTabS(); rTabE(); uStat();
+  }, 10000);
+
+  // .on metodu veritabanındaki her değişikliği anında (canlı) ekrana yansıtır
+  database.ref('sinavDB').on('value', (snapshot) => {
+    clearTimeout(syncTimeout); // Başarılı bağlantıda timeout'u iptal et
+    if(snapshot.exists()) {
+      const data = snapshot.val();
+      DB.s = data.s || [];
+      DB.e = data.e || [];
+    } else {
+      DB = { s:[], e:[] };
+    }
+    
+    // Veriler gelince tüm ekranları güncelle
+    uDrp(); rTabS(); rTabE(); uStat();
+    if(aNo) {
+      if(DB.s.find(x=>x.no===aNo)) { rH(); if($('sonuclar').classList.contains('active')) rAnl(); } 
+      else { sAct(null); }
+    }
+    ld(0);
+  }, (error) => {
+    clearTimeout(syncTimeout);
+    ld(0);
+    console.error('Firebase okuma hatası:', error);
+    alert('❌ Veritabanı okuma hatası: ' + error.message + '\n\nFirebase güvenlik kurallarını kontrol edin.');
+  });
+}
+
+function svDB() {
+  ld(1, 'Buluta kaydediliyor...');
+  database.ref('sinavDB').set(DB)
+    .then(() => ld(0))
+    .catch(e => { alert("İnternet bağlantınızı kontrol edin: " + e.message); ld(0); });
+}
+
+/* ============================================================
+   ANA SAYFA - ARAMA VE KARNE
+   ============================================================ */
+function debounceSearch() { clearTimeout(searchDebounceTimer); searchDebounceTimer=setTimeout(sSearch,280); }
+function sSearch() { let v=$('sInp').value.trim(), r=$('sRes'); if(!v){r.innerHTML='';return;} let trm=normTR(v).split(/\s+/); let m=DB.s.filter(x=>{ let txt=normTR(x.no+" "+x.name+" "+x.class); return trm.every(t=>txt.includes(t)); }); if(!m.length){r.innerHTML='<div class="card" style="padding:10px;">Bulunamadı.</div>';return;} let h=''; m.forEach(x=>h+=`<div class="s-card"><div><strong>${x.no}</strong> — ${x.name} <span style="opacity:.7">(${x.class})</span></div><div style="display:flex;gap:5px;"><button class="btn-s btn-sm" onclick="sAct('${x.no}',true)">✔ Seç</button><button class="btn-w btn-sm" onclick="eStu('${x.no}')">✏️</button><button class="btn-d btn-sm" onclick="cDel('student','${x.no} silinsin mi?','${x.no}')">🗑️</button></div></div>`); r.innerHTML=h; }
+function clrS() { $('sInp').value=''; $('sRes').innerHTML=''; sAct(null,false); }
+function sAct(no, clr=false) { aNo=no; if(clr){$('sInp').value=''; $('sRes').innerHTML='';} let s=DB.s.find(x=>x.no===no); $('aBadge').innerHTML=s?`<div class="badge">✅ ${s.name} (${s.class})</div>`:''; if($('aStu'))$('aStu').value=no||''; if(no)rH(); else $('homeArea').innerHTML=''; }
+
+function uStat() {
+  const g=$('dynamicStatsGrid'); const u={}; DB.e.forEach(e=>{ u[e.examType]=u[e.examType]||new Set(); u[e.examType].add(e.examBatchId); });
+  let h=''; for(const [t,s] of Object.entries(u)){ h+=`<div class="stat-card"><div style="font-size:1.1em;opacity:0.9;">${t} Sınavı</div><div style="font-size:2.2em;font-weight:bold;margin-top:10px;">${s.size}</div></div>`; }
+  h+=`<div class="stat-card"><div style="font-size:1.1em;opacity:0.9;">Kayıtlı Öğrenci</div><div style="font-size:2.2em;font-weight:bold;margin-top:10px;">${DB.s.length}</div></div>`; g.innerHTML=h;
+}
+
+function rH() {
+  let s=DB.s.find(x=>x.no===aNo); if(!s)return; let ex=DB.e.filter(x=>x.studentNo===aNo).sort((a,b)=>srt(a.date,b.date)); let r=$('homeArea'); if(!ex.length){r.innerHTML='<div class="card">Sınav verisi yok.</div>';return;}
+  let grp={}; ex.forEach(e=>{ (grp[e.examType]=grp[e.examType]||[]).push(e); }); let typs=Object.keys(grp).sort();
+  let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXLMul('kCont','${s.name}_Karne')">📊 Excel'e Aktar</button><button class="btn-p" onclick="xPD('kCont','${s.name}_Karne',this)">📥 PDF İndir</button></div><div id="kCont" class="card" style="border:2px solid var(--act);"><h2 style="border:none;margin-bottom:0;">👤 ${s.name} — Sınav Karnesi</h2>`;
+  typs.forEach(t=>{
+    let el=grp[t], sb=Array.from(new Set(el.flatMap(e=>Object.keys(e.subs)))).sort();
+    h+=`<h3 style="background:var(--act-light); color:var(--act); padding:10px; border-radius:6px;">📘 ${t} Sınavları</h3><div class="scroll"><table data-sh="${t}"><thead><tr><th>Tarih</th>`;
+    sb.forEach(x=>h+=`<th>${x}</th>`); h+=`<th>Top.Net</th><th>Puan</th><th>Snf(Sr/Kt)</th><th>Genel(Sr/Kt)</th></tr></thead><tbody>`;
+    el.forEach(e=>{ if(e.abs){h+=`<tr class="absent-row"><td>${e.date}</td><td colspan="${sb.length+4}" style="text-align:center;">🔴 KATILMADI</td></tr>`;} else { h+=`<tr><td>${e.date}</td>`; sb.forEach(x=>h+=`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`); h+=`<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR}/${e.cP}</td><td>${e.gR}/${e.gP}</td></tr>`; }}); h+=`</tbody></table></div>`;
+  });
+  h+=`</div><div class="card" style="margin-top:20px;"><h2>📈 Puan ve Net Grafiği</h2><div class="grid"><div><label>Sınav Türü</label><select id="hExT" onchange="uHSub()">${typs.map(x=>`<option value="${x}">${x}</option>`).join('')}</select></div><div><label>Grafik Verisi</label><select id="hFlt" onchange="dH()"></select></div></div><div class="chart-box"><canvas id="cH"></canvas></div></div>`; r.innerHTML=h; uHSub();
+}
+function uHSub() { let t=$('hExT').value, ex=DB.e.filter(x=>x.studentNo===aNo&&x.examType===t&&!x.abs), sb=Array.from(new Set(ex.flatMap(e=>Object.keys(e.subs)))).sort(); let o=`<option value="score">Genel Puan</option><option value="totalNet">Toplam Net</option>`; sb.forEach(x=>o+=`<option value="s_${x}">${x} Neti</option>`); $('hFlt').innerHTML=o; dH(); }
+function dH() { let t=$('hExT').value, f=$('hFlt').value, ex=DB.e.filter(x=>x.studentNo===aNo&&x.examType===t).sort((a,b)=>srt(a.date,b.date)); if(c.h)c.h.destroy(); let d=ex.map(x=>{if(x.abs)return null; if(f==='score')return x.score; if(f==='totalNet')return x.totalNet; return x.subs[f.replace('s_','')]?.net??null;}); let ls=f==='score'?'Puanı':(f==='totalNet'?'Top. Neti':f.replace('s_','')+' Neti'); c.h=new Chart($('cH'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:`${t} — ${ls}`,data:d,borderColor:cols[0],backgroundColor:cols[0]+'22',fill:true,spanGaps:true,tension:0.3}]},options:cOpt()}); }
+
+/* ============================================================
+   SONUÇLAR - ANALİZ 
+   ============================================================ */
+function uDrp() { let t=[...new Set(DB.e.map(e=>e.examType))].sort(); $('aEx').innerHTML=t.map(x=>`<option value="${x}">${x}</option>`).join(''); $('aStu').innerHTML='<option value="">Seç...</option>'+DB.s.map(x=>`<option value="${x.no}">${x.name} (${x.class})</option>`).join(''); if(aNo)$('aStu').value=aNo; uSub(); }
+function uSub() { let t=$('aEx').value, s=new Set(); DB.e.filter(x=>x.examType===t&&!x.abs).forEach(x=>Object.keys(x.subs).forEach(k=>s.add(k))); $('aSub').innerHTML='<option value="">Tümü</option>'+[...s].sort().map(x=>`<option value="${x}">${x}</option>`).join(''); }
+function uUI() { let t=$('aType').value; $('gStu').style.display=(t==='student'||t==='ranking')?'block':'none'; $('gLvl').style.display=t==='class'?'block':'none'; $('gBr').style.display=t==='class'?'block':'none'; $('gSub').style.display=t==='ranking'?'none':'block'; if(t==='class') { let l=new Set(), b=new Set(); DB.s.forEach(s=>{let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m){l.add(m[1]);b.add(m[2].toUpperCase());}}); $('aLvl').innerHTML='<option value="">Tümü</option>'+[...l].sort().map(x=>`<option value="${x}">${x}. Sınıf</option>`).join(''); $('aBr').innerHTML='<option value="">Tümü</option>'+[...b].sort().map(x=>`<option value="${x}">${x}</option>`).join(''); } rAnl(); }
+
+function rAnl() {
+  let aT=$('aType').value, eT=$('aEx').value, sb=$('aSub').value, r=$('anlRes'); if(!eT){r.innerHTML='<div class="card">Veri yok.</div>';return;} let opt=cOpt(aT==='ranking');
+  if(aT==='ranking') {
+    let no=$('aStu').value; if(!no){r.innerHTML='';return;} let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no);
+    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tR','Siralama')">📊 Excel</button><button class="btn-p" onclick="xPD('pR','Siralama',this)">📥 PDF</button></div><div id="pR" class="card"><h3>🏆 ${st.name} — Sıralama Tablosu</h3><div class="scroll"><table id="tR"><thead><tr><th>Tarih</th><th>Sınıf(Sr/Kt)</th><th>Kurum(Sr/Kt)</th><th>Genel(Sr/Kt)</th></tr></thead><tbody>`;
+    ex.forEach(e=>h+=`<tr><td>${e.date}</td><td>${e.cR}/${e.cP}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`); h+=`</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
+    setTimeout(()=>{if(c.a)c.a.destroy(); c.a=new Chart($('cA'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:'Sınıf Sırası',data:ex.map(e=>e.cR),borderColor:cols[0],spanGaps:true,tension:0.3},{label:'Genel Sıra',data:ex.map(e=>e.gR),borderColor:cols[1],spanGaps:true,tension:0.3}]},options:opt});},100);
+  } else if(aT==='student') {
+    let no=$('aStu').value; if(!no){r.innerHTML='';return;} let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no);
+    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tS','Gelisim')">📊 Excel</button><button class="btn-p" onclick="xPD('pS','Gelisim',this)">📥 PDF</button></div><div id="pS" class="card"><h3>📈 ${st.name} — Gelişim Tablosu</h3><div class="scroll"><table id="tS"><thead><tr><th>Tarih</th><th>Net</th><th>Değişim</th></tr></thead><tbody>`;
+    let dD=[], cA=[]; ex.forEach((e,i)=>{ let n=sb?(e.subs[sb]?.net||0):e.totalNet, pn=i>0?(sb?(ex[i-1].subs[sb]?.net||0):ex[i-1].totalNet):n, df=(n-pn).toFixed(2), cl=df>0?'var(--success)':df<0?'var(--danger)':''; h+=`<tr><td>${e.date}</td><td>${n.toFixed(2)}</td><td style="color:${cl};">${df>0?'+'+df:df}</td></tr>`; dD.push(n); let ce=DB.e.filter(x=>x.date===e.date&&x.examType===eT&&x.studentClass===st.class&&!x.abs), cn=ce.map(x=>sb?(x.subs[sb]?.net||0):x.totalNet); cA.push(cn.length?(cn.reduce((x,y)=>x+y,0)/cn.length):null); }); h+=`</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
+    setTimeout(()=>{if(c.a)c.a.destroy(); c.a=new Chart($('cA'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:'Öğrenci Neti',data:dD,borderColor:cols[0],backgroundColor:cols[0]+'22',fill:true,spanGaps:true,tension:0.3},{label:'Sınıf Ort.',data:cA,borderColor:cols[2],borderDash:[5,5],fill:false,spanGaps:true,tension:0.3}]},options:opt});},100);
+  } else if(aT==='class') {
+    let l=$('aLvl').value, b=$('aBr').value, ex=DB.e.filter(x=>x.examType===eT&&!x.abs), d={};
+    ex.forEach(e=>{let m=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m)return; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase()))return; (d[e.date]=d[e.date]||[]).push(e);});
+    let sd=Object.keys(d).sort(srt), cs=new Set(), tr=[];
+    sd.forEach(dt=>{ let cl={}; d[dt].forEach(e=>(cl[e.studentClass]=cl[e.studentClass]||[]).push(e)); Object.keys(cl).sort().forEach(c=>{ cs.add(c); let n=cl[c].map(x=>sb?(x.subs[sb]?.net||0):x.totalNet), av=n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0; tr.push(`<tr><td>${c}</td><td>${dt}</td><td>${av}</td></tr>`); }); });
+    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tC','Sinif_Analizi')">📊 Excel</button><button class="btn-p" onclick="xPD('pC','Sinif_Analizi',this)">📥 PDF</button></div><div id="pC" class="card"><h3>📊 Sınıf Analizi</h3><div class="scroll"><table id="tC"><thead><tr><th>Sınıf</th><th>Tarih</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
+    setTimeout(()=>{if(c.a)c.a.destroy(); let ds=[...cs].sort().map((cl,i)=>({label:cl,borderColor:cols[i%cols.length],tension:0.3,spanGaps:true,data:sd.map(dt=>{let o=(d[dt]||[]).filter(x=>x.studentClass===cl), n=o.map(x=>sb?(x.subs[sb]?.net||0):x.totalNet); return n.length?n.reduce((x,y)=>x+y,0)/n.length:null;})})); c.a=new Chart($('cA'),{type:'line',data:{labels:sd,datasets:ds},options:opt});},100);
+  }
+}
+
+/* ============================================================
+   AYARLAR & EXCEL VERİ YÜKLEME 
+   ============================================================ */
+function rTabS() { let t=$('tStu').querySelector('tbody'); t.innerHTML=DB.s.map(s=>`<tr><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td style="display:flex;gap:5px;"><button class="btn-w btn-sm" onclick="eStu('${s.no}')">✏️</button><button class="btn-d btn-sm" onclick="cDel('student','${s.no} numaralı öğrenci ve verileri silinecek.','${s.no}')">🗑️</button></td></tr>`).join(''); }
+function rTabE() { let sn=new Map(); DB.e.forEach(e=>{if(!sn.has(e.examBatchId))sn.set(e.examBatchId,e);}); let u=[...sn.values()].sort((a,b)=>srt(a.date,b.date)); $('tExA').innerHTML=`<div class="scroll"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Kayıt Sayısı</th><th>İşlem</th></tr></thead><tbody>${u.map(e=>`<tr><td>${e.date}</td><td>${e.examType}</td><td>${DB.e.filter(x=>x.examBatchId===e.examBatchId).length}</td><td><button class="btn-d btn-sm" onclick="cDel('exam','Sınav tamamen silinsin mi?','${e.examBatchId}')">🗑️</button></td></tr>`).join('')}</tbody></table></div>`; }
+
+function oMod(id) { $(id).classList.add('active'); } function cMod(id) { $(id).classList.remove('active'); }
+function oModAdd() { $('mSTit').textContent='Öğrenci Ekle'; $('mSNo').value=''; $('mSNo').disabled=false; $('mSNa').value=''; $('mSCl').value=''; oMod('mStu'); }
+function eStu(n) { let s=DB.s.find(x=>x.no===n); if(s){$('mSTit').textContent='Öğrenci Düzenle'; $('mSNo').value=s.no; $('mSNo').disabled=true; $('mSNa').value=s.name; $('mSCl').value=s.class; oMod('mStu');} }
+function cDel(t, m, id=null) { dInf={t,id}; $('cTxt').textContent=m; oMod('mConf'); }
+
+function xDel() { let t=dInf.t, id=dInf.id; if(t==='student'){DB.s=DB.s.filter(x=>x.no!==id); DB.e=DB.e.filter(x=>x.studentNo!==id); if(aNo===id)sAct(null);} else if(t==='allStudents'){DB.s=[]; DB.e=[]; sAct(null);} else if(t==='exam'){DB.e=DB.e.filter(x=>x.examBatchId!==id); if(aNo)rH();} else if(t==='all'){database.ref('sinavDB').remove(); location.reload(); return;} svDB(); cMod('mConf'); }
+function svStu() { let n=$('mSNo').value.trim(), nm=$('mSNa').value.trim(), c=$('mSCl').value.trim(); if(!n||!nm||!c){alert('Tüm alanları doldurun!');return;} let s=DB.s.find(x=>x.no===n); if(s){s.name=nm; s.class=c; DB.e.filter(e=>e.studentNo===n).forEach(e=>e.studentClass=c); if(aNo===n)rH();}else{DB.s.push({no:n,name:nm,class:c});} svDB(); cMod('mStu'); }
+
+function dTpl(t) { let b=XLSX.utils.book_new(), d=t==='s'?[['Öğrenci No','Ad Soyad','Sınıfı'],['1001','Ahmet Yılmaz','11A']]:[['Öğrenci No','Sınav Türü','Deneme Tarihi','Türkçe Net','Matematik Net','Toplam Net','Puan','Sınıf Derece','Sınıf Katılım','Kurum Derece','Kurum Katılım','Genel Derece','Genel Katılım'],['1001','TYT','15.04.2024','30','20','50','300','1','30','1','150','1','1000']]; XLSX.utils.book_append_sheet(b, XLSX.utils.aoa_to_sheet(d), "Sablon"); XLSX.writeFile(b, t==='s'?'Ogr_Sablon.xlsx':'Sinav_Sablon.xlsx'); }
+
+function upl(e, t) { let f=e.target.files[0]; if(!f)return; ld(1,'Okunuyor...'); setTimeout(()=>{let r=new FileReader(); r.onload=ev=>{try{let d=XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(ev.target.result),{type:'array'}).Sheets[XLSX.read(new Uint8Array(ev.target.result),{type:'array'}).SheetNames[0]]); if(!d.length)throw new Error('Dosya boş.'); if(t==='s'){ let ad=0; d.forEach(r=>{let n=String(r['Öğrenci No']||'').trim(); if(n&&!DB.s.find(x=>x.no===n)){DB.s.push({no:n,name:String(r['Ad Soyad']||'').trim(),class:String(r['Sınıfı']||'').trim()});ad++;}}); svDB(); alert(`✅ ${ad} yeni öğrenci eklendi.`); } else { let bId=Date.now().toString(), cl=new Set(), sn=new Set(d.map(r=>String(r['Öğrenci No']).trim())), bD='', bT=''; for(let rw of d){let no=String(rw['Öğrenci No']||'').trim(); if(DB.s.find(x=>x.no===no)){bD=pD(rw['Deneme Tarihi']); bT=String(rw['Sınav Türü']||'').trim().toUpperCase(); break;}} if(!bD||!bT)throw new Error('Tarih/Tür okunamadı.'); if(DB.e.find(x=>x.date===bD&&x.examType===bT)){if(!confirm(`⚠️ ${bD} tarihli ${bT} zaten var. Üzerine yazılsın mı?`)){ld(0);e.target.value='';return;} DB.e=DB.e.filter(x=>!(x.date===bD&&x.examType===bT));} let ad=0; d.forEach(r=>{let no=String(r['Öğrenci No']||'').trim(), st=DB.s.find(x=>x.no===no); if(!st)return; cl.add(st.class); let ex={examBatchId:bId,studentNo:st.no,studentClass:st.class,date:bD,examType:bT,totalNet:pN(r['Toplam Net']),score:pN(r['Puan']),cR:r['Sınıf Derece']!=null?pN(r['Sınıf Derece']):'-',cP:r['Sınıf Katılım']!=null?pN(r['Sınıf Katılım']):'-',iR:r['Kurum Derece']!=null?pN(r['Kurum Derece']):'-',iP:r['Kurum Katılım']!=null?pN(r['Kurum Katılım']):'-',gR:r['Genel Derece']!=null?pN(r['Genel Derece']):'-',gP:r['Genel Katılım']!=null?pN(r['Genel Katılım']):'-',abs:false,subs:{}}; Object.keys(r).forEach(k=>{if(k.endsWith(' Net')&&k!=='Toplam Net'){let n=pN(r[k]); if(n!==0)ex.subs[k.replace(' Net','').trim()]={net:n};}}); DB.e.push(ex); ad++;}); DB.s.forEach(s=>{if(cl.has(s.class)&&!sn.has(s.no))DB.e.push({examBatchId:bId,studentNo:s.no,studentClass:s.class,date:bD,examType:bT,totalNet:0,score:0,cR:'-',cP:'-',iR:'-',iP:'-',gR:'-',gP:'-',abs:true,subs:{}});}); svDB(); alert(`✅ ${ad} sonuç yüklendi.`); } }catch(err){alert('❌ Hata: '+err.message);} ld(0); e.target.value='';}; r.readAsArrayBuffer(f);},100); }
+
+function expDB() { let b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`Yedek_${new Date().toLocaleDateString('tr-TR').replace(/\./g,'-')}.json`; a.click(); }
+function impDB(e) { let f=e.target.files[0]; if(!f)return; let r=new FileReader(); r.onload=ev=>{try{let p=JSON.parse(ev.target.result); if(typeof p!=='object'||!Array.isArray(p.s)||!Array.isArray(p.e))throw new Error(); DB=p; svDB(); alert('✅ Geri yükleme başarılı!');}catch{alert('❌ Bozuk veya geçersiz dosya.');}}; r.readAsText(f); e.target.value=''; }
+
+window.onload = checkAuth;
+</script></body></html>
