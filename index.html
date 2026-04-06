@@ -3,52 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA (Mobil Uygulama) Meta Etiketleri -->
 <meta name="theme-color" content="#1e3a5f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sınav Analizi">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135810.png">
 <link rel="manifest" href="manifest.json">
+
 <title>Sınav Analiz Sistemi</title>
 
+<!-- AdminLTE & Dependencies -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
 
+<!-- Chart.js & Utilities -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
 <style>
+/* ===== SADELEŞTİRİLMİŞ ÖZEL CSS ===== */
 #loginScreen { display:flex; justify-content:center; align-items:center; min-height:100vh; background: linear-gradient(135deg,#1e3a5f,#2d6a9f); }
 .login-card { width:100%; max-width:400px; }
 .login-card .card-header { background: linear-gradient(135deg,#1e3a5f,#2d6a9f); border-radius:8px 8px 0 0 !important; }
+
 #connBadge { font-size:0.78em; padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
-.chart-box { height:380px; position:relative; width:100%; }
+.chart-box { height:380px; position:relative; width: 100%; }
+
+/* Tablo Özelleştirmeleri */
 .scroll { overflow-x:auto; }
 .absent-row { background:rgba(220,53,69,0.07); color:#999; }
-body.dark-mode .absent-row { background:rgba(220,53,69,0.2); color:#dc3545; }
+body.dark-mode .absent-row { background: rgba(220,53,69,0.2); color: #dc3545; }
 body.pdf-export-mode thead th { position:static !important; }
-.admin-only { display:none !important; }
-body.is-admin .admin-only { display:inline-block !important; }
-body.is-admin li.admin-only { display:block !important; }
-body.is-admin button.admin-only { display:inline-block !important; }
-body.is-admin button.btn-block.admin-only { display:block !important; }
+
+/* Admin Yetkisi Olmayanlardan Gizlenecekler */
+.admin-only { display: none !important; }
+body.is-admin .admin-only { display: inline-block !important; }
+body.is-admin li.admin-only { display: block !important; }
+body.is-admin button.admin-only { display: inline-block !important; }
+body.is-admin button.btn-block.admin-only { display: block !important; }
 </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 
-<!-- LOADER -->
+<!-- ===== LOADER ===== -->
 <div id="loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999; justify-content:center; align-items:center; flex-direction:column; color:white; font-size:1.1em;">
   <div class="spinner-border text-light mb-3" style="width:3rem;height:3rem;"></div>
   <div id="l-txt">İşlem yapılıyor...</div>
 </div>
 
-<!-- LOGIN -->
+<!-- ===== LOGIN EKRANI ===== -->
 <div id="loginScreen">
   <div class="login-card card shadow-lg">
     <div class="card-header text-center py-4">
@@ -83,8 +95,9 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   </div>
 </div>
 
-<!-- ANA SİSTEM -->
+<!-- ===== ANA SİSTEM ===== -->
 <div id="mainApp" style="display:none;">
+  <!-- Navbar -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light" id="topNav">
     <ul class="navbar-nav">
       <li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a></li>
@@ -94,10 +107,14 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
     </ul>
     <ul class="navbar-nav ml-auto">
       <li class="nav-item">
-        <a href="#" class="nav-link" onclick="toggleTheme()" title="Gece/Gündüz Modu"><i class="fas fa-moon" id="themeIcon"></i></a>
+        <a href="#" class="nav-link" onclick="toggleTheme()" title="Gece/Gündüz Modu">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </a>
       </li>
       <li class="nav-item">
-        <span id="connBadge" class="nav-link"><span id="connDot">⏳</span> <span id="connTxt">Bağlanıyor...</span></span>
+        <span id="connBadge" class="nav-link">
+          <span id="connDot">⏳</span> <span id="connTxt">Bağlanıyor...</span>
+        </span>
       </li>
       <li class="nav-item">
         <a href="#" class="nav-link" onclick="logout()"><i class="fas fa-sign-out-alt mr-1"></i>Çıkış</a>
@@ -105,6 +122,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
     </ul>
   </nav>
 
+  <!-- Sidebar -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <a href="#" class="brand-link text-center">
       <i class="fas fa-chart-line brand-image" style="font-size:1.5rem; margin:0 8px;"></i>
@@ -117,15 +135,14 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
       </div>
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-          <!-- 1. Öğrenci (eski Ana Sayfa) -->
           <li class="nav-item">
-            <a href="#" class="nav-link active" onclick="sTab('ogrenci',this)">
+            <a href="#" class="nav-link active" onclick="sTab('anasayfa',this)">
               <i class="nav-icon fas fa-user-graduate"></i><p>Öğrenci</p>
             </a>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link" onclick="sTab('sonuclar',this)">
-              <i class="nav-icon fas fa-chart-line"></i><p>Sonuçlar &amp; Analizler</p>
+              <i class="nav-icon fas fa-chart-line"></i><p>Sonuçlar & Analizler</p>
             </a>
           </li>
           <li id="nav-ayarlar" class="nav-item admin-only">
@@ -138,6 +155,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
     </div>
   </aside>
 
+  <!-- Content Wrapper -->
   <div class="content-wrapper">
     <div class="content-header">
       <div class="container-fluid">
@@ -157,7 +175,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
       <div class="container-fluid">
 
         <!-- ÖĞRENCİ SAYFASI -->
-        <div id="ogrenci" class="pane">
+        <div id="anasayfa" class="pane">
           <div class="card card-primary card-outline">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div>
             <div class="card-body">
@@ -232,7 +250,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
         </div>
 
         <!-- AYARLAR -->
-        <div id="ayarlar" class="pane" style="display:none;">
+        <div id="ayarlar" class="pane admin-only" style="display:none;">
           <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3>
@@ -354,10 +372,14 @@ function login() {
   const err=getEl('loginError'), btn=getEl('btnLogin');
   err.style.display='none';
   if(!em||!pa){ err.textContent='E-posta ve şifre gerekli.'; err.style.display='block'; return; }
-  const orgHTML=btn.innerHTML;
+  
+  const orgHTML='<i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap';
   btn.innerHTML='<span class="spinner-border spinner-border-sm mr-2"></span>Giriş yapılıyor...';
   btn.disabled=true;
-  auth.signInWithEmailAndPassword(em,pa).catch(e=>{
+  
+  auth.signInWithEmailAndPassword(em,pa).then(() => {
+    btn.innerHTML=orgHTML; btn.disabled=false; // BAŞARILI GİRİŞTE BUTONU SIFIRLA
+  }).catch(e=>{
     btn.innerHTML=orgHTML; btn.disabled=false;
     err.className='alert alert-danger mt-3 mb-0'; err.style.display='block';
     if(e.code.includes('user-not-found')||e.code.includes('wrong-password')||e.code.includes('invalid-credential'))
@@ -366,11 +388,14 @@ function login() {
   });
 }
 
-/* DÜZELTME 1: Çıkış öncesi Firebase dinleyicisi kapatılıyor — permission_denied hatası önlenir */
+/* ÇIKIŞ YAPILDIĞINDA UYGULAMAYI TEMİZLE VE DİNLEYİCİLERİ KAPAT */
 function logout() {
-  database.ref('sinavDB').off();
+  database.ref('sinavDB').off(); // Dinleyici kapatılır
   auth.signOut();
   getEl('loginPass').value = '';
+  if(getEl('loginError')) getEl('loginError').style.display = 'none';
+  sAct(null, true); // Seçili öğrenci sıfırlanır
+  sTab('anasayfa', document.querySelector('.nav-sidebar .nav-link')); // Ana sekmeye dön
 }
 
 function resetPassword() {
@@ -418,10 +443,10 @@ function sTab(id, el) {
   getEl(id).style.display='block';
   document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active'));
   if(el) el.classList.add('active');
-  const titles={ogrenci:'Öğrenci', sonuclar:'Sonuçlar & Analizler', ayarlar:'Ayarlar'};
+  const titles={anasayfa:'Öğrenci', sonuclar:'Sonuçlar & Analizler', ayarlar:'Ayarlar'};
   if(getEl('pageTitle')) getEl('pageTitle').textContent=titles[id]||id;
   if(getEl('breadcrumb')) getEl('breadcrumb').textContent=titles[id]||id;
-  if(id==='ogrenci'){ uStat(); if(aNo) rH(); }
+  if(id==='anasayfa'){ uStat(); if(aNo) rH(); }
   if(id==='sonuclar') uUI();
   if(id==='ayarlar'){ rTabS(); rTabE(); }
   if(window.innerWidth<992){ document.body.classList.remove('sidebar-open'); document.body.classList.add('sidebar-collapse'); }
@@ -487,10 +512,6 @@ function sSearch(){
 }
 function clrS(){ getEl('sInp').value=''; getEl('sRes').innerHTML=''; sAct(null,false); }
 
-/*
- * DÜZELTME 4: sAct() her çağrıldığında homeArea önce temizleniyor.
- * Böylece farklı bir öğrenci seçildiğinde eski öğrencinin karnesi kalmıyor.
- */
 function sAct(no, clr=false){
   aNo=no;
   if(clr){ getEl('sInp').value=''; getEl('sRes').innerHTML=''; }
@@ -499,7 +520,6 @@ function sAct(no, clr=false){
     ?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`
     :'<span class="text-muted">Seçilmedi</span>';
   if(getEl('aStu')) getEl('aStu').value=no||'';
-  // Her durumda temizle, ardından yalnızca seçili öğrenci varsa karne oluştur
   getEl('homeArea').innerHTML='';
   if(no) rH();
 }
@@ -523,13 +543,8 @@ function rH(){
   if(!s) return;
   let r=getEl('homeArea');
 
-  // Öğrencinin doğrudan kayıtları
   let ownRecords=DB.e.filter(x=>String(x.studentNo)===String(aNo)).sort((a,b)=>srt(a.date,b.date));
 
-  /*
-   * DÜZELTME 3: Öğrencinin sınıfında var olan ama öğrenciye kayıt girilmemiş
-   * sınavlar "Katılmadı" satırı olarak karnede gösterilir.
-   */
   let knownKeys=new Set(ownRecords.map(e=>e.date+'__'+e.examType));
   let extraAbsent=[];
   DB.e.forEach(e=>{
@@ -568,7 +583,6 @@ function rH(){
 
   typs.forEach(t=>{
     let el=grp[t].sort((a,b)=>srt(a.date,b.date));
-    // Ders sütunlarını yalnızca katılan kayıtlardan üret
     let sb=Array.from(new Set(el.filter(e=>!e.abs).flatMap(e=>Object.keys(e.subs)))).sort();
     h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5>
     <div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead>
@@ -640,7 +654,6 @@ function uSub(){
   getEl('aSub').innerHTML='<option value="">Tümü</option>'+[...s].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
 }
 
-/* Sınav analizi için tarih dropdown'ını doldur */
 function uExamDates(){
   let t=getEl('aEx').value;
   let dates=[...new Set(DB.e.filter(x=>x.examType===t).map(x=>x.date))].sort(srt);
@@ -671,7 +684,6 @@ function rAnl(){
   if(!eT){r.innerHTML='<div class="alert alert-default-info">Sınav verisi yok.</div>';return;}
   let opt=cOpt(aT==='ranking');
 
-  /* --- Öğrenci Sıralama --- */
   if(aT==='ranking'){
     let no=getEl('aStu').value; if(!no){r.innerHTML='';return;}
     let ex=DB.e.filter(x=>String(x.studentNo)===String(no)&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date));
@@ -699,7 +711,6 @@ function rAnl(){
       ]},options:opt});
     },100);
 
-  /* --- Öğrenci Gelişimi --- */
   } else if(aT==='student'){
     let no=getEl('aStu').value; if(!no){r.innerHTML='';return;}
     let ex=DB.e.filter(x=>String(x.studentNo)===String(no)&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date));
@@ -737,7 +748,6 @@ function rAnl(){
       ]},options:opt});
     },100);
 
-  /* --- Sınıf Analizi --- */
   } else if(aT==='class'){
     let l=getEl('aLvl').value, b=getEl('aBr').value;
     let ex=DB.e.filter(x=>x.examType===eT&&!x.abs), d={};
@@ -780,11 +790,6 @@ function rAnl(){
       c.a=new Chart(getEl('cA'),{type:'line',data:{labels:sd,datasets:ds},options:opt});
     },100);
 
-  /*
-   * YENİ ÖZELLİK 2: Sınav Analizi
-   * Seçilen sınav türü + tarihine ait tüm öğrenciler
-   * en yüksek netten en düşüğe sıralanır; katılmayanlar alta eklenir.
-   */
   } else if(aT==='examdetail'){
     let dt=getEl('aDate').value;
     if(!dt){r.innerHTML='<div class="alert alert-default-info">Tarih seçiniz.</div>';return;}
@@ -792,10 +797,7 @@ function rAnl(){
     let batch=DB.e.filter(x=>x.examType===eT&&x.date===dt);
     if(!batch.length){r.innerHTML='<div class="alert alert-default-info">Bu sınava ait veri yok.</div>';return;}
 
-    // Ders sütunları (katılanlardan)
     let subKeys=Array.from(new Set(batch.filter(x=>!x.abs).flatMap(e=>Object.keys(e.subs)))).sort();
-
-    // Öğrenci adı / sınıf bilgisini ekle
     let rows=batch.map(e=>{
       let st=DB.s.find(x=>String(x.no)===String(e.studentNo));
       return {...e, studentName:st?st.name:'—', studentCls:st?st.class:e.studentClass};
@@ -805,7 +807,6 @@ function rAnl(){
     let absent=rows.filter(x=>x.abs).sort((a,b)=>normTR(a.studentName).localeCompare(normTR(b.studentName)));
     let sorted=[...attended,...absent];
 
-    // Katılım bilgisi (ilk katılan kayıttan)
     let sp=attended[0]||null;
     let metaStr=sp?`Sınıf Katılım: ${sp.cP||'-'} | Kurum Katılım: ${sp.iP||'-'} | Genel Katılım: ${sp.gP||'-'}`:'';
 
@@ -892,8 +893,7 @@ function dTpl(t){
   let b=XLSX.utils.book_new();
   let d=t==='s'
     ?[['Öğrenci No','Ad Soyad','Sınıfı'],['1001','Ahmet Yılmaz','11A']]
-    :[['Öğrenci No','Sınav Türü','Deneme Tarihi','Türkçe Net','Matematik Net','Toplam Net','Puan','Sınıf Derece','Sınıf Katılım','Kurum Derece','Kurum Katılım','Genel Derece','Genel Katılım'],
-      ['1001','TYT','15.04.2024','30','20','50','300','1','30','1','150','1','1000']];
+    :[['Öğrenci No','Sınav Türü','Deneme Tarihi','Türkçe Net','Matematik Net','Toplam Net','Puan','Sınıf Derece','Sınıf Katılım','Kurum Derece','Kurum Katılım','Genel Derece','Genel Katılım'],['1001','TYT','15.04.2024','30','20','50','300','1','30','1','150','1','1000']];
   XLSX.utils.book_append_sheet(b,XLSX.utils.aoa_to_sheet(d),"Sablon");
   XLSX.writeFile(b,t==='s'?'Ogr_Sablon.xlsx':'Sinav_Sablon.xlsx');
 }
