@@ -1,129 +1,365 @@
-<!DOCTYPE html><html lang="tr" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Deneme Sınav Takip Sistemi</title>
-<!-- GRAFİK VE PDF KÜTÜPHANELERİ -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sınav Analiz Sistemi</title>
+
+<!-- AdminLTE & Dependencies -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+
+<!-- Chart.js & Utilities -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- FIREBASE BULUT VERİTABANI KÜTÜPHANELERİ -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
 <style>
-:root { --bg-b: #f4f6f9; --bg-h: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%); --bg-c: white; --tx: #333; --bd: #e0e0e0; --bg-t: #f5f5f5; --bg-i: white; --bg-card: #f9f9f9; --act: #2d6a9f; --act-light: #e8f1fa; --success: #1a7f4b; --danger: #c0392b; }
-[data-theme="dark"] { --bg-b: #0f1117; --bg-h: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%); --bg-c: #1e1e1e; --tx: #e0e0e0; --bd: #3a3a3a; --bg-t: #2d2d2d; --bg-i: #252840; --bg-card: #2a2a2a; --act: #4a9edd; --act-light: #1a2a3a; --success: #2ecc71; --danger: #e74c3c; }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; } body { background: var(--bg-b); color: var(--tx); padding: 20px; transition: background .3s; }
-.container { max-width: 1400px; margin: auto; background: var(--bg-c); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; transition: background .3s; display: none; }
-#loginScreen { display: flex; justify-content: center; align-items: center; min-height: 90vh; }
-.login-box { background: var(--bg-c); padding: 40px; border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--bd); }
-.login-box h2 { color: var(--act); margin-bottom: 10px; font-size: 1.8em; } .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; font-size: 1em; border: 1px solid var(--bd); border-radius: 5px; background: var(--bg-i); color: var(--tx); }
-.login-box button { width: 100%; padding: 12px; font-size: 1.1em; background: var(--act); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-.login-error { color: #c0392b; margin-top: 15px; font-weight: bold; display: none; }
-.header { background: var(--bg-h); color: white; padding: 25px; text-align: center; position: relative; display: flex; justify-content: space-between; align-items: center; } .header h1 {font-size: 1.8em; margin:0;}
-.theme-btn { background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer; }
-.tabs { display: flex; background: var(--bg-t); border-bottom: 2px solid var(--bd); } .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; }
-.tab.active { background: var(--bg-c); color: var(--act); border-bottom: 3px solid var(--act); } .content { padding: 25px; } .pane { display: none; } .pane.active { display: block; }
-.card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--bd); margin-bottom: 20px; }
-h2 { border-bottom: 2px solid var(--act); padding-bottom: 10px; margin-bottom: 15px; display:flex; justify-content:space-between; align-items: center;} h3 { margin: 15px 0 10px 0; color: var(--tx); }
-input, select { width: 100%; padding: 10px; border: 1px solid var(--bd); background: var(--bg-i); color: var(--tx); border-radius: 5px; margin-top: 5px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-button { padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; } .btn-p { background: var(--act); } .btn-s { background: #1a7f4b; } .btn-d { background: #c0392b; } .btn-w { background: #d97706; color: #fff; } .btn-ex { background: #1D6F42; } .btn-sm { padding: 5px 10px; font-size: 0.82em; } .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; } .btn-group.right { justify-content: flex-end; margin-bottom: 8px; } .absent-row { opacity: 0.6; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(192,57,43,0.05) 5px, rgba(192,57,43,0.05) 10px); }
-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } th, td { padding: 10px; border-bottom: 1px solid var(--bd); text-align: left; } th { background: #1e3a5f; color: white; }
-.chart-box { height: 400px; width: 100%; background: var(--bg-c); padding: 15px; border: 1px solid var(--bd); border-radius: 8px; margin-top: 20px; }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; } .modal.active { display: flex; } .modal-c { background: var(--bg-c); padding: 25px; border-radius: 10px; width: 400px; }
-.loader { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; z-index:9999; justify-content:center; align-items:center; flex-direction:column; font-size:1.2em; } .loader.active { display: flex; } .spin { width: 50px; height: 50px; border: 5px solid transparent; border-top: 5px solid var(--act); border-radius: 50%; animation: sp 1s linear infinite; margin-bottom: 10px; } @keyframes sp { 100% { transform: rotate(360deg); } }
-.s-card { background: var(--bg-h); color: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; } .badge { background: #ffc107; color: #333; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; display: inline-block; } .scroll { overflow-x: auto; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; } .stat-card { background: var(--bg-h); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); } .stat-value { font-size: 2.2em; font-weight: bold; margin: 10px 0; }
-body.pdf-export-mode thead th { position: static !important; }
-</style>
-</head><body>
+/* ===== GENEL DÜZENLEMELER ===== */
+.content-wrapper { background: #f4f6f9; }
+.card { border-radius: 8px; }
+.nav-sidebar .nav-link { border-radius: 6px; }
 
-<div id="loader" class="loader"><div class="spin"></div><div id="l-txt">İşlem Yapılıyor...</div></div>
+/* ===== LOGIN ===== */
+#loginScreen { display:flex; justify-content:center; align-items:center; min-height:100vh; background: linear-gradient(135deg,#1e3a5f,#2d6a9f); }
+.login-card { width:100%; max-width:400px; }
+.login-card .card-header { background: linear-gradient(135deg,#1e3a5f,#2d6a9f); border-radius:8px 8px 0 0 !important; }
+
+/* ===== BAĞLANTI ROZET ===== */
+#connBadge { font-size:0.78em; padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
+
+/* ===== CHART BOX ===== */
+.chart-box { height:380px; position:relative; }
+
+/* ===== TABLO ===== */
+.table thead th { background:#1e3a5f; color:white; border:none; }
+.scroll { overflow-x:auto; }
+.absent-row { background:rgba(220,53,69,0.07); color:#999; }
+
+/* ===== BUTONLAR ===== */
+.btn-ex { background:#1D6F42; color:white; }
+.btn-ex:hover { background:#155234; color:white; }
+.btn-group-export { display:flex; gap:8px; justify-content:flex-end; margin-bottom:10px; flex-wrap:wrap; }
+
+/* ===== STAT CARD ===== */
+.stat-icon { font-size:2.5rem; opacity:0.3; }
+
+/* ===== BADGE AKTİF ÖĞRENCİ ===== */
+#aBadge .badge { font-size:0.95em; padding:8px 14px; }
+
+/* ===== SIDEBAR AKTİF ===== */
+.nav-sidebar .nav-item .nav-link.active { background-color: rgba(255,255,255,0.15); }
+
+/* ===== PDF EXPORT ===== */
+body.pdf-export-mode thead th { position:static !important; }
+</style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+
+<!-- ===== LOADER ===== -->
+<div id="loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999; justify-content:center; align-items:center; flex-direction:column; color:white; font-size:1.1em;">
+  <div class="spinner-border text-light mb-3" style="width:3rem;height:3rem;"></div>
+  <div id="l-txt">İşlem yapılıyor...</div>
+</div>
 
 <!-- ===== LOGIN EKRANI ===== -->
 <div id="loginScreen">
-  <div class="login-box">
-    <h2>Sınav Analiz Sistemi</h2>
-    <p style="color:var(--tx); margin-bottom:20px;">Sisteme erişmek için giriş yapın.</p>
-    <input type="email" id="loginEmail" placeholder="E-posta Adresi" autocomplete="email">
-    <input type="password" id="loginPass" placeholder="Şifre" onkeypress="if(event.key==='Enter')login()">
-    <button onclick="login()">Giriş Yap</button>
-    <div style="margin-top:10px;">
-      <a href="#" onclick="resetPassword()" style="font-size:0.85em; color:var(--act); text-decoration:none;">Şifremi unuttum</a>
+  <div class="login-card card shadow-lg">
+    <div class="card-header text-center py-4">
+      <h3 class="mb-0 text-white"><i class="fas fa-chart-bar mr-2"></i>Sınav Analiz Sistemi</h3>
+      <p class="text-white-50 mb-0 mt-1" style="font-size:0.85em;">Bulut Tabanlı Eğitim Platformu</p>
     </div>
-    <div id="loginError" class="login-error"></div>
+    <div class="card-body p-4">
+      <div class="form-group">
+        <label>E-posta</label>
+        <div class="input-group">
+          <input type="email" id="loginEmail" class="form-control" placeholder="ornek@okul.com" autocomplete="email">
+          <div class="input-group-append"><span class="input-group-text"><i class="fas fa-envelope"></i></span></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <div class="input-group">
+          <input type="password" id="loginPass" class="form-control" placeholder="••••••••" onkeypress="if(event.key==='Enter')login()">
+          <div class="input-group-append"><span class="input-group-text"><i class="fas fa-lock"></i></span></div>
+        </div>
+      </div>
+      <button onclick="login()" class="btn btn-primary btn-block btn-lg">
+        <i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap
+      </button>
+      <div class="text-center mt-2">
+        <a href="#" onclick="resetPassword()" class="text-muted" style="font-size:0.85em;">
+          <i class="fas fa-key mr-1"></i>Şifremi unuttum
+        </a>
+      </div>
+      <div id="loginError" class="alert mt-3 mb-0" style="display:none;"></div>
+    </div>
   </div>
 </div>
 
-<!-- ===== ANA SİSTEM ===== -->
-<div class="container" id="mainApp">
-    <div class="header">
-        <div><h1>📊 Sınav Analiz Sistemi</h1><div style="font-size:0.8em; opacity:0.8; margin-top:5px; text-align:left;">Bulut Tabanlı Eğitim Platformu &nbsp;|&nbsp; <span id="userEmail" style="font-style:italic;"></span></div></div>
-        <div style="display:flex; gap:10px; align-items:center;">
-            <div id="connBadge" style="font-size:0.78em; padding:5px 12px; border-radius:20px; background:rgba(255,255,255,0.15); color:white; display:flex; align-items:center; gap:5px; transition:all 0.4s;">
-                <span id="connDot">⏳</span><span id="connTxt">Bağlanıyor...</span>
-            </div>
-            <button class="theme-btn" onclick="tTheme()">🌓 Tema</button>
-            <button class="btn-d" onclick="logout()" style="border-radius:20px; padding:8px 15px;">🚪 Çıkış</button>
-        </div>
+<!-- ===== ANA SİSTEM (AdminLTE Wrapper) ===== -->
+<div id="mainApp" style="display:none;">
+
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <ul class="navbar-nav">
+      <li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a></li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <span class="nav-link text-muted" style="font-size:0.85em;"><i class="fas fa-user-circle mr-1"></i><span id="userEmail"></span></span>
+      </li>
+    </ul>
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <span id="connBadge" class="nav-link">
+          <span id="connDot">⏳</span> <span id="connTxt">Bağlanıyor...</span>
+        </span>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" onclick="logout()"><i class="fas fa-sign-out-alt mr-1"></i>Çıkış</a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <a href="#" class="brand-link text-center">
+      <i class="fas fa-chart-line brand-image" style="font-size:1.5rem; margin:0 8px;"></i>
+      <span class="brand-text font-weight-bold">Sınav Analizi</span>
+    </a>
+    <div class="sidebar">
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image"><i class="fas fa-user-circle fa-2x text-white ml-2"></i></div>
+        <div class="info"><span class="d-block text-white" id="sideUserEmail" style="font-size:0.8em;"></span></div>
+      </div>
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+          <li class="nav-item">
+            <a href="#" class="nav-link active" onclick="sTab('anasayfa',this)">
+              <i class="nav-icon fas fa-home"></i><p>Ana Sayfa</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" onclick="sTab('sonuclar',this)">
+              <i class="nav-icon fas fa-chart-line"></i><p>Sonuçlar & Analizler</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" onclick="sTab('ayarlar',this)">
+              <i class="nav-icon fas fa-cog"></i><p>Ayarlar</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
     </div>
-    <div class="tabs"><div class="tab active" onclick="sTab('anasayfa',this)">🏠 Ana Sayfa</div><div class="tab" onclick="sTab('sonuclar',this)">📈 Sonuçlar</div><div class="tab" onclick="sTab('ayarlar',this)">⚙️ Ayarlar</div></div>
+  </aside>
+
+  <!-- Content Wrapper -->
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6"><h1 class="m-0" id="pageTitle">Ana Sayfa</h1></div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><i class="fas fa-chart-bar mr-1"></i>Sınav Analiz Sistemi</li>
+              <li class="breadcrumb-item active" id="breadcrumb">Ana Sayfa</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="content">
+      <div class="container-fluid">
+
         <!-- ANA SAYFA -->
-        <div id="anasayfa" class="pane active">
-            <div class="card">
-                <h2>Öğrenci Sorgula</h2>
-                <div id="aBadge"></div>
-                <div style="display:flex; gap:10px;"><input type="text" id="sInp" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()"><button class="btn-d" onclick="clrS()">Temizle</button></div>
-                <div id="sRes" style="margin-top:15px;"></div>
+        <div id="anasayfa" class="pane">
+
+          <!-- Öğrenci Arama -->
+          <div class="card card-primary card-outline">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div>
+            <div class="card-body">
+              <div id="aBadge" class="mb-2"></div>
+              <div class="input-group">
+                <input type="text" id="sInp" class="form-control" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()">
+                <div class="input-group-append">
+                  <button class="btn btn-danger" onclick="clrS()"><i class="fas fa-times"></i> Temizle</button>
+                </div>
+              </div>
+              <div id="sRes" class="mt-3"></div>
             </div>
-            <div id="homeArea"></div>
-            <div class="card" style="margin-top: 30px; border:none; background:transparent; padding:0;">
-                <h2 style="border-bottom: 2px dashed var(--bd); padding-bottom: 15px; color:var(--tx);">Sistem Özeti (Canlı)</h2>
-                <div class="stats-grid" id="dynamicStatsGrid"></div>
+          </div>
+
+          <!-- Öğrenci Karnesi -->
+          <div id="homeArea"></div>
+
+          <!-- Sistem Özeti -->
+          <div class="card card-outline card-info mt-3">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti (Canlı)</h3></div>
+            <div class="card-body">
+              <div class="row" id="dynamicStatsGrid"></div>
             </div>
+          </div>
         </div>
 
         <!-- SONUÇLAR -->
-        <div id="sonuclar" class="pane">
-            <div class="card">
-                <h2>Analiz Filtreleri</h2>
-                <div class="grid">
-                    <div><label>Analiz Türü</label><select id="aType" onchange="uUI()"><option value="student">Öğrenci Gelişimi (Sınıf Kıyaslamalı)</option><option value="ranking">Öğrenci Sıralama</option><option value="class">Sınıf Analizi</option></select></div>
-                    <div id="gStu"><label>Öğrenci Seçin</label><select id="aStu" onchange="sAct(this.value); rAnl();"></select></div>
-                    <div id="gLvl" style="display:none;"><label>Sınıf Seviyesi</label><select id="aLvl" onchange="rAnl()"><option value="">Tümü</option></select></div>
-                    <div id="gBr" style="display:none;"><label>Şube</label><select id="aBr" onchange="rAnl()"><option value="">Tümü</option></select></div>
+        <div id="sonuclar" class="pane" style="display:none;">
+          <div class="card card-primary card-outline">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-filter mr-2"></i>Analiz Filtreleri</h3></div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Analiz Türü</label>
+                    <select id="aType" class="form-control" onchange="uUI()">
+                      <option value="student">Öğrenci Gelişimi (Sınıf Kıyaslamalı)</option>
+                      <option value="ranking">Öğrenci Sıralama</option>
+                      <option value="class">Sınıf Analizi</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="grid" style="margin-top:10px;"><div><label>Sınav Türü</label><select id="aEx" onchange="uSub(); rAnl();"></select></div><div id="gSub"><label>Ders</label><select id="aSub" onchange="rAnl()"></select></div></div>
+                <div class="col-md-3" id="gStu">
+                  <div class="form-group">
+                    <label>Öğrenci Seçin</label>
+                    <select id="aStu" class="form-control" onchange="sAct(this.value); rAnl();"></select>
+                  </div>
+                </div>
+                <div class="col-md-3" id="gLvl" style="display:none;">
+                  <div class="form-group">
+                    <label>Sınıf Seviyesi</label>
+                    <select id="aLvl" class="form-control" onchange="rAnl()"><option value="">Tümü</option></select>
+                  </div>
+                </div>
+                <div class="col-md-3" id="gBr" style="display:none;">
+                  <div class="form-group">
+                    <label>Şube</label>
+                    <select id="aBr" class="form-control" onchange="rAnl()"><option value="">Tümü</option></select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Sınav Türü</label>
+                    <select id="aEx" class="form-control" onchange="uSub(); rAnl();"></select>
+                  </div>
+                </div>
+                <div class="col-md-3" id="gSub">
+                  <div class="form-group">
+                    <label>Ders</label>
+                    <select id="aSub" class="form-control" onchange="rAnl()"></select>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div id="anlRes"></div>
+          </div>
+          <div id="anlRes"></div>
         </div>
 
         <!-- AYARLAR -->
-        <div id="ayarlar" class="pane">
-            <div class="card">
-                <h2>Öğrenci Yönetimi <button class="btn-s" onclick="oModAdd()">➕ Ekle</button></h2>
-                <div class="btn-group"><button class="btn-p" onclick="dTpl('s')">📥 Şablon İndir</button><button class="btn-p" onclick="$('fStu').click()">📤 Excel Yükle</button><input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')"></div>
-                <div class="scroll" style="max-height:300px;"><table id="tStu"><thead><tr><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead><tbody></tbody></table></div>
-                <button class="btn-d" style="width:100%; margin-top:10px;" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek?')">🗑️ Tümünü Sil</button>
+        <div id="ayarlar" class="pane" style="display:none;">
+          <!-- Öğrenci Yönetimi -->
+          <div class="card card-primary card-outline">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3>
+              <button class="btn btn-success btn-sm" onclick="oModAdd()"><i class="fas fa-plus mr-1"></i>Ekle</button>
             </div>
-            <div class="card">
-                <h2>Sınav Verileri Yükleme</h2>
-                <div class="btn-group"><button class="btn-p" onclick="dTpl('e')">📥 Sınav Şablonu</button><button class="btn-p" onclick="$('fEx').click()">📤 Sonuç Yükle</button><input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')"></div>
-                <div id="tExA" class="scroll" style="margin-top:15px;"></div>
+            <div class="card-body">
+              <div class="btn-group mb-3">
+                <button class="btn btn-primary btn-sm" onclick="dTpl('s')"><i class="fas fa-download mr-1"></i>Şablon İndir</button>
+                <button class="btn btn-primary btn-sm" onclick="$('fStu').click()"><i class="fas fa-upload mr-1"></i>Excel Yükle</button>
+                <input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')">
+              </div>
+              <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+                <table class="table table-sm table-hover" id="tStu">
+                  <thead><tr><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <button class="btn btn-danger btn-block mt-2" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek?')">
+                <i class="fas fa-trash mr-1"></i>Tümünü Sil
+              </button>
             </div>
-            <div class="card">
-                <h2 style="border:none;">Sistem Yedekleme (Bulut)</h2>
-                <div class="btn-group"><button class="btn-s" onclick="expDB()">📥 Yedeği İndir (.json)</button><button class="btn-p" onclick="$('fImp').click()">📤 Sisteme Geri Yükle</button><input type="file" id="fImp" style="display:none;" onchange="impDB(event)"><button class="btn-d" style="margin-left:auto;" onclick="cDel('all','HER ŞEY SİLİNECEK?')">⚠️ Tüm Veritabanını Sıfırla</button></div>
+          </div>
+
+          <!-- Sınav Verileri -->
+          <div class="card card-warning card-outline">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri Yükleme</h3></div>
+            <div class="card-body">
+              <div class="btn-group mb-3">
+                <button class="btn btn-primary btn-sm" onclick="dTpl('e')"><i class="fas fa-download mr-1"></i>Sınav Şablonu</button>
+                <button class="btn btn-primary btn-sm" onclick="$('fEx').click()"><i class="fas fa-upload mr-1"></i>Sonuç Yükle</button>
+                <input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')">
+              </div>
+              <div id="tExA" class="table-responsive mt-2"></div>
             </div>
+          </div>
+
+          <!-- Yedekleme -->
+          <div class="card card-danger card-outline">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yedekleme</h3></div>
+            <div class="card-body">
+              <div class="btn-group flex-wrap">
+                <button class="btn btn-success btn-sm" onclick="expDB()"><i class="fas fa-download mr-1"></i>Yedeği İndir (.json)</button>
+                <button class="btn btn-primary btn-sm" onclick="$('fImp').click()"><i class="fas fa-upload mr-1"></i>Geri Yükle</button>
+                <input type="file" id="fImp" style="display:none;" onchange="impDB(event)">
+                <button class="btn btn-danger btn-sm ml-auto" onclick="cDel('all','HER ŞEY SİLİNECEK?')">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-    </div>
-</div>
+
+      </div><!-- /.container-fluid -->
+    </div><!-- /.content -->
+  </div><!-- /.content-wrapper -->
+
+  <footer class="main-footer text-center text-muted" style="font-size:0.8em;">
+    <strong>Sınav Analiz Sistemi</strong> &mdash; Bulut Tabanlı Eğitim Platformu
+  </footer>
+
+</div><!-- /#mainApp -->
 
 <!-- MODALLAR -->
-<div id="mConf" class="modal"><div class="modal-c"><h2>⚠️ Onay</h2><p id="cTxt" style="margin:20px 0; color:var(--tx);"></p><div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn-w" onclick="cMod('mConf')">İptal</button><button class="btn-d" onclick="xDel()">Evet, Sil</button></div></div></div>
-<div id="mStu" class="modal"><div class="modal-c"><h2 id="mSTit">Öğrenci İşlemi</h2><input type="text" id="mSNo" placeholder="Öğrenci No (Değiştirilemez)"><input type="text" id="mSNa" placeholder="Ad Soyad"><input type="text" id="mSCl" placeholder="Sınıfı (Örn: 11A)"><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:15px;"><button class="btn-w" onclick="cMod('mStu')">İptal</button><button class="btn-s" onclick="svStu()">Kaydet</button></div></div></div>
+<div class="modal fade" id="mConf" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Onay</h5></div>
+      <div class="modal-body"><p id="cTxt"></p></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
+        <button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="mStu" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci İşlemi</h5></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Öğrenci No</label><input type="text" id="mSNo" class="form-control" placeholder="Değiştirilemez"></div>
+        <div class="form-group"><label>Ad Soyad</label><input type="text" id="mSNa" class="form-control" placeholder="Ad Soyad"></div>
+        <div class="form-group"><label>Sınıfı</label><input type="text" id="mSCl" class="form-control" placeholder="Örn: 11A"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">İptal</button>
+        <button class="btn btn-success" onclick="svStu()"><i class="fas fa-save mr-1"></i>Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AdminLTE JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
 /* ============================================================
@@ -153,10 +389,10 @@ function uConn(online) {
   if (!dot) return;
   if (online) {
     dot.textContent = '🟢'; txt.textContent = 'Bağlı';
-    badge.style.background = 'rgba(26,127,75,0.7)';
+    badge.className = 'nav-link text-success';
   } else {
     dot.textContent = '🔴'; txt.textContent = 'Çevrimdışı';
-    badge.style.background = 'rgba(192,57,43,0.7)';
+    badge.className = 'nav-link text-danger';
   }
 }
 // Firebase'in kendi bağlantı takip mekanizması
@@ -179,6 +415,8 @@ function checkAuth() {
       // Header'da kullanıcı e-postasını göster
       const emailEl = document.getElementById('userEmail');
       if (emailEl) emailEl.textContent = user.email;
+      const sideEl = document.getElementById('sideUserEmail');
+      if (sideEl) sideEl.textContent = user.email;
       init();
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
@@ -195,13 +433,13 @@ function login() {
   if (!email || !pass) { errEl.textContent = 'E-posta ve şifre gerekli.'; errEl.style.display = 'block'; return; }
   auth.signInWithEmailAndPassword(email, pass)
     .catch(err => {
-      errEl.style.display = 'block';
+      errEl.className='alert alert-danger mt-3 mb-0'; errEl.style.display='block';
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential')
-        errEl.textContent = '❌ Hatalı e-posta veya şifre.';
+        errEl.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Hatalı e-posta veya şifre.';
       else if (err.code === 'auth/too-many-requests')
-        errEl.textContent = '⚠️ Çok fazla deneme. Lütfen bekleyin.';
+        errEl.innerHTML = '<i class="fas fa-clock mr-2"></i>Çok fazla deneme. Lütfen bekleyin.';
       else
-        errEl.textContent = '❌ Giriş hatası: ' + err.message;
+        errEl.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Giriş hatası: ' + err.message;
     });
 }
 
@@ -215,8 +453,8 @@ function resetPassword() {
   const errEl = document.getElementById('loginError');
   if (!email) { errEl.textContent = 'Şifre sıfırlamak için önce e-posta adresinizi girin.'; errEl.style.display = 'block'; return; }
   auth.sendPasswordResetEmail(email)
-    .then(() => { errEl.style.display = 'block'; errEl.style.color = '#1a7f4b'; errEl.textContent = '✅ Şifre sıfırlama e-postası gönderildi.'; })
-    .catch(() => { errEl.style.display = 'block'; errEl.style.color = '#c0392b'; errEl.textContent = '❌ E-posta gönderilemedi. Adresi kontrol edin.'; });
+    .then(() => { errEl.className='alert alert-success mt-3 mb-0'; errEl.style.display='block'; errEl.innerHTML='<i class="fas fa-check-circle mr-2"></i>Şifre sıfırlama e-postası gönderildi.'; })
+    .catch(() => { errEl.className='alert alert-danger mt-3 mb-0'; errEl.style.display='block'; errEl.innerHTML='<i class="fas fa-times-circle mr-2"></i>E-posta gönderilemedi. Adresi kontrol edin.'; });
 }
 
 /* ============================================================
@@ -225,9 +463,24 @@ function resetPassword() {
 const $ = i => document.getElementById(i);
 let DB = { s:[], e:[] }, aNo = null, c={h:null,a:null}, cols = ['#2d6a9f','#e6194b','#1a7f4b','#d97706','#7c3aed','#f58231','#0ea5e9','#db2777'], dInf = {}, searchDebounceTimer = null;
 
-function ld(s, m="İşlem yapılıyor...") { $('l-txt').textContent=m; $('loader').className=s?'loader active':'loader'; }
-function tTheme() { let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); localStorage.setItem('thm',t); Chart.defaults.color=t==='dark'?'#94a3b8':'#475569'; if(c.h)c.h.update(); if(c.a)c.a.update(); }
-function sTab(id, el) { document.querySelectorAll('.pane, .tab').forEach(x=>x.classList.remove('active')); $(id).classList.add('active'); el.classList.add('active'); if(id==='anasayfa') { uStat(); if(aNo)rH(); } if(id==='sonuclar') uUI(); if(id==='ayarlar'){ rTabS(); rTabE(); } }
+function ld(s, m="İşlem yapılıyor...") { $('l-txt').textContent=m; $('loader').style.display=s?'flex':'none'; }
+function tTheme() { /* AdminLTE tema geçişi ileride eklenebilir */ }
+function sTab(id, el) {
+  // Hide all panes
+  document.querySelectorAll('.pane').forEach(x=>x.style.display='none');
+  $(id).style.display='block';
+  // Sidebar active state
+  document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // Breadcrumb & page title
+  const titles = {anasayfa:'Ana Sayfa', sonuclar:'Sonuçlar & Analizler', ayarlar:'Ayarlar'};
+  const icons  = {anasayfa:'fas fa-home', sonuclar:'fas fa-chart-line', ayarlar:'fas fa-cog'};
+  if($('pageTitle')) $('pageTitle').textContent = titles[id]||id;
+  if($('breadcrumb')) $('breadcrumb').textContent = titles[id]||id;
+  if(id==='anasayfa') { uStat(); if(aNo)rH(); }
+  if(id==='sonuclar') uUI();
+  if(id==='ayarlar'){ rTabS(); rTabE(); }
+}
 function normTR(s) { return String(s).replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c'); }
 function pD(v) { if(typeof v==='number'){let d=new Date((v-25569)*86400000);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;} let p=String(v||'').trim().split('.'); return p.length===3?`${p[0].padStart(2,'0')}.${p[1].padStart(2,'0')}.${p[2]}`:String(v||''); }
 function pN(v) { let n=parseFloat(String(v||0).replace(',', '.')); return isNaN(n)?0:n; }
@@ -242,7 +495,7 @@ function xPD(id, fn, b) { let o=b.innerText; b.innerText="⏳"; ld(1,'PDF Hazır
    BULUT VERİTABANI İŞLEMLERİ (LIVE SYNC)
    ============================================================ */
 function init() {
-  let t=localStorage.getItem('thm')||'light'; document.documentElement.setAttribute('data-theme',t); Chart.defaults.color=t==='dark'?'#94a3b8':'#475569';
+  Chart.defaults.color = '#475569';
   
   ld(1, 'Bulut verileri senkronize ediliyor...');
 
@@ -290,27 +543,35 @@ function svDB() {
    ANA SAYFA - ARAMA VE KARNE
    ============================================================ */
 function debounceSearch() { clearTimeout(searchDebounceTimer); searchDebounceTimer=setTimeout(sSearch,280); }
-function sSearch() { let v=$('sInp').value.trim(), r=$('sRes'); if(!v){r.innerHTML='';return;} let trm=normTR(v).split(/\s+/); let m=DB.s.filter(x=>{ let txt=normTR(x.no+" "+x.name+" "+x.class); return trm.every(t=>txt.includes(t)); }); if(!m.length){r.innerHTML='<div class="card" style="padding:10px;">Bulunamadı.</div>';return;} let h=''; m.forEach(x=>h+=`<div class="s-card"><div><strong>${x.no}</strong> — ${x.name} <span style="opacity:.7">(${x.class})</span></div><div style="display:flex;gap:5px;"><button class="btn-s btn-sm" onclick="sAct('${x.no}',true)">✔ Seç</button><button class="btn-w btn-sm" onclick="eStu('${x.no}')">✏️</button><button class="btn-d btn-sm" onclick="cDel('student','${x.no} silinsin mi?','${x.no}')">🗑️</button></div></div>`); r.innerHTML=h; }
+function sSearch() { let v=$('sInp').value.trim(), r=$('sRes'); if(!v){r.innerHTML='';return;} let trm=normTR(v).split(/\s+/); let m=DB.s.filter(x=>{ let txt=normTR(x.no+" "+x.name+" "+x.class); return trm.every(t=>txt.includes(t)); }); if(!m.length){r.innerHTML='<div class="card" style="padding:10px;">Bulunamadı.</div>';return;} let h=''; m.forEach(x=>h+=`<div class="callout callout-info py-2 px-3 mb-2 d-flex justify-content-between align-items-center"><div><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div><div class="btn-group btn-group-sm"><button class="btn btn-success" onclick="sAct('${x.no}',true)"><i class="fas fa-check mr-1"></i>Seç</button><button class="btn btn-warning" onclick="eStu('${x.no}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="cDel('student','${x.no} silinsin mi?','${x.no}')"><i class="fas fa-trash"></i></button></div></div>`); r.innerHTML=h; }
 function clrS() { $('sInp').value=''; $('sRes').innerHTML=''; sAct(null,false); }
-function sAct(no, clr=false) { aNo=no; if(clr){$('sInp').value=''; $('sRes').innerHTML='';} let s=DB.s.find(x=>x.no===no); $('aBadge').innerHTML=s?`<div class="badge">✅ ${s.name} (${s.class})</div>`:''; if($('aStu'))$('aStu').value=no||''; if(no)rH(); else $('homeArea').innerHTML=''; }
+function sAct(no, clr=false) { aNo=no; if(clr){$('sInp').value=''; $('sRes').innerHTML='';} let s=DB.s.find(x=>x.no===no); $('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'<span class="text-muted">Henüz öğrenci seçilmedi.</span>'; if($('aStu'))$('aStu').value=no||''; if(no)rH(); else $('homeArea').innerHTML=''; }
 
 function uStat() {
   const g=$('dynamicStatsGrid'); const u={}; DB.e.forEach(e=>{ u[e.examType]=u[e.examType]||new Set(); u[e.examType].add(e.examBatchId); });
-  let h=''; for(const [t,s] of Object.entries(u)){ h+=`<div class="stat-card"><div style="font-size:1.1em;opacity:0.9;">${t} Sınavı</div><div style="font-size:2.2em;font-weight:bold;margin-top:10px;">${s.size}</div></div>`; }
-  h+=`<div class="stat-card"><div style="font-size:1.1em;opacity:0.9;">Kayıtlı Öğrenci</div><div style="font-size:2.2em;font-weight:bold;margin-top:10px;">${DB.s.length}</div></div>`; g.innerHTML=h;
+  const colors=['primary','success','warning','danger','info'];
+  const icons2=['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark'];
+  let h='', i=0;
+  for(const [t,s] of Object.entries(u)){
+    const c=colors[i%colors.length], ic=icons2[i%icons2.length];
+    h+=`<div class="col-md-3 col-sm-6 col-12"><div class="info-box mb-3"><span class="info-box-icon bg-${c} elevation-1"><i class="${ic}"></i></span><div class="info-box-content"><span class="info-box-text">${t} Sınavı</span><span class="info-box-number">${s.size} <small>deneme</small></span></div></div></div>`;
+    i++;
+  }
+  h+=`<div class="col-md-3 col-sm-6 col-12"><div class="info-box mb-3"><span class="info-box-icon bg-teal elevation-1"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Kayıtlı Öğrenci</span><span class="info-box-number">${DB.s.length} <small>öğrenci</small></span></div></div></div>`;
+  g.innerHTML=h;
 }
 
 function rH() {
   let s=DB.s.find(x=>x.no===aNo); if(!s)return; let ex=DB.e.filter(x=>x.studentNo===aNo).sort((a,b)=>srt(a.date,b.date)); let r=$('homeArea'); if(!ex.length){r.innerHTML='<div class="card">Sınav verisi yok.</div>';return;}
   let grp={}; ex.forEach(e=>{ (grp[e.examType]=grp[e.examType]||[]).push(e); }); let typs=Object.keys(grp).sort();
-  let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXLMul('kCont','${s.name}_Karne')">📊 Excel'e Aktar</button><button class="btn-p" onclick="xPD('kCont','${s.name}_Karne',this)">📥 PDF İndir</button></div><div id="kCont" class="card" style="border:2px solid var(--act);"><h2 style="border:none;margin-bottom:0;">👤 ${s.name} — Sınav Karnesi</h2>`;
+  let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXLMul(\'kCont\',\'${s.name}_Karne\')"><i class=\'fas fa-file-excel mr-1\'></i>Excel\'e Aktar</button><button class="btn btn-primary btn-sm" onclick="xPD(\'kCont\',\'${s.name}_Karne\',this)"><i class=\'fas fa-file-pdf mr-1\'></i>PDF İndir</button></div><div id="kCont" class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-user-graduate mr-2"></i>${s.name} — Sınav Karnesi</h3></div><div class="card-body">`;
   typs.forEach(t=>{
     let el=grp[t], sb=Array.from(new Set(el.flatMap(e=>Object.keys(e.subs)))).sort();
-    h+=`<h3 style="background:var(--act-light); color:var(--act); padding:10px; border-radius:6px;">📘 ${t} Sınavları</h3><div class="scroll"><table data-sh="${t}"><thead><tr><th>Tarih</th>`;
+    h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2"><i class="fas fa-book mr-2"></i>${t} Sınavları</h5><div class="scroll"><table data-sh="${t}"><thead><tr><th>Tarih</th>`;
     sb.forEach(x=>h+=`<th>${x}</th>`); h+=`<th>Top.Net</th><th>Puan</th><th>Snf(Sr/Kt)</th><th>Genel(Sr/Kt)</th></tr></thead><tbody>`;
     el.forEach(e=>{ if(e.abs){h+=`<tr class="absent-row"><td>${e.date}</td><td colspan="${sb.length+4}" style="text-align:center;">🔴 KATILMADI</td></tr>`;} else { h+=`<tr><td>${e.date}</td>`; sb.forEach(x=>h+=`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`); h+=`<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR}/${e.cP}</td><td>${e.gR}/${e.gP}</td></tr>`; }}); h+=`</tbody></table></div>`;
   });
-  h+=`</div><div class="card" style="margin-top:20px;"><h2>📈 Puan ve Net Grafiği</h2><div class="grid"><div><label>Sınav Türü</label><select id="hExT" onchange="uHSub()">${typs.map(x=>`<option value="${x}">${x}</option>`).join('')}</select></div><div><label>Grafik Verisi</label><select id="hFlt" onchange="dH()"></select></div></div><div class="chart-box"><canvas id="cH"></canvas></div></div>`; r.innerHTML=h; uHSub();
+  h+=`</div></div></div><div class="card card-outline card-info mt-3"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Puan ve Net Grafiği</h3></div><div class="card-body"><div class="row"><div class="col-md-4"><div class="form-group"><label>Sınav Türü</label><select id="hExT" class="form-control form-control-sm" onchange="uHSub()">${typs.map(x=>`<option value="${x}">${x}</option>`).join('')}</select></div></div><div class="col-md-4"><div class="form-group"><label>Grafik Verisi</label><select id="hFlt" class="form-control form-control-sm" onchange="dH()"></select></div></div></div><div class="chart-box"><canvas id="cH"></canvas></div></div></div>`; r.innerHTML=h; uHSub();
 }
 function uHSub() { let t=$('hExT').value, ex=DB.e.filter(x=>x.studentNo===aNo&&x.examType===t&&!x.abs), sb=Array.from(new Set(ex.flatMap(e=>Object.keys(e.subs)))).sort(); let o=`<option value="score">Genel Puan</option><option value="totalNet">Toplam Net</option>`; sb.forEach(x=>o+=`<option value="s_${x}">${x} Neti</option>`); $('hFlt').innerHTML=o; dH(); }
 function dH() { let t=$('hExT').value, f=$('hFlt').value, ex=DB.e.filter(x=>x.studentNo===aNo&&x.examType===t).sort((a,b)=>srt(a.date,b.date)); if(c.h)c.h.destroy(); let d=ex.map(x=>{if(x.abs)return null; if(f==='score')return x.score; if(f==='totalNet')return x.totalNet; return x.subs[f.replace('s_','')]?.net??null;}); let ls=f==='score'?'Puanı':(f==='totalNet'?'Top. Neti':f.replace('s_','')+' Neti'); c.h=new Chart($('cH'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:`${t} — ${ls}`,data:d,borderColor:cols[0],backgroundColor:cols[0]+'22',fill:true,spanGaps:true,tension:0.3}]},options:cOpt()}); }
@@ -326,12 +587,12 @@ function rAnl() {
   let aT=$('aType').value, eT=$('aEx').value, sb=$('aSub').value, r=$('anlRes'); if(!eT){r.innerHTML='<div class="card">Veri yok.</div>';return;} let opt=cOpt(aT==='ranking');
   if(aT==='ranking') {
     let no=$('aStu').value; if(!no){r.innerHTML='';return;} let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no);
-    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tR','Siralama')">📊 Excel</button><button class="btn-p" onclick="xPD('pR','Siralama',this)">📥 PDF</button></div><div id="pR" class="card"><h3>🏆 ${st.name} — Sıralama Tablosu</h3><div class="scroll"><table id="tR"><thead><tr><th>Tarih</th><th>Sınıf(Sr/Kt)</th><th>Kurum(Sr/Kt)</th><th>Genel(Sr/Kt)</th></tr></thead><tbody>`;
+    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tR','Siralama')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pR','Siralama',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pR" class="card card-outline card-primary"><div class="card-header"><h3 class="card-title">🏆 ${st.name} — Sıralama Tablosu</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover" id="tR"><thead><tr><th>Tarih</th><th>Sınıf(Sr/Kt)</th><th>Kurum(Sr/Kt)</th><th>Genel(Sr/Kt)</th></tr></thead><tbody>`;
     ex.forEach(e=>h+=`<tr><td>${e.date}</td><td>${e.cR}/${e.cP}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`); h+=`</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
     setTimeout(()=>{if(c.a)c.a.destroy(); c.a=new Chart($('cA'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:'Sınıf Sırası',data:ex.map(e=>e.cR),borderColor:cols[0],spanGaps:true,tension:0.3},{label:'Genel Sıra',data:ex.map(e=>e.gR),borderColor:cols[1],spanGaps:true,tension:0.3}]},options:opt});},100);
   } else if(aT==='student') {
     let no=$('aStu').value; if(!no){r.innerHTML='';return;} let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no);
-    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tS','Gelisim')">📊 Excel</button><button class="btn-p" onclick="xPD('pS','Gelisim',this)">📥 PDF</button></div><div id="pS" class="card"><h3>📈 ${st.name} — Gelişim Tablosu</h3><div class="scroll"><table id="tS"><thead><tr><th>Tarih</th><th>Net</th><th>Değişim</th></tr></thead><tbody>`;
+    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tS','Gelisim')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pS','Gelisim',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pS" class="card card-outline card-info"><div class="card-header"><h3 class="card-title">📈 ${st.name} — Gelişim Tablosu</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover" id="tS"><thead><tr><th>Tarih</th><th>Net</th><th>Değişim</th></tr></thead><tbody>`;
     let dD=[], cA=[]; ex.forEach((e,i)=>{ let n=sb?(e.subs[sb]?.net||0):e.totalNet, pn=i>0?(sb?(ex[i-1].subs[sb]?.net||0):ex[i-1].totalNet):n, df=(n-pn).toFixed(2), cl=df>0?'var(--success)':df<0?'var(--danger)':''; h+=`<tr><td>${e.date}</td><td>${n.toFixed(2)}</td><td style="color:${cl};">${df>0?'+'+df:df}</td></tr>`; dD.push(n); let ce=DB.e.filter(x=>x.date===e.date&&x.examType===eT&&x.studentClass===st.class&&!x.abs), cn=ce.map(x=>sb?(x.subs[sb]?.net||0):x.totalNet); cA.push(cn.length?(cn.reduce((x,y)=>x+y,0)/cn.length):null); }); h+=`</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
     setTimeout(()=>{if(c.a)c.a.destroy(); c.a=new Chart($('cA'),{type:'line',data:{labels:ex.map(e=>e.date),datasets:[{label:'Öğrenci Neti',data:dD,borderColor:cols[0],backgroundColor:cols[0]+'22',fill:true,spanGaps:true,tension:0.3},{label:'Sınıf Ort.',data:cA,borderColor:cols[2],borderDash:[5,5],fill:false,spanGaps:true,tension:0.3}]},options:opt});},100);
   } else if(aT==='class') {
@@ -339,7 +600,7 @@ function rAnl() {
     ex.forEach(e=>{let m=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m)return; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase()))return; (d[e.date]=d[e.date]||[]).push(e);});
     let sd=Object.keys(d).sort(srt), cs=new Set(), tr=[];
     sd.forEach(dt=>{ let cl={}; d[dt].forEach(e=>(cl[e.studentClass]=cl[e.studentClass]||[]).push(e)); Object.keys(cl).sort().forEach(c=>{ cs.add(c); let n=cl[c].map(x=>sb?(x.subs[sb]?.net||0):x.totalNet), av=n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0; tr.push(`<tr><td>${c}</td><td>${dt}</td><td>${av}</td></tr>`); }); });
-    let h=`<div class="btn-group right"><button class="btn-ex" onclick="xXL('tC','Sinif_Analizi')">📊 Excel</button><button class="btn-p" onclick="xPD('pC','Sinif_Analizi',this)">📥 PDF</button></div><div id="pC" class="card"><h3>📊 Sınıf Analizi</h3><div class="scroll"><table id="tC"><thead><tr><th>Sınıf</th><th>Tarih</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
+    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pC','Sinif_Analizi',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pC" class="card card-outline card-success"><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover" id="tC"><thead><tr><th>Sınıf</th><th>Tarih</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div>`; r.innerHTML=h;
     setTimeout(()=>{if(c.a)c.a.destroy(); let ds=[...cs].sort().map((cl,i)=>({label:cl,borderColor:cols[i%cols.length],tension:0.3,spanGaps:true,data:sd.map(dt=>{let o=(d[dt]||[]).filter(x=>x.studentClass===cl), n=o.map(x=>sb?(x.subs[sb]?.net||0):x.totalNet); return n.length?n.reduce((x,y)=>x+y,0)/n.length:null;})})); c.a=new Chart($('cA'),{type:'line',data:{labels:sd,datasets:ds},options:opt});},100);
   }
 }
@@ -347,10 +608,10 @@ function rAnl() {
 /* ============================================================
    AYARLAR & EXCEL VERİ YÜKLEME 
    ============================================================ */
-function rTabS() { let t=$('tStu').querySelector('tbody'); t.innerHTML=DB.s.map(s=>`<tr><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td style="display:flex;gap:5px;"><button class="btn-w btn-sm" onclick="eStu('${s.no}')">✏️</button><button class="btn-d btn-sm" onclick="cDel('student','${s.no} numaralı öğrenci ve verileri silinecek.','${s.no}')">🗑️</button></td></tr>`).join(''); }
-function rTabE() { let sn=new Map(); DB.e.forEach(e=>{if(!sn.has(e.examBatchId))sn.set(e.examBatchId,e);}); let u=[...sn.values()].sort((a,b)=>srt(a.date,b.date)); $('tExA').innerHTML=`<div class="scroll"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Kayıt Sayısı</th><th>İşlem</th></tr></thead><tbody>${u.map(e=>`<tr><td>${e.date}</td><td>${e.examType}</td><td>${DB.e.filter(x=>x.examBatchId===e.examBatchId).length}</td><td><button class="btn-d btn-sm" onclick="cDel('exam','Sınav tamamen silinsin mi?','${e.examBatchId}')">🗑️</button></td></tr>`).join('')}</tbody></table></div>`; }
+function rTabS() { let t=$('tStu').querySelector('tbody'); t.innerHTML=DB.s.map(s=>`<tr><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning' onclick="eStu('${s.no}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger' onclick="cDel('student','${s.no} numaralı öğrenci ve verileri silinecek.','${s.no}')"><i class='fas fa-trash'></i></button></div></td></tr>`).join(''); }
+function rTabE() { let sn=new Map(); DB.e.forEach(e=>{if(!sn.has(e.examBatchId))sn.set(e.examBatchId,e);}); let u=[...sn.values()].sort((a,b)=>srt(a.date,b.date)); $('tExA').innerHTML=`<table class="table table-sm table-hover"><thead><tr><th>Tarih</th><th>Tür</th><th>Kayıt Sayısı</th><th>İşlem</th></tr></thead><tbody>${u.map(e=>`<tr><td>${e.date}</td><td>${e.examType}</td><td>${DB.e.filter(x=>x.examBatchId===e.examBatchId).length}</td><td><button class="btn btn-danger btn-sm" onclick="cDel('exam','Sınav tamamen silinsin mi?','${e.examBatchId}')"><i class='fas fa-trash'></i></button></td></tr>`).join('')}</tbody></table>`; }
 
-function oMod(id) { $(id).classList.add('active'); } function cMod(id) { $(id).classList.remove('active'); }
+function oMod(id) { $('#'+id).modal('show'); } function cMod(id) { $('#'+id).modal('hide'); }
 function oModAdd() { $('mSTit').textContent='Öğrenci Ekle'; $('mSNo').value=''; $('mSNo').disabled=false; $('mSNa').value=''; $('mSCl').value=''; oMod('mStu'); }
 function eStu(n) { let s=DB.s.find(x=>x.no===n); if(s){$('mSTit').textContent='Öğrenci Düzenle'; $('mSNo').value=s.no; $('mSNo').disabled=true; $('mSNa').value=s.name; $('mSCl').value=s.class; oMod('mStu');} }
 function cDel(t, m, id=null) { dInf={t,id}; $('cTxt').textContent=m; oMod('mConf'); }
