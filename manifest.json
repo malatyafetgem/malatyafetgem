@@ -1,7 +1,7 @@
 {
   "name": "Sınav Analiz Sistemi",
   "short_name": "Sınav Analizi",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f6f9",
   "theme_color": "#1e3a5f",
