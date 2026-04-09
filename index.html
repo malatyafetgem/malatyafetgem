@@ -22,7 +22,9 @@
 <!-- Chart.js & Utilities -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- jsPDF + AutoTable (PDF motoru) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -63,19 +65,6 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .anlStu-item:hover { background:var(--bs-secondary-bg); }
 .anlStu-item:last-child { border-bottom:none; }
 
-/* PDF İZOLASYONU VE DİNAMİK BOYUT DESTEĞİ */
-.pdf-header-bar { display:none; }
-#pdf-print-area { display:none; background-color:#fff; color:#000; width:100%; padding:20px; box-sizing:border-box; font-family:Arial, sans-serif; }
-#pdf-print-area thead { display:table-header-group; }
-#pdf-print-area tr { page-break-inside:avoid; }
-#pdf-print-area table { width:100% !important; border-collapse:collapse !important; font-size:9.5px !important; margin-bottom:16px !important; table-layout:auto !important; }
-#pdf-print-area th, #pdf-print-area td { border:1px solid #888 !important; padding:5px !important; text-align:center !important; color:#000 !important; white-space:nowrap !important; }
-#pdf-print-area td:nth-child(2) { text-align:left !important; white-space:normal !important; font-weight:bold !important; min-width:80px; }
-#pdf-print-area thead th { background-color:#1e3a5f !important; color:#fff !important; font-size:9px !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-#pdf-print-area .table-avg-row td { background-color:#e9ecef !important; font-weight:bold !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-#pdf-print-area tr.highlight-row td { background-color:#fff3cd !important; font-weight:bold !important; color:#000 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-#pdf-print-area tr.absent-row td { background-color:#f8d7da !important; color:#721c24 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-#pdf-print-area .pdf-header-bar { display:flex !important; background:#1e3a5f !important; color:#fff !important; padding:15px 20px !important; border-radius:5px !important; margin-bottom:16px !important; justify-content:space-between !important; align-items:center !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
@@ -312,9 +301,6 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   </main>
 </div>
 
-<!-- İZOLE PDF ALANI -->
-<div id="pdf-print-area"></div>
-
 <!-- MODALLAR (Bootstrap 5 Uyumlu) -->
 <div class="modal fade" id="mConf" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -503,52 +489,164 @@ function xXLMul(cId,fn){ let wb=XLSX.utils.book_new(),ts=getEl(cId).getElementsB
 
 /* DİNAMİK PDF EXPORT */
 function xPD(id, fn, btn) {
-    let orig = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin me-1'></i>"; ld(1, 'PDF Hazırlanıyor...');
-    let sourceEl = getEl(id), printArea = getEl('pdf-print-area');
+  const orig = btn.innerHTML;
+  btn.innerHTML = "<i class='fas fa-spinner fa-spin me-1'></i>";
+  ld(1, 'PDF Hazırlanıyor...');
+  const sourceEl = getEl(id);
+  if (!sourceEl) { ld(0); btn.innerHTML = orig; return; }
+  try {
+    const doc = new jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 10;
+    const usableW = pageW - margin * 2;
+    let curY = margin;
+    const BLUE     = [30, 58, 95];
+    const WHITE    = [255, 255, 255];
+    const AVG_BG   = [220, 227, 233];
+    const ABS_BG   = [248, 215, 218];
+    const ABS_TEXT = [114, 28, 36];
+    const HL_BG    = [255, 243, 205];
 
-    let canvasDataUrls=[];
-    sourceEl.querySelectorAll('canvas').forEach(cv=>{ try{ canvasDataUrls.push({id:cv.id||'', url:cv.toDataURL('image/png',1.0)}); }catch(e){} });
+    function drawFooter() {
+      const pg = doc.internal.getNumberOfPages();
+      doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+      doc.text(fn.replace(/_/g, ' '), margin, pageH - 4);
+      doc.text('Sayfa ' + pg, pageW - margin, pageH - 4, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+    }
 
-    let headerBar=sourceEl.querySelector('.pdf-header-bar');
-    let headerHtml=headerBar?headerBar.outerHTML:`<div class="pdf-header-bar"><h2 style="margin:0;">${fn.replace(/_/g, ' ')}</h2></div>`;
-    printArea.innerHTML=headerHtml+sourceEl.innerHTML;
+    // Header bar
+    const headerBar = sourceEl.querySelector('.pdf-header-bar');
+    if (headerBar) {
+      const spans = headerBar.querySelectorAll('span');
+      const title = spans[0] ? spans[0].innerText.trim() : fn.replace(/_/g, ' ');
+      const sub   = spans[1] ? spans[1].innerText.trim() : '';
+      doc.setFillColor(...BLUE);
+      doc.roundedRect(margin, curY, usableW, 14, 2, 2, 'F');
+      doc.setTextColor(...WHITE);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(title, margin + 5, curY + 9.5);
+      if (sub) {
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+        doc.text(sub, pageW - margin - 5, curY + 9.5, { align: 'right' });
+      }
+      doc.setTextColor(0, 0, 0);
+      curY += 18;
+    }
+    drawFooter();
 
-    let allHeaders=printArea.querySelectorAll('.pdf-header-bar');
-    if(allHeaders.length>1){ for(let i=1;i<allHeaders.length;i++) allHeaders[i].remove(); }
+    // İçerik bloklarını sırayla tara
+    const walker = sourceEl.querySelectorAll('h5:not(.card-title), canvas, table');
+    for (const block of walker) {
+      const tag = block.tagName.toLowerCase();
 
-    let printCanvases=printArea.querySelectorAll('canvas');
-    printCanvases.forEach((cv,i)=>{
-      let data=canvasDataUrls[i]; if(!data) return;
-      let img=document.createElement('img'); img.src=data.url; img.style.cssText='max-width:100%;width:100%;max-height:300px;height:auto;object-fit:contain;display:block;margin:0 auto;';
-      cv.parentElement.replaceChild(img,cv);
-    });
+      if (tag === 'h5') {
+        const txt = block.innerText.trim();
+        if (!txt) continue;
+        if (curY + 12 > pageH - margin - 6) { doc.addPage(); curY = margin; drawFooter(); }
+        doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLUE);
+        doc.text(txt, margin, curY + 5);
+        doc.setDrawColor(...BLUE); doc.setLineWidth(0.4);
+        doc.line(margin, curY + 7, margin + usableW, curY + 7);
+        doc.setTextColor(0, 0, 0);
+        curY += 11;
+        continue;
+      }
 
-    printArea.querySelectorAll('.btn,.d-flex.justify-content-end').forEach(b=>b.style.display='none');
+      if (tag === 'canvas') {
+        try {
+          const imgData = block.toDataURL('image/png', 0.9);
+          const chartH = 52;
+          const chartW = Math.min(usableW * 0.65, 150);
+          const chartX = margin + (usableW - chartW) / 2;
+          if (curY + chartH + 6 > pageH - margin - 6) { doc.addPage(); curY = margin; drawFooter(); }
+          doc.addImage(imgData, 'PNG', chartX, curY, chartW, chartH);
+          curY += chartH + 8;
+        } catch (e) { }
+        continue;
+      }
 
-    // Sütun sayısına göre kağıt genişliği belirle
-    let maxCols = 0;
-    printArea.querySelectorAll('table').forEach(tbl => {
-       if(tbl.rows[0]) maxCols = Math.max(maxCols, tbl.rows[0].cells.length);
-    });
-    
-    let pdfFormat = 'a4';
-    let winW = 1120;
-    if(maxCols > 12) { pdfFormat = 'a3'; winW = 1500; }
-    if(maxCols > 18) { pdfFormat = [450, 210]; winW = 2000; }
+      if (tag === 'table') {
+        const headRows = Array.from(block.querySelectorAll('thead tr')).map(tr =>
+          Array.from(tr.querySelectorAll('th, td')).map(c => ({ content: c.innerText.trim() }))
+        );
+        const bodyData = [];
+        const rowMeta  = [];
+        Array.from(block.querySelectorAll('tbody tr')).forEach(tr => {
+          bodyData.push(Array.from(tr.querySelectorAll('th, td')).map(c => ({ content: c.innerText.trim() })));
+          if      (tr.classList.contains('absent-row'))    rowMeta.push('absent');
+          else if (tr.classList.contains('highlight-row')) rowMeta.push('highlight');
+          else if (tr.classList.contains('table-avg-row')) rowMeta.push('avg');
+          else                                              rowMeta.push('');
+        });
+        if (!bodyData.length && !headRows.length) continue;
+        const colCount  = headRows.length ? headRows[0].length : (bodyData[0] ? bodyData[0].length : 0);
+        const colStyles = buildPdfColStyles(headRows, colCount);
+        if (curY + 28 > pageH - margin - 6) { doc.addPage(); curY = margin; drawFooter(); }
+        doc.autoTable({
+          head: headRows, body: bodyData, startY: curY,
+          margin: { left: margin, right: margin, bottom: 10 },
+          tableWidth: usableW,
+          styles: { fontSize: 7.5, cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
+            overflow: 'linebreak', halign: 'center', valign: 'middle',
+            lineColor: [180, 180, 180], lineWidth: 0.2 },
+          headStyles: { fillColor: BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+          alternateRowStyles: { fillColor: [248, 249, 252] },
+          columnStyles: colStyles,
+          didParseCell: function(data) {
+            if (data.section !== 'body') return;
+            const meta = rowMeta[data.row.index];
+            if (meta === 'absent')    { data.cell.styles.fillColor = ABS_BG;  data.cell.styles.textColor = ABS_TEXT; }
+            if (meta === 'highlight') { data.cell.styles.fillColor = HL_BG;   data.cell.styles.fontStyle = 'bold'; }
+            if (meta === 'avg')       { data.cell.styles.fillColor = AVG_BG;  data.cell.styles.fontStyle = 'bold'; }
+          },
+          showHead: 'everyPage', pageBreak: 'auto', rowPageBreak: 'avoid',
+          didDrawPage: function() { drawFooter(); }
+        });
+        curY = doc.lastAutoTable.finalY + 8;
+        continue;
+      }
+    }
 
-    getEl('mainApp').style.display='none'; printArea.style.display='block'; window.scrollTo(0,0);
-    
-    setTimeout(()=>{
-      html2pdf().set({
-        margin: 10, filename: fn+'.pdf', image: {type:'jpeg',quality:1.0},
-        html2canvas: {scale:2, useCORS:true, windowWidth: winW},
-        jsPDF: {unit:'mm', format: pdfFormat, orientation:'landscape'},
-        pagebreak: { mode:['avoid-all', 'css', 'legacy'] }
-      }).from(printArea).save().then(()=>{
-        printArea.style.display='none'; printArea.innerHTML=''; getEl('mainApp').style.display='block'; btn.innerHTML=orig; ld(0);
-      }).catch(err=>{ console.error(err); alert("PDF oluşturulamadı!"); printArea.style.display='none'; printArea.innerHTML=''; getEl('mainApp').style.display='block'; btn.innerHTML=orig; ld(0); });
-    }, 500);
+    // Özet ekranlarındaki info-box'lar (tablo yoksa)
+    const hasTables = sourceEl.querySelectorAll('table').length > 0;
+    if (!hasTables) {
+      sourceEl.querySelectorAll('.info-box').forEach(box => {
+        const label = box.querySelector('.info-box-text')?.innerText?.trim() || '';
+        const value = box.querySelector('.info-box-number')?.innerText?.trim() || '';
+        const desc  = box.querySelector('.progress-description')?.innerText?.trim() || '';
+        if (!label) return;
+        if (curY + 20 > pageH - margin - 6) { doc.addPage(); curY = margin; drawFooter(); }
+        doc.setFontSize(8);  doc.setFont('helvetica', 'bold');   doc.setTextColor(80, 80, 80);  doc.text(label.toUpperCase(), margin, curY);
+        doc.setFontSize(11); doc.setFont('helvetica', 'bold');   doc.setTextColor(0, 0, 0);     doc.text(value, margin, curY + 7);
+        if (desc) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.text(desc, margin, curY + 13); }
+        curY += 20;
+      });
+    }
+
+    doc.save(fn + '.pdf');
+  } catch (err) {
+    console.error('PDF hatası:', err);
+    alert('PDF oluşturulamadı: ' + err.message);
+  }
+  ld(0); btn.innerHTML = orig;
 }
+
+function buildPdfColStyles(headRows, colCount) {
+  const styles = {};
+  if (colCount < 2) return styles;
+  const headers = headRows.length ? headRows[0].map(h => (h.content || '').toLowerCase()) : [];
+  if (headers[0] === '#' || headers[0] === 'no' || headers[0] === 'sıra') styles[0] = { cellWidth: 7 };
+  headers.forEach((h, i) => {
+    if (h.includes('ad soyad')) styles[i] = { cellWidth: 32, halign: 'left' };
+    if (h === 'tarih')          styles[i] = { cellWidth: 18 };
+    if (h === 'sınıf')          styles[i] = { cellWidth: 12 };
+    if (h === 'yayınevi')       styles[i] = { cellWidth: 20 };
+  });
+  return styles;
+}
+
 
 /* ===== SİSTEM BAŞLATMA (DB OKUMA) ===== */
 function init(){
