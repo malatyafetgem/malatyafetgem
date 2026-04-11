@@ -39,14 +39,15 @@ body.dark-mode .absent-row td { background:rgba(220,53,69,0.2) !important; color
 tr.highlight-row td { background-color:rgba(255,193,7,0.35) !important; font-weight:bold !important; color:#212529 !important; }
 body.dark-mode tr.highlight-row td { background-color:rgba(255,193,7,0.45) !important; color:#fff !important; }
 
-/* ===== ORTALAMA SATIRI TASARIMI (TEMA İLE UYUMLU) ===== */
+/* ===== ORTALAMA SATIRI TASARIMI (TEMA İLE UYUMLU VE HİZALI) ===== */
 tr.avg-row td {
-  background-color: #e6f0fa !important; /* Temanın çok açık mavi tonu */
-  color: #1e3a5f !important; /* Ana tema lacivert rengi */
+  background-color: #e6f0fa !important; 
+  color: #1e3a5f !important; 
   font-weight: bold !important;
-  border-top: 2px solid #1e3a5f !important; /* Üstte net bir lacivert çizgi */
+  border-top: 2px solid #1e3a5f !important; 
   font-size: 0.95em;
-  text-align: center;
+  text-align: center !important; /* Hücreler hizalandı */
+  vertical-align: middle !important;
 }
 tr.avg-row td:first-child { text-transform: uppercase; letter-spacing: 0.5px; }
 body.dark-mode tr.avg-row td { 
@@ -317,9 +318,9 @@ body.dark-mode .anlStu-item:hover { background:#495057; }
                   </div>
                 </div>
                 
-                <!-- Filtre 7 (Sınav Tarihi) -->
+                <!-- Filtre 7 (Sınav Seç) -->
                 <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;">
-                  <div class="form-group"><label>Sınav Tarihi</label>
+                  <div class="form-group"><label>Sınav Seç</label>
                     <select id="aDate" class="form-control" onchange="rAnl()"></select>
                   </div>
                 </div>
@@ -588,7 +589,7 @@ function xXLMul(cId,fn){
   XLSX.writeFile(wb,fn+'.xlsx');
 }
 
-/* GELİŞMİŞ PDF EXPORT (Grafikleri gösteren, Yatay format, Bölünmeyi önleyen yapı) */
+/* GELİŞMİŞ PDF EXPORT */
 function xPD(id,fn,btn){
   let orig=btn.innerHTML; btn.innerHTML="<i class='fas fa-spinner fa-spin mr-1'></i>"; ld(1,'PDF Hazırlanıyor...');
   let sourceEl=getEl(id), printArea=getEl('pdf-print-area');
@@ -730,14 +731,14 @@ function rH(){
     let shorten=totalCols>10;
     
     h+=`<div class="karne-bolum">`;
-    h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>Tarih</th>${sb.map(x=>`<th title="${x}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Kurum(S/K)</th><th>Genel(S/K)</th></tr></thead><tbody>`;
+    h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${x}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Kurum(S/K)</th><th>Genel(S/K)</th></tr></thead><tbody>`;
     
     el.forEach(e=>{
-      if(e.abs) h+=`<tr class="absent-row"><td>${e.date}</td><td colspan="${sb.length+4}" style="text-align:center;font-weight:bold;">🔴 KATILMADI</td></tr>`;
-      else h+=`<tr><td>${e.date}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`;
+      let pub = e.publisher || '—';
+      if(e.abs) h+=`<tr class="absent-row"><td>${e.date}</td><td>${pub}</td><td colspan="${sb.length+4}" style="text-align:center;font-weight:bold;">🔴 KATILMADI</td></tr>`;
+      else h+=`<tr><td>${e.date}</td><td>${pub}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`;
     });
     
-    /* KARNE İÇİN ORTALAMA SATIRI (Simge yok, tema uyumlu) */
     let attended = el.filter(e => !e.abs);
     if(attended.length > 0){
       let avgSubs = sb.map(x => { 
@@ -746,7 +747,7 @@ function rH(){
       });
       let avgNet = (attended.reduce((a,e)=>a+e.totalNet,0)/attended.length).toFixed(2);
       let avgScore = (attended.reduce((a,e)=>a+e.score,0)/attended.length).toFixed(2);
-      h += `<tr class="avg-row"><td>ORTALAMA</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="2" style="text-align:right; padding-right:15px;">ORTALAMA</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
     }
 
     let canvasId='cKarne_'+t.replace(/[^a-zA-Z0-9]/g,'_');
@@ -821,14 +822,37 @@ function uSub(){
   }
 }
 
+/* YAYINEVİ ENTEGRE EDİLMİŞ SINAV TARİHİ SEÇİMİ */
 function uExamDates(){
-  let t=getEl('aEx').value,aT=getEl('aType')?getEl('aType').value:'', dates=[];
-  if(aT==='examdetail'&&aNo){
-    let cs=getGradeLevelClasses(aNo); if(cs)dates=[...new Set(DB.e.filter(x=>x.examType===t&&cs.has(x.studentClass)).map(x=>x.date))].sort(srt);
+  let t=getEl('aEx').value, aT=getEl('aType')?getEl('aType').value:'', dates=[];
+  let datePublisherMap = {};
+
+  if(aT==='examdetail' && aNo){
+    let cs=getGradeLevelClasses(aNo); 
+    if(cs) {
+        DB.e.filter(x=>x.examType===t && cs.has(x.studentClass)).forEach(x => {
+            dates.push(x.date);
+            if(x.publisher) datePublisherMap[x.date] = x.publisher;
+        });
+    }
   }
-  if(!dates.length)dates=[...new Set(DB.e.filter(x=>x.examType===t).map(x=>x.date))].sort(srt);
-  let prev=getEl('aDate').value; getEl('aDate').innerHTML=dates.map(x=>`<option value="${x}">${x}</option>`).join('');
-  if(dates.includes(prev))getEl('aDate').value=prev;
+  
+  if(!dates.length) {
+      DB.e.filter(x=>x.examType===t).forEach(x => {
+          dates.push(x.date);
+          if(x.publisher) datePublisherMap[x.date] = x.publisher;
+      });
+  }
+  
+  dates = [...new Set(dates)].sort(srt);
+  let prev=getEl('aDate').value; 
+  
+  getEl('aDate').innerHTML = dates.map(x => {
+      let pub = datePublisherMap[x] ? ` (${datePublisherMap[x]})` : '';
+      return `<option value="${x}">${x}${pub}</option>`;
+  }).join('');
+  
+  if(dates.includes(prev)) getEl('aDate').value=prev;
 }
 
 function uUI(){
@@ -878,13 +902,7 @@ function rAnl(){
     let stGrade=getGrade(st.class), dD=[],clsArr=[],instArr=[],rows='';
     
     let isRank = sb.startsWith('rank_');
-    
-    let ls = sb === 'score' ? 'Puan' :
-             (sb === 'rank_c' ? 'Sınıf Sırası' :
-             (sb === 'rank_i' ? 'Kurum Sırası' :
-             (sb === 'rank_g' ? 'Genel Sıra' :
-             (sb === 'totalNet' || !sb ? 'Toplam Net' : sb.replace('s_','') + ' Neti'))));
-
+    let ls = sb === 'score' ? 'Puan' : (sb === 'rank_c' ? 'Sınıf Sırası' : (sb === 'rank_i' ? 'Kurum Sırası' : (sb === 'rank_g' ? 'Genel Sıra' : (sb === 'totalNet' || !sb ? 'Toplam Net' : sb.replace('s_','') + ' Neti'))));
     let valHeader = isRank ? 'Sıra' : (sb === 'score' ? 'Puan' : 'Net');
     
     let getVal = (e) => {
@@ -902,17 +920,14 @@ function rAnl(){
       let dfStr = ''; let cl = '';
       if(i > 0) {
           if(isRank) {
-              let df = pn - n; 
-              cl = df > 0 ? 'text-success' : (df < 0 ? 'text-danger' : '');
-              dfStr = df > 0 ? '+' + df : df;
+              let df = pn - n; cl = df > 0 ? 'text-success' : (df < 0 ? 'text-danger' : ''); dfStr = df > 0 ? '+' + df : df;
           } else {
-              let df = (n - pn).toFixed(2);
-              cl = df > 0 ? 'text-success' : (df < 0 ? 'text-danger' : '');
-              dfStr = df > 0 ? '+' + df : df;
+              let df = (n - pn).toFixed(2); cl = df > 0 ? 'text-success' : (df < 0 ? 'text-danger' : ''); dfStr = df > 0 ? '+' + df : df;
           }
       } else { dfStr = '-'; }
 
-      rows+=`<tr><td>${e.date}</td><td>${isRank ? n : n.toFixed(2)}</td><td class="${cl} font-weight-bold">${dfStr}</td></tr>`; dD.push(n);
+      let pub = e.publisher || '—';
+      rows+=`<tr><td>${e.date}</td><td>${pub}</td><td>${isRank ? n : n.toFixed(2)}</td><td class="${cl} font-weight-bold">${dfStr}</td></tr>`; dD.push(n);
       
       if(!isRank){
         let cn=DB.e.filter(x=>x.date===e.date&&x.examType===eT&&x.studentClass===st.class&&!x.abs).map(getVal);
@@ -922,15 +937,14 @@ function rAnl(){
       }
     });
 
-    /* ÖĞRENCİ ANALİZİ İÇİN ORTALAMA SATIRI */
     let avgRowHtml = '';
     if(dD.length > 0){
       let avgVal = dD.reduce((a,b)=>a+b,0) / dD.length;
       let displayVal = isRank ? Math.round(avgVal) : avgVal.toFixed(2);
-      avgRowHtml = `<tr class="avg-row"><td style="text-align:right;">ORTALAMA</td><td>${displayVal}</td><td>—</td></tr>`;
+      avgRowHtml = `<tr class="avg-row"><td colspan="2" style="text-align:right; padding-right:15px;">ORTALAMA</td><td>${displayVal}</td><td>—</td></tr>`;
     }
     
-    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tS','Ogrenci_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pS','Ogrenci_Analizi',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pS" class="card card-outline card-info"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${st.name}</strong> — Analiz (${eT} / ${ls})</span><span style="font-size:14px;">Sınıf: ${st.class}</span></div><div class="card-header"><h3 class="card-title">📈 ${st.name} — Analiz (${ls})</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>Tarih</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div></div>`;
+    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tS','Ogrenci_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pS','Ogrenci_Analizi',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pS" class="card card-outline card-info"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${st.name}</strong> — Analiz (${eT} / ${ls})</span><span style="font-size:14px;">Sınıf: ${st.class}</span></div><div class="card-header"><h3 class="card-title">📈 ${st.name} — Analiz (${ls})</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div></div>`;
     r.innerHTML=h;
     
     chartTimer=setTimeout(()=>{ 
@@ -958,20 +972,20 @@ function rAnl(){
           if(sb === 'totalNet' || !sb) return x.totalNet;
           return x.subs[sb.replace('s_','')]?.net || 0;
         }); 
-        tr.push(`<tr><td>${cc}</td><td>${dt}</td><td>${n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0}</td></tr>`); 
+        let pub = cl[cc][0]?.publisher || '—';
+        tr.push(`<tr><td>${cc}</td><td>${dt}</td><td>${pub}</td><td>${n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0}</td></tr>`); 
       }); 
     });
 
-    /* SINIF ANALİZİ İÇİN ORTALAMA SATIRI */
     let allVals = ex.map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')]?.net||0; });
     let clsAvgRow = '';
     if (allVals.length > 0) {
       let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2);
-      clsAvgRow = `<tr class="avg-row"><td colspan="2" style="text-align:right;">GENEL ORTALAMA</td><td>${genAvg}</td></tr>`;
+      clsAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">GENEL ORTALAMA</td><td>${genAvg}</td></tr>`;
     }
     
     let clsLabel=''; {let lv=getEl('aLvl').value,br=getEl('aBr').value; if(lv&&br)clsLabel=lv+br; else if(lv)clsLabel=lv+'. Sınıflar'; else if(br)clsLabel=br; else clsLabel='Hepsi';}
-    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pC','Sinif_Analizi',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pC" class="card card-outline card-success"><div class="pdf-header-bar"><span style="font-size:18px;">Sınıf Analizi — ${eT} (${clsLabel} / ${ls})</span><span style="font-size:14px;"></span></div><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi (${ls})</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>Sınıf</th><th>Tarih</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div></div>`;
+    let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pC','Sinif_Analizi',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pC" class="card card-outline card-success"><div class="pdf-header-bar"><span style="font-size:18px;">Sınıf Analizi — ${eT} (${clsLabel} / ${ls})</span><span style="font-size:14px;"></span></div><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi (${ls})</h3></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div></div><div class="chart-box"><canvas id="cA"></canvas></div></div>`;
     r.innerHTML=h;
     
     chartTimer=setTimeout(()=>{ 
@@ -1341,7 +1355,6 @@ function rAnl(){
       r.innerHTML = h;
 
     } else {
-      // === TOPLU LİSTE EKRANI ===
       let batch = baseExams.filter(x => x.date === dt);
       if(!batch.length){r.innerHTML='<div class="alert alert-default-info">Bu sınava ait veri yok.</div>';return;}
 
@@ -1349,14 +1362,15 @@ function rAnl(){
       let rows2=batch.map(e=>{ let st=DB.s.find(x=>x.no===e.studentNo); return {...e,studentName:st?st.name:'—',studentCls:st?st.class:e.studentClass}; });
       let attended=rows2.filter(x=>!x.abs).sort((a,b)=>b.totalNet-a.totalNet), absent=rows2.filter(x=>x.abs).sort((a,b)=>normTR(a.studentName).localeCompare(normTR(b.studentName)));
       let sorted=[...attended,...absent], avgNet=attended.length?(attended.reduce((s,x)=>s+x.totalNet,0)/attended.length).toFixed(2):'0.00', metaStr=`Ortalama Net: ${avgNet}`;
+      
       let headCols=subKeys.map(k=>`<th>${k}</th>`).join('');
       let bodyRows=sorted.map((e,idx)=>{
         let isSel=aNo&&e.studentNo===aNo, rCls=isSel?'highlight-row':'';
-        if(e.abs) return `<tr class="absent-row ${rCls}"><td>—</td><td>${e.studentName}</td><td>${e.studentCls}</td>${subKeys.map(()=>'<td>—</td>').join('')}<td>—</td><td>—</td><td colspan="3" class="text-center font-weight-bold text-danger">Katılmadı</td></tr>`;
-        return `<tr class="${rCls}"><td>${idx+1}</td><td>${e.studentName}</td><td>${e.studentCls}</td>${subKeys.map(k=>`<td>${e.subs[k]!==undefined?e.subs[k].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR}/${e.cP}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`;
+        let pub = e.publisher || '—';
+        if(e.abs) return `<tr class="absent-row ${rCls}"><td>—</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${pub}</td>${subKeys.map(()=>'<td>—</td>').join('')}<td>—</td><td>—</td><td colspan="3" class="text-center font-weight-bold text-danger">Katılmadı</td></tr>`;
+        return `<tr class="${rCls}"><td>${idx+1}</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${pub}</td>${subKeys.map(k=>`<td>${e.subs[k]!==undefined?e.subs[k].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR}/${e.cP}</td><td>${e.iR}/${e.iP}</td><td>${e.gR}/${e.gP}</td></tr>`;
       }).join('');
 
-      /* TOPLU LİSTE İÇİN ORTALAMA SATIRI (Temaya uygun) */
       let listAvgRow = '';
       if (attended.length > 0) {
         let avgSubCols = subKeys.map(k => {
@@ -1364,12 +1378,12 @@ function rAnl(){
             return `<td>${v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'}</td>`;
         }).join('');
         let listAvgScore = (attended.reduce((s,x)=>s+x.score,0)/attended.length).toFixed(2);
-        listAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right;">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="3">—</td></tr>`;
+        listAvgRow = `<tr class="avg-row"><td colspan="5" style="text-align:right; padding-right:15px;">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="3">—</td></tr>`;
       }
 
       let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
       let safeName=`${eT}_${dt.replace(/\./g,'-')}`;
-      let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pED','Sinav_${safeName}',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pED" class="card card-outline card-warning"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${dt} ${lvlStr}Sonuçları</span><span style="font-size:14px;">${metaStr}</span></div><div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="card-title mb-0">📋 ${eT} — ${dt} ${lvlStr}Sınav Analizi</h3><span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStr}</span></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Kur(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div></div></div>`;
+      let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pED','Sinav_${safeName}',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pED" class="card card-outline card-warning"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${dt} ${lvlStr}Sonuçları</span><span style="font-size:14px;">${metaStr}</span></div><div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="card-title mb-0">📋 ${eT} — ${dt} ${lvlStr}Sınav Analizi</h3><span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStr}</span></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Kur(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div></div></div>`;
       r.innerHTML=h;
       if(aNo) setTimeout(()=>{ let hlRow=getEl('tED')?.querySelector('tr.highlight-row'); if(hlRow)hlRow.scrollIntoView({behavior:'smooth',block:'center'}); },300);
     }
@@ -1415,12 +1429,14 @@ function svStu(){
   svDB();cMod('mStu');
 }
 
+/* ŞABLON İNDİRME */
 function dTpl(t){
   let b=XLSX.utils.book_new();
-  let d=t==='s'?[['Öğrenci No','Ad Soyad','Sınıfı'],['1001','Ahmet Yılmaz','11A']]:[['Öğrenci No','Sınav Türü','Deneme Tarihi','Türkçe Net','Matematik Net','Toplam Net','Puan','Sınıf Derece','Sınıf Katılım','Kurum Derece','Kurum Katılım','Genel Derece','Genel Katılım'],['1001','TYT','15.04.2024','30','20','50','300','1','30','1','150','1','1000']];
+  let d=t==='s'?[['Öğrenci No','Ad Soyad','Sınıfı'],['1001','Ahmet Yılmaz','11A']]:[['Öğrenci No','Sınav Türü','Deneme Tarihi','Yayınevi','Türkçe Net','Matematik Net','Toplam Net','Puan','Sınıf Derece','Sınıf Katılım','Kurum Derece','Kurum Katılım','Genel Derece','Genel Katılım'],['1001','TYT','15.04.2024','Örnek Yayıncılık','30','20','50','300','1','30','1','150','1','1000']];
   XLSX.utils.book_append_sheet(b,XLSX.utils.aoa_to_sheet(d),"Sablon"); XLSX.writeFile(b,t==='s'?'Ogr_Sablon.xlsx':'Sinav_Sablon.xlsx');
 }
 
+/* EXCEL YÜKLEME */
 function upl(e,t){
   let f=e.target.files[0];if(!f)return; ld(1,'Okunuyor...');
   setTimeout(()=>{
@@ -1430,25 +1446,55 @@ function upl(e,t){
         let wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
         let d=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         if(!d.length)throw new Error('Dosya boş.');
+        
         if(t==='s'){
           let ad=0;
           d.forEach(r=>{let n=String(r['Öğrenci No']||'').trim();if(n&&!DB.s.find(x=>x.no===n)){DB.s.push({no:n,name:String(r['Ad Soyad']||'').trim(),class:String(r['Sınıfı']||'').trim()});ad++;}});
           svDB();alert(`✅ ${ad} yeni öğrenci eklendi.`);
         }else{
-          let bId=Date.now().toString(),cl=new Set(),sn=new Set(d.map(r=>String(r['Öğrenci No']).trim())),bD='',bT='';
-          for(let rw of d){let no=String(rw['Öğrenci No']||'').trim();if(DB.s.find(x=>x.no===no)){bD=pD(rw['Deneme Tarihi']);bT=String(rw['Sınav Türü']||'').trim().toUpperCase();break;}}
-          if(!bD||!bT)throw new Error('Tarih/Tür okunamadı.');
-          if(DB.e.find(x=>x.date===bD&&x.examType===bT)){ if(!confirm(`⚠️ ${bD} tarihli ${bT} zaten var. Üzerine yazılsın mı?`)){ld(0);e.target.value='';return;} DB.e=DB.e.filter(x=>!(x.date===bD&&x.examType===bT)); }
+          let bId=Date.now().toString(), cl=new Set(), sn=new Set(d.map(r=>String(r['Öğrenci No']).trim())), bD='', bT='', bPub='';
+          
+          for(let rw of d){
+            let no=String(rw['Öğrenci No']||'').trim();
+            if(DB.s.find(x=>x.no===no)){
+              bD=pD(rw['Deneme Tarihi']);
+              bT=String(rw['Sınav Türü']||'').trim().toUpperCase();
+              bPub=String(rw['Yayınevi']||'').trim();
+              break;
+            }
+          }
+          
+          if(!bD||!bT) throw new Error('Tarih veya Tür okunamadı.');
+          if(DB.e.find(x=>x.date===bD&&x.examType===bT)){ 
+            if(!confirm(`⚠️ ${bD} tarihli ${bT} zaten var. Üzerine yazılsın mı?`)){ld(0);e.target.value='';return;} 
+            DB.e=DB.e.filter(x=>!(x.date===bD&&x.examType===bT)); 
+          }
+          
           let ad=0, skipped=0;
           d.forEach(r=>{
-            let no=String(r['Öğrenci No']||'').trim(),st=DB.s.find(x=>x.no===no);
+            let no=String(r['Öğrenci No']||'').trim(), st=DB.s.find(x=>x.no===no);
             if(!st){ skipped++; return; } 
             cl.add(st.class);
-            let ex={examBatchId:bId,studentNo:st.no,studentClass:st.class,date:bD,examType:bT,totalNet:pN(r['Toplam Net']),score:pN(r['Puan']),cR:r['Sınıf Derece']!=null?pN(r['Sınıf Derece']):'-',cP:r['Sınıf Katılım']!=null?pN(r['Sınıf Katılım']):'-',iR:r['Kurum Derece']!=null?pN(r['Kurum Derece']):'-',iP:r['Kurum Katılım']!=null?pN(r['Kurum Katılım']):'-',gR:r['Genel Derece']!=null?pN(r['Genel Derece']):'-',gP:r['Genel Katılım']!=null?pN(r['Genel Katılım']):'-',abs:false,subs:{}};
+            let ex={
+              examBatchId:bId, studentNo:st.no, studentClass:st.class, date:bD, examType:bT, publisher:bPub,
+              totalNet:pN(r['Toplam Net']), score:pN(r['Puan']),
+              cR:r['Sınıf Derece']!=null?pN(r['Sınıf Derece']):'-', cP:r['Sınıf Katılım']!=null?pN(r['Sınıf Katılım']):'-',
+              iR:r['Kurum Derece']!=null?pN(r['Kurum Derece']):'-', iP:r['Kurum Katılım']!=null?pN(r['Kurum Katılım']):'-',
+              gR:r['Genel Derece']!=null?pN(r['Genel Derece']):'-', gP:r['Genel Katılım']!=null?pN(r['Genel Katılım']):'-',
+              abs:false, subs:{}
+            };
             Object.keys(r).forEach(k=>{if(k.endsWith(' Net')&&k!=='Toplam Net'){let n=pN(r[k]);if(n!==0)ex.subs[k.replace(' Net','').trim()]={net:n};}});
             DB.e.push(ex);ad++;
           });
-          DB.s.forEach(s=>{if(cl.has(s.class)&&!sn.has(s.no))DB.e.push({examBatchId:bId,studentNo:s.no,studentClass:s.class,date:bD,examType:bT,totalNet:0,score:0,cR:'-',cP:'-',iR:'-',iP:'-',gR:'-',gP:'-',abs:true,subs:{}});});
+          
+          DB.s.forEach(s=>{
+            if(cl.has(s.class)&&!sn.has(s.no)) {
+              DB.e.push({
+                examBatchId:bId, studentNo:s.no, studentClass:s.class, date:bD, examType:bT, publisher:bPub,
+                totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', gR:'-', gP:'-', abs:true, subs:{}
+              });
+            }
+          });
           svDB();
           let msg=`✅ ${ad} sonuç yüklendi.`; if(skipped>0) msg+=`\n⚠️ ${skipped} kayıt atlandı (Öğrenci sistemde bulunamadı).`; alert(msg);
         }
@@ -1482,4 +1528,4 @@ window.addEventListener('load', function(){
 });
 </script>
 </body>
-</html>
+  </html>
