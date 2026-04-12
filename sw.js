@@ -1,4 +1,8 @@
+const CACHE = 'sinav-v1';
+const FILES = ['./index.html'];
+
 self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
   self.skipWaiting();
 });
 
@@ -7,5 +11,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Uygulamanın Firebase ile kesintisiz haberleşebilmesi için proxy caching kullanmıyoruz, pass-through yapıyoruz.
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
 });
