@@ -304,8 +304,23 @@ body.dark-mode .preview-box.danger { background: #5c1e22; color: #fff; }
           <div class="card card-danger card-outline admin-only">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yönetimi</h3></div>
             <div class="card-body">
-              <button class="btn btn-danger btn-sm" onclick="cDel('all','TÜM VERİTABANI SİLİNECEK, ONAYLIYOR MUSUNUZ?')"><i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla</button>
-            </div>
+  <div class="btn-group flex-wrap mb-2">
+    <button class="btn btn-success btn-sm" onclick="expDB()">
+      <i class="fas fa-download mr-1"></i>Tam Yedeği İndir
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="getEl('fImp').click()">
+      <i class="fas fa-upload mr-1"></i>Yedekten Geri Yükle
+    </button>
+    <input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)">
+  </div>
+  <small class="text-muted d-block mb-3">
+    <i class="fas fa-info-circle mr-1"></i>
+    Tüm öğrenci, sınav meta ve sınav sonuçlarını tek dosyaya yedekler.
+  </small>
+  <button class="btn btn-danger btn-sm" onclick="cDel('all','TÜM VERİTABANI SİLİNECEK, ONAYLIYOR MUSUNUZ?')">
+    <i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla
+  </button>
+</div>
           </div>
         </div>
 
@@ -1144,7 +1159,7 @@ async function svStu(){
 }
 
 /* ===== EXCEL YÜKLEME VE ÖN İZLEME (ADIM 2 - GÜNCELLENMİŞ VERSİYON) ===== */
-function dTpl(t){
+function dTpl(t){ 
   let b=XLSX.utils.book_new();
   let d=t==='s'
     ?[['Öğrenci No','Ad Soyad','Sınıfı'],['1001','Ahmet Yılmaz','11A']]
@@ -1154,6 +1169,77 @@ function dTpl(t){
       ['1001','TYT','15.04.2024','Örnek Yayıncılık','30','20','50','300','1','30','1','150','1','1000']];
   XLSX.utils.book_append_sheet(b,XLSX.utils.aoa_to_sheet(d),'Sablon');
   XLSX.writeFile(b, t==='s' ? 'Ogr_Sablon.xlsx' : 'Sinav_Sablon.xlsx');
+}
+
+/* ===== VERİ YEDEKLEME VE GERİ YÜKLEME ===== */
+async function expDB(){
+  ld(1,'Yedek hazırlanıyor, lütfen bekleyin...');
+  try {
+    let resultsSnap = await database.ref('db_v2/examResults').once('value');
+    let payload = {
+      _version: 2,
+      _date: new Date().toISOString(),
+      students:    DB.s,
+      examMeta:    EXAM_META,
+      examResults: resultsSnap.val() || {}
+    };
+    let b = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `TamYedek_${new Date().toLocaleDateString('tr-TR').replace(/\./g,'-')}.json`;
+    a.click();
+  } catch(err) {
+    alert('❌ Yedek alınamadı: ' + err.message);
+  }
+  ld(0);
+}
+
+async function impDB(e){
+  if(auth.currentUser.uid !== ADMIN_UID){
+    alert('Bu işlem sadece admin tarafından yapılabilir.');
+    e.target.value = ''; return;
+  }
+  let f = e.target.files[0];
+  if(!f){ e.target.value=''; return; }
+
+  if(!confirm('⚠️ Mevcut tüm verinin üzerine yazılacak.\nBu işlem geri alınamaz. Devam edilsin mi?')){
+    e.target.value=''; return;
+  }
+
+  let rd = new FileReader();
+  rd.onload = async ev => {
+    try {
+      let p = JSON.parse(ev.target.result);
+
+      if(typeof p !== 'object' || !Array.isArray(p.students)){
+        throw new Error('Geçersiz yedek dosyası. students alanı bulunamadı.');
+      }
+      if(!p.examMeta || typeof p.examMeta !== 'object'){
+        throw new Error('Geçersiz yedek dosyası. examMeta alanı bulunamadı.');
+      }
+
+      ld(1,'Veriler geri yükleniyor...');
+
+      await database.ref('db_v2').remove();
+      await database.ref('db_v2/students').set(p.students);
+      await database.ref('db_v2/examMeta').set(p.examMeta);
+
+      if(p.examResults && Object.keys(p.examResults).length > 0){
+        await database.ref('db_v2/examResults').set(p.examResults);
+      }
+
+      CACHED_RESULTS = {};
+
+      alert('✅ Geri yükleme tamamlandı. Sayfa yenilenecek.');
+      location.reload();
+
+    } catch(err) {
+      alert('❌ Geri yükleme başarısız: ' + err.message);
+      ld(0);
+    }
+  };
+  rd.readAsText(f);
+  e.target.value = '';
 }
 
 function cancelUpload() {
@@ -1176,7 +1262,6 @@ function upl(e,t){
         let previewHtml = '';
         
         if(t==='s'){
-          // --- ÖĞRENCİ YÜKLEME ÖN İZLEMESİ ---
           let newStus = [], existingNos = [], invalidRows = [];
           
           d.forEach((r, i) => {
@@ -1206,7 +1291,6 @@ function upl(e,t){
             previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Zaten Olan Numaralar:</strong> ${existingNos.join(', ')}</div>`;
           }
           
-          // HATA TABLOSU (Sadece hata varsa görünür)
           if(invalidRows.length > 0) {
             previewHtml += `
               <div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;">
@@ -1225,7 +1309,6 @@ function upl(e,t){
           PENDING_UPLOAD = { type: 's', data: newStus };
 
         } else {
-          // --- SINAV YÜKLEME ÖN İZLEMESİ ---
           let bD='', bT='', bPub='';
           for(let rw of d){
             let no=String(rw['Öğrenci No']||'').trim();
@@ -1282,7 +1365,6 @@ function upl(e,t){
             previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.join(', ')}</div>`;
           }
 
-          // HATA TABLOSU (Sadece hata varsa görünür)
           if(invalidRows.length > 0) {
             previewHtml += `
               <div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;">
@@ -1365,4 +1447,4 @@ window.addEventListener('load', function(){
 });
 </script>
 </body>
-  </html>
+</html>
