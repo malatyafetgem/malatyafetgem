@@ -80,6 +80,14 @@ body.dark-mode .anlStu-item:hover { background:#495057; }
 #pdf-print-area .karne-bolum:last-child { page-break-after: auto !important; }
 #pdf-print-area .karne-bolum .chart-box { height: 180px !important; max-height: 180px !important; margin-top: 15px !important; margin-bottom: 10px !important; }
 #pdf-print-area .karne-bolum .chart-box img { max-height: 160px !important; width: 100% !important; object-fit: contain !important; }
+
+/* Hata Özeti Kutuları */
+.preview-box { background: #f8f9fa; border-left: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
+.preview-box.warning { border-left-color: #ffc107; background: #fff3cd; }
+.preview-box.danger { border-left-color: #dc3545; background: #f8d7da; }
+body.dark-mode .preview-box { background: #343a40; color: #fff; }
+body.dark-mode .preview-box.warning { background: #664d03; color: #fff; }
+body.dark-mode .preview-box.danger { background: #5c1e22; color: #fff; }
 </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -308,6 +316,27 @@ body.dark-mode .anlStu-item:hover { background:#495057; }
 
 <div id="pdf-print-area"></div>
 
+<!-- YÜKLEME ÖN İZLEME MODALI (ADIM 2) -->
+<div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Yükleme Ön İzlemesi</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="cancelUpload()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="uploadPreviewBody">
+        <!-- Dinamik İçerik Buraya Gelecek -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button>
+        <button class="btn btn-success" onclick="confirmUpload()"><i class="fas fa-check mr-1"></i>Onayla ve Yükle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="mConf" tabindex="-1">
   <div class="modal-dialog modal-sm"><div class="modal-content">
     <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Onay</h5></div>
@@ -420,7 +449,7 @@ function toggleTheme(){
   localStorage.setItem('appTheme',isDark?'dark':'light');applyTheme(isDark);
 }
 
-/* ===== ALTYAPI VE LAZY LOAD DEĞİŞKENLERİ (ADIM 1) ===== */
+/* ===== ALTYAPI VE LAZY LOAD DEĞİŞKENLERİ ===== */
 const getEl=i=>document.getElementById(i);
 let DB = { s: [], e: [] }; 
 let EXAM_META = {}; 
@@ -428,6 +457,7 @@ let CACHED_RESULTS = {};
 let aNo=null, c={h:null,a:null};
 const cols=['#2d6a9f','#e6194b','#1a7f4b','#d97706','#7c3aed','#f58231','#0ea5e9','#db2777'];
 let dInf={},searchDebounceTimer=null,anlDebounceTimer=null,chartTimer=null;
+let PENDING_UPLOAD = null; // Yükleme Ön İzlemesi İçin Global Değişken
 
 function ld(s,m="İşlem yapılıyor..."){getEl('l-txt').textContent=m;getEl('loader').style.display=s?'flex':'none';}
 
@@ -530,7 +560,7 @@ async function reqAnl() {
       if (aT === 'student' && aNo) {
         let st = DB.s.find(x => x.no === aNo);
         let stGrade = st ? getGrade(st.class) : null;
-        if (stGrade && m.grades && m.grades.length > 0 && !m.grades.includes(stGrade)) return; // DÜZELTME: Öğrenci analizi sadece kendi sınıf düzeyini çeker
+        if (stGrade && m.grades && m.grades.length > 0 && !m.grades.includes(stGrade)) return; 
       }
       
       if (aT === 'examdetail' && sub !== 'general_summary') {
@@ -1013,8 +1043,8 @@ function rAnl(){
           <h4 class="mb-3 text-center" style="color:#1e3a5f; font-weight:bold;">${eT} Sınavı (${dt}) Değerlendirmesi <small class="d-block text-muted mt-1" style="font-size:0.6em;">(${lvlStr})</small></h4>
           <div class="row">
               <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Birincisi</span><span class="info-box-number" style="font-size:1.1em;">${getName(winner.studentNo)} <small>(${winner.studentClass})</small></span><span class="progress-description" style="font-size:0.9em;">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</span></div></div></div>
-              <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Çıkış</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} ➔ ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
-              <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Düşüş</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+              <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Çıkış</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.firstNet.toFixed(2)} ➔ ${bestP.lastNet.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+              <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Düşüş</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.firstNet.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
           </div>
           <div class="row">
               <div class="col-md-6 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? bestSub.sub : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
@@ -1081,7 +1111,6 @@ async function xDel(){
     if(aNo===id)sAct(null);
   }
   else if(t==='allStudents'){
-    // DÜZELTME: Tüm öğrenciler silinince Sınavlar ve Cache de silinir. (Sistem Sıfırlanır)
     await database.ref('db_v2/students').set([]); 
     await database.ref('db_v2/examResults').remove();
     await database.ref('db_v2/examMeta').remove();
@@ -1114,65 +1143,200 @@ async function svStu(){
   cMod('mStu');
 }
 
-/* EXCEL YÜKLEME */
+/* ===== EXCEL YÜKLEME VE ÖN İZLEME (ADIM 2 - GÜNCELLENMİŞ VERSİYON) ===== */
+function cancelUpload() {
+  PENDING_UPLOAD = null;
+  getEl('fStu').value = '';
+  getEl('fEx').value = '';
+  jQuery('#mUploadPreview').modal('hide');
+}
+
 function upl(e,t){
-  let f=e.target.files[0];if(!f)return; ld(1,'Okunuyor...');
+  let f=e.target.files[0];if(!f)return; ld(1,'Dosya Analiz Ediliyor...');
   setTimeout(()=>{
     let rd=new FileReader();
-    rd.onload = async ev => {
-      try{
+    rd.onload = ev => {
+      try {
         let wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
         let d=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        if(!d.length)throw new Error('Dosya boş.');
+        if(!d.length) throw new Error('Dosya boş veya okunamadı.');
+        
+        let previewHtml = '';
         
         if(t==='s'){
-          let ad=0;
-          d.forEach(r=>{let n=String(r['Öğrenci No']||'').trim();if(n&&!DB.s.find(x=>x.no===n)){DB.s.push({no:n,name:String(r['Ad Soyad']||'').trim(),class:String(r['Sınıfı']||'').trim()});ad++;}});
-          await database.ref('db_v2/students').set(DB.s);
-          alert(`✅ ${ad} yeni öğrenci eklendi.`);
-        }else{
-          let bId=Date.now().toString(), cl=new Set(), sn=new Set(d.map(r=>String(r['Öğrenci No']).trim())), bD='', bT='', bPub='';
+          // --- ÖĞRENCİ YÜKLEME ÖN İZLEMESİ ---
+          let newStus = [], existingNos = [], invalidRows = [];
+          
+          d.forEach((r, i) => {
+            let n = String(r['Öğrenci No']||'').trim(), nm = String(r['Ad Soyad']||'').trim(), cc = String(r['Sınıfı']||'').trim();
+            
+            if(!n || !nm || !cc) { 
+              let reason = !n ? 'Öğrenci No Boş' : (!nm ? 'Ad Soyad Boş' : 'Sınıf Boş');
+              invalidRows.push({ rowNum: i + 2, data: `${n || '—'} - ${nm || '—'}`, reason: reason });
+              return; 
+            }
+            if(DB.s.find(x=>x.no===n)) existingNos.push(n);
+            else newStus.push({no:n, name:nm, class:cc});
+          });
+
+          if(newStus.length === 0) throw new Error('Eklenecek yeni ve geçerli bir öğrenci bulunamadı.');
+
+          previewHtml = `
+            <h5 class="text-primary border-bottom pb-2 mb-3">Öğrenci Listesi Analizi</h5>
+            <div class="row">
+              <div class="col-md-4"><div class="preview-box"><strong>Eklenecek Yeni:</strong><br><span class="text-success" style="font-size:1.5em;">${newStus.length} Kişi</span></div></div>
+              <div class="col-md-4"><div class="preview-box warning"><strong>Zaten Kayıtlı (Atlanacak):</strong><br><span class="text-warning" style="font-size:1.5em;">${existingNos.length} Kişi</span></div></div>
+              <div class="col-md-4"><div class="preview-box danger"><strong>Hatalı/Eksik Satır:</strong><br><span class="text-danger" style="font-size:1.5em;">${invalidRows.length} Satır</span></div></div>
+            </div>
+          `;
+          
+          if(existingNos.length > 0) {
+            previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Zaten Olan Numaralar:</strong> ${existingNos.join(', ')}</div>`;
+          }
+          
+          // HATA TABLOSU (Sadece hata varsa görünür)
+          if(invalidRows.length > 0) {
+            previewHtml += `
+              <div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;">
+                <table class="table table-sm table-striped mb-0" style="font-size:0.85em; background-color: #fdfdfe;">
+                  <thead style="background-color: #f8d7da; color: #721c24;">
+                    <tr><th style="width: 60px;">Satır</th><th>Okunan Veri</th><th>Hata Nedeni (Bu satırlar yüklenmeyecek)</th></tr>
+                  </thead>
+                  <tbody>
+                    ${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.data}</td><td class="text-danger"><i class="fas fa-exclamation-circle mr-1"></i>${err.reason}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }
+          
+          PENDING_UPLOAD = { type: 's', data: newStus };
+
+        } else {
+          // --- SINAV YÜKLEME ÖN İZLEMESİ ---
+          let bD='', bT='', bPub='';
           for(let rw of d){
             let no=String(rw['Öğrenci No']||'').trim();
             if(DB.s.find(x=>x.no===no)){ bD=pD(rw['Deneme Tarihi']); bT=String(rw['Sınav Türü']||'').trim().toUpperCase(); bPub=String(rw['Yayınevi']||'').trim(); break; }
           }
-          if(!bD||!bT) throw new Error('Tarih veya Tür okunamadı.');
+          if(!bD||!bT) throw new Error('Geçerli bir tarih veya sınav türü okunamadı. Lütfen şablonu kontrol edin.');
           
           let existsId = Object.keys(EXAM_META).find(id => EXAM_META[id].date===bD && EXAM_META[id].examType===bT);
-          if(existsId){ 
-            if(!confirm(`⚠️ ${bD} tarihli ${bT} zaten var. Üzerine yazılsın mı?`)){ld(0);e.target.value='';return;} 
-            await database.ref('db_v2/examResults/' + existsId).remove();
-            await database.ref('db_v2/examMeta/' + existsId).remove();
-            delete CACHED_RESULTS[existsId];
-            bId = existsId; 
-          }
+          let bId = existsId || Date.now().toString();
           
-          let ad=0, skipped=0, newResults = [], subjectsFound = new Set(), gradesFound = new Set();
-          d.forEach(r=>{
+          let cl=new Set(), sn=new Set(d.map(r=>String(r['Öğrenci No']).trim()));
+          let validResults = [], missingStus = [], invalidRows = [], subjectsFound = new Set(), gradesFound = new Set();
+          
+          d.forEach((r, i) =>{
             let no=String(r['Öğrenci No']||'').trim(), st=DB.s.find(x=>x.no===no);
-            if(!st){ skipped++; return; } 
+            let net = r['Toplam Net'];
+            
+            if(!no) { invalidRows.push({ rowNum: i + 2, no: '—', reason: 'Öğrenci Numarası Boş' }); return; }
+            if(!st) { missingStus.push(no); return; } 
+            if(net === undefined || net === null || net === '') { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Toplam Net Girilmemiş' }); return; }
+            
             cl.add(st.class);
             let stGrade = getGrade(st.class); if(stGrade) gradesFound.add(stGrade);
             
             let ex={ examBatchId:bId, studentNo:st.no, studentClass:st.class, date:bD, examType:bT, publisher:bPub, totalNet:pN(r['Toplam Net']), score:pN(r['Puan']), cR:r['Sınıf Derece']!=null?pN(r['Sınıf Derece']):'-', cP:r['Sınıf Katılım']!=null?pN(r['Sınıf Katılım']):'-', iR:r['Kurum Derece']!=null?pN(r['Kurum Derece']):'-', iP:r['Kurum Katılım']!=null?pN(r['Kurum Katılım']):'-', gR:r['Genel Derece']!=null?pN(r['Genel Derece']):'-', gP:r['Genel Katılım']!=null?pN(r['Genel Katılım']):'-', abs:false, subs:{} };
             Object.keys(r).forEach(k=>{if(k.endsWith(' Net')&&k!=='Toplam Net'){let n=pN(r[k]);if(n!==0){ ex.subs[k.replace(' Net','').trim()]={net:n}; subjectsFound.add(k.replace(' Net','').trim()); }}});
-            newResults.push(ex); ad++;
+            validResults.push(ex);
           });
           
+          let absentCount = 0;
           DB.s.forEach(s=>{
-            if(cl.has(s.class)&&!sn.has(s.no)) { newResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:bD, examType:bT, publisher:bPub, totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', gR:'-', gP:'-', abs:true, subs:{} }); }
+            if(cl.has(s.class)&&!sn.has(s.no)) { 
+              validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:bD, examType:bT, publisher:bPub, totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', gR:'-', gP:'-', abs:true, subs:{} }); 
+              absentCount++;
+            }
           });
-          
-          ld(1, 'Veriler buluta gönderiliyor...');
-          await database.ref('db_v2/examResults/' + bId).set(newResults); 
-          await database.ref('db_v2/examMeta/' + bId).set({ date: bD, examType: bT, publisher: bPub, count: newResults.length, subjects: Array.from(subjectsFound), grades: Array.from(gradesFound) });
-          
-          let msg=`✅ ${ad} sonuç yüklendi.`; if(skipped>0) msg+=`\n⚠️ ${skipped} kayıt atlandı (Öğrenci sistemde bulunamadı).`; alert(msg);
+
+          if(validResults.length === 0) throw new Error('Sisteme eklenecek geçerli bir sınav sonucu bulunamadı.');
+
+          let overwriteWarning = existsId ? `<div class="alert alert-danger mt-3"><strong><i class="fas fa-exclamation-triangle mr-2"></i>DİKKAT!</strong> Sistemde <b>${bD}</b> tarihli bir <b>${bT}</b> sınavı zaten var. Onaylarsanız, eski veriler tamamen silinip bu dosyadaki verilerle değiştirilecektir!</div>` : '';
+
+          previewHtml = `
+            <h5 class="text-primary border-bottom pb-2 mb-3">Sınav Analizi: <strong>${bT}</strong> - ${bD} <small class="text-muted">(${bPub})</small></h5>
+            <div class="row">
+              <div class="col-md-3"><div class="preview-box" style="padding:10px;"><strong>Geçerli Sonuç:</strong><br><span class="text-success" style="font-size:1.3em;">${validResults.length - absentCount} Kişi</span></div></div>
+              <div class="col-md-3"><div class="preview-box warning" style="padding:10px;" title="Sınıf listesinde olup dosyada puanı olmayanlar."><strong>Sıfır Girilecek:</strong><br><span class="text-warning" style="font-size:1.3em;">${absentCount} Kişi</span></div></div>
+              <div class="col-md-3"><div class="preview-box danger" style="padding:10px;" title="Dosyada olan ama sistemde kaydı olmayan öğrenciler."><strong>Sistemde Yok:</strong><br><span class="text-danger" style="font-size:1.3em;">${missingStus.length} Kişi</span></div></div>
+              <div class="col-md-3"><div class="preview-box danger" style="padding:10px; background:#f8d7da; border-color:#dc3545;" title="Excel format hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger" style="font-size:1.3em;">${invalidRows.length} Satır</span></div></div>
+            </div>
+            ${overwriteWarning}
+          `;
+
+          if(missingStus.length > 0) {
+            previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.join(', ')}</div>`;
+          }
+
+          // HATA TABLOSU (Sadece hata varsa görünür)
+          if(invalidRows.length > 0) {
+            previewHtml += `
+              <div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;">
+                <table class="table table-sm table-striped mb-0" style="font-size:0.85em; background-color: #fdfdfe;">
+                  <thead style="background-color: #f8d7da; color: #721c24;">
+                    <tr><th style="width: 60px;">Satır</th><th style="width: 100px;">Öğrenci No</th><th>Hata Nedeni (Bu satırlar yüklenmeyecek)</th></tr>
+                  </thead>
+                  <tbody>
+                    ${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.no}</td><td class="text-danger"><i class="fas fa-exclamation-circle mr-1"></i>${err.reason}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }
+
+          PENDING_UPLOAD = { 
+            type: 'e', existsId: existsId, bId: bId, bD: bD, bT: bT, bPub: bPub, 
+            newResults: validResults, 
+            subjects: Array.from(subjectsFound), grades: Array.from(gradesFound) 
+          };
         }
-      }catch(err){alert('❌ Hata: '+err.message);}
-      ld(0);e.target.value='';
-    }; rd.readAsArrayBuffer(f);
-  },100);
+
+        getEl('uploadPreviewBody').innerHTML = previewHtml;
+        ld(0); jQuery('#mUploadPreview').modal('show');
+
+      } catch(err) { 
+        ld(0); getEl('fStu').value = ''; getEl('fEx').value = ''; alert('❌ Hata: ' + err.message); 
+      }
+    }; 
+    rd.readAsArrayBuffer(f);
+  }, 100);
+}
+
+async function confirmUpload() {
+  if(!PENDING_UPLOAD) return cancelUpload();
+  jQuery('#mUploadPreview').modal('hide');
+  ld(1, 'Veriler buluta gönderiliyor, lütfen bekleyin...');
+
+  try {
+    if(PENDING_UPLOAD.type === 's') {
+      DB.s = DB.s.concat(PENDING_UPLOAD.data);
+      await database.ref('db_v2/students').set(DB.s);
+      rTabS(); uStat();
+      alert(`✅ ${PENDING_UPLOAD.data.length} yeni öğrenci sisteme başarıyla eklendi.`);
+    } 
+    else if (PENDING_UPLOAD.type === 'e') {
+      if(PENDING_UPLOAD.existsId) {
+        await database.ref('db_v2/examResults/' + PENDING_UPLOAD.existsId).remove();
+        await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.existsId).remove();
+        delete CACHED_RESULTS[PENDING_UPLOAD.existsId];
+      }
+
+      await database.ref('db_v2/examResults/' + PENDING_UPLOAD.bId).set(PENDING_UPLOAD.newResults); 
+      await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.bId).set({ 
+        date: PENDING_UPLOAD.bD, examType: PENDING_UPLOAD.bT, publisher: PENDING_UPLOAD.bPub, 
+        count: PENDING_UPLOAD.newResults.length, subjects: PENDING_UPLOAD.subjects, grades: PENDING_UPLOAD.grades 
+      });
+
+      alert(`✅ Sınav sonuçları sisteme başarıyla kaydedildi.`);
+    }
+  } catch(err) {
+    alert('❌ Kayıt sırasında hata oluştu: ' + err.message);
+  }
+  
+  cancelUpload();
+  ld(0);
 }
 
 /* Eventleri Birleştirme */
@@ -1189,4 +1353,4 @@ window.addEventListener('load', function(){
 });
 </script>
 </body>
-  </html>
+</html>
