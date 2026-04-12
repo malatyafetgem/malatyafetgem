@@ -133,6 +133,7 @@ body.dark-mode #pwaInstallPopup .pwa-text strong { color: #4dabf7; }
 #pwaInstallPopup .btn-pwa-close { background: transparent; color: #aaa; border: none; font-size: 1.1em; cursor: pointer; align-self: flex-start; line-height: 1; }
 #pwaInstallPopup .btn-pwa-close:hover { color: #333; }
 #pwaInstallPopup .pwa-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: #1e3a5f; border-radius: 0 0 0 12px; animation: pwaBar 4s linear forwards; }
+body.dark-mode #pwaInstallPopup .pwa-progress { background: #4dabf7; }
 @keyframes popupSlideDown { from { transform: translateX(-50%) translateY(-20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @keyframes popupSlideUp { from { transform: translateX(-50%) translateY(0); opacity: 1; } to { transform: translateX(-50%) translateY(-20px); opacity: 0; } }
 @keyframes pwaBar { from { width: 100%; } to { width: 0%; } }
@@ -156,7 +157,17 @@ body.dark-mode #pwaInstallPopup .pwa-text strong { color: #4dabf7; }
   .content-header { padding: 0.5rem 0; }
   .content-header h1 { font-size: 1.3rem; }
   .breadcrumb { font-size: 0.8em; }
-  .scroll table { min-width: 600px; }
+  .scroll { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+  .scroll table { min-width: 480px; }
+  /* Sınıf listesi ve sınav detay tablolarında geniş sütunları daralt */
+  .scroll table th, .scroll table td { font-size: 0.75em !important; padding: 0.3rem 0.25rem !important; }
+  /* Kurum ve Genel sıralama sütunlarını mobilde gizle */
+  .hide-mobile { display: none !important; }
+}
+/* Scroll ipucu - kullanıcıya kaydırılabilir olduğunu göster */
+.scroll-hint { display: none; }
+@media (max-width: 768px) {
+  .scroll-hint { display: block; font-size: 0.75em; color: #6c757d; text-align: right; margin-bottom: 4px; }
 }
 
 /* ===== DARK MODE İYİLEŞTİRMELERİ ===== */
@@ -229,6 +240,9 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       <button id="btnLogin" onclick="login()" class="btn btn-primary btn-block btn-lg">
         <i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap
       </button>
+      <div class="text-center mt-2">
+        <a href="#" onclick="openForgotPassword(event)" style="font-size:0.85em; color:#2d6a9f;">Şifremi unuttum</a>
+      </div>
       <div id="loginError" class="alert mt-3 mb-0" style="display:none;"></div>
     </div>
   </div>
@@ -456,6 +470,27 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
 <div id="pdf-print-area"></div>
 <div id="toastContainer"></div>
 
+<!-- ŞİFREMİ UNUTTUM MODALI -->
+<div class="modal fade" id="mForgot" tabindex="-1">
+  <div class="modal-dialog modal-sm"><div class="modal-content">
+    <div class="modal-header bg-primary text-white">
+      <h5 class="modal-title"><i class="fas fa-key mr-2"></i>Şifre Sıfırlama</h5>
+      <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.9em;">Kayıtlı e-posta adresinizi girin. Şifre sıfırlama bağlantısı gönderilecektir.</p>
+      <div class="form-group mb-0">
+        <input type="email" id="forgotEmail" class="form-control" placeholder="ornek@okul.com">
+      </div>
+      <div id="forgotMsg" class="mt-2" style="font-size:0.85em;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
+      <button class="btn btn-primary btn-sm" onclick="sendPasswordReset()"><i class="fas fa-paper-plane mr-1"></i>Gönder</button>
+    </div>
+  </div></div>
+</div>
+
 <!-- YÜKLEME ÖN İZLEME MODALI (ADIM 2) -->
 <div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static">
   <div class="modal-dialog modal-lg">
@@ -537,6 +572,7 @@ function checkAuth(){
       document.body.classList.remove('is-admin');
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
       init();
+      showPwaPopupIfReady();
     }else{
       getEl('loginScreen').style.display='flex';
       getEl('mainApp').style.display='none';
@@ -567,6 +603,31 @@ function togglePassword(){
   let inp = getEl('loginPass'), icon = getEl('togglePassIcon');
   if(inp.type === 'password'){ inp.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
   else { inp.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+}
+
+function openForgotPassword(e) {
+  e.preventDefault();
+  let em = getEl('loginEmail').value.trim();
+  if(em) getEl('forgotEmail').value = em;
+  getEl('forgotMsg').innerHTML = '';
+  jQuery('#mForgot').modal('show');
+}
+
+function sendPasswordReset() {
+  let em = getEl('forgotEmail').value.trim();
+  let msg = getEl('forgotMsg');
+  if(!em) { msg.innerHTML = '<span class="text-danger">E-posta adresi gerekli.</span>'; return; }
+  auth.sendPasswordResetEmail(em)
+    .then(() => {
+      msg.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>Sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin.</span>';
+      setTimeout(() => jQuery('#mForgot').modal('hide'), 3000);
+    })
+    .catch(err => {
+      let errMsg = 'Bir hata oluştu.';
+      if(err.code === 'auth/user-not-found') errMsg = 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.';
+      else if(err.code === 'auth/invalid-email') errMsg = 'Geçersiz e-posta adresi.';
+      msg.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle mr-1"></i>${errMsg}</span>`;
+    });
 }
 
 /* ===== TEMA ===== */
@@ -1241,7 +1302,7 @@ function rH(){
     let shorten=totalCols>10;
     
     h+=`<div class="karne-bolum">`;
-    h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${x}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Kurum(S/K)</th><th>Genel(S/K)</th></tr></thead><tbody>`;
+    h+=`<h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5><div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th class="hide-mobile">Yayınevi</th>${sb.map(x=>`<th title="${x}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th class="hide-mobile">Kurum(S/K)</th><th class="hide-mobile">Genel(S/K)</th></tr></thead><tbody>`;
     
     let kIdx = 1;
     el.forEach(e=>{
@@ -1701,7 +1762,7 @@ function rAnl(){
         listAvgRow = `<tr class="avg-row"><td colspan="5" style="text-align:right; padding-right:15px;">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="3">—</td></tr>`;
       }
       let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName=`${eT}_${dt.replace(/\./g,'-')}`;
-      let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pED','Sinav_${safeName}',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pED" class="card card-outline card-warning"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${dt} ${lvlStr}Sonuçları</span><span style="font-size:14px;">${metaStr}</span></div><div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="card-title mb-0">📋 ${eT} — ${dt} ${lvlStr}Sınav Analizi</h3><span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStr}</span></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Kur(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div></div></div>`;
+      let h=`<div class="d-flex justify-content-end mb-2"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn btn-primary btn-sm" onclick="xPD('pED','Sinav_${safeName}',this)"><i class='fas fa-file-pdf mr-1'></i>PDF</button></div><div id="pED" class="card card-outline card-warning"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${dt} ${lvlStr}Sonuçları</span><span style="font-size:14px;">${metaStr}</span></div><div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="card-title mb-0">📋 ${eT} — ${dt} ${lvlStr}Sınav Analizi</h3><span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStr}</span></div><div class="card-body"><div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th class="hide-mobile">Tarih</th><th class="hide-mobile">Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th class="hide-mobile">Snf(S/K)</th><th class="hide-mobile">Kur(S/K)</th><th class="hide-mobile">Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div></div></div>`;
       r.innerHTML=h; if(aNo) setTimeout(()=>{ let hlRow=getEl('tED')?.querySelector('tr.highlight-row'); if(hlRow)hlRow.scrollIntoView({behavior:'smooth',block:'center'}); },300);
     }
   }
@@ -1714,7 +1775,7 @@ function rTabS(){
 }
 function rTabE(){
   let u = Object.keys(EXAM_META).map(bId => ({ examBatchId: bId, ...EXAM_META[bId] })).sort((a,b)=>srt(a.date,b.date));
-  getEl('tExA').innerHTML=`<table class="table table-sm table-hover text-nowrap"><thead><tr><th>#</th><th>Tarih</th><th>Tür</th><th>Sayı</th><th>İşlem</th></tr></thead><tbody>${u.map((e,idx)=>`<tr><td>${idx+1}</td><td>${e.date}</td><td>${e.examType}</td><td>${e.count}</td><td><button class="btn btn-danger btn-sm admin-only" onclick="cDel('exam','Silinsin mi?','${e.examBatchId}')"><i class='fas fa-trash'></i></button></td></tr>`).join('')}</tbody></table>`;
+  getEl('tExA').innerHTML=`<table class="table table-sm table-hover text-nowrap"><thead><tr><th>#</th><th>Tarih</th><th>Tür</th><th class="hide-mobile">Yayınevi</th><th>Sayı</th><th>İşlem</th></tr></thead><tbody>${u.map((e,idx)=>`<tr><td>${idx+1}</td><td>${e.date}</td><td>${e.examType}</td><td class="hide-mobile">${e.publisher||'—'}</td><td>${e.count}</td><td><button class="btn btn-danger btn-sm admin-only" onclick="cDel('exam','Silinsin mi?','${e.examBatchId}')"><i class='fas fa-trash'></i></button></td></tr>`).join('')}</tbody></table>`;
 }
 
 function oMod(id){jQuery('#'+id).modal('show');}
@@ -1928,6 +1989,7 @@ function upl(e,t){
           
           let cl=new Set(), sn=new Set(d.map(r=>String(r['Öğrenci No']).trim()));
           let validResults = [], missingStus = [], invalidRows = [], subjectsFound = new Set(), gradesFound = new Set();
+          let seenStudentNos = new Set(); // Aynı öğrencinin tekrar girilmesini engelle
           
           d.forEach((r, i) =>{
             let no=String(r['Öğrenci No']||'').trim(), st=DB.s.find(x=>x.no===no);
@@ -1936,7 +1998,9 @@ function upl(e,t){
             if(!no) { invalidRows.push({ rowNum: i + 2, no: '—', reason: 'Öğrenci Numarası Boş' }); return; }
             if(!st) { missingStus.push(no); return; } 
             if(net === undefined || net === null || net === '') { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Toplam Net Girilmemiş' }); return; }
+            if(seenStudentNos.has(no)) { invalidRows.push({ rowNum: i + 2, no: no, reason: `Bu öğrenci (${st.name}) dosyada birden fazla kez var` }); return; }
             
+            seenStudentNos.add(no);
             cl.add(st.class);
             let stGrade = getGrade(st.class); if(stGrade) gradesFound.add(stGrade);
             
@@ -2063,19 +2127,13 @@ window.addEventListener('load', function(){
 /* ===== PWA INSTALL PROMPT ===== */
 let deferredInstallPrompt = null;
 let pwaPopupTimer = null;
+let userLoggedIn = false;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
-  document.getElementById('installBtnWrapper').style.display = 'block';
-
-  // Popup'ı 1 saniye sonra göster (sayfa oturuncaya kadar bekle)
-  setTimeout(() => {
-    const popup = document.getElementById('pwaInstallPopup');
-    popup.style.display = 'flex';
-    // 4 saniye sonra otomatik kapat
-    pwaPopupTimer = setTimeout(() => closePwaPopup(), 4000);
-  }, 1000);
+  // Kullanıcı zaten giriş yapmışsa hemen göster, değilse checkAuth tetikleyecek
+  if (userLoggedIn) showPwaPopupIfReady();
 });
 
 window.addEventListener('appinstalled', () => {
@@ -2084,6 +2142,22 @@ window.addEventListener('appinstalled', () => {
   closePwaPopup();
   showToast('Uygulama başarıyla yüklendi!', 'success');
 });
+
+function showPwaPopupIfReady() {
+  userLoggedIn = true;
+  if (!deferredInstallPrompt) return;
+  document.getElementById('installBtnWrapper').style.display = 'block';
+  setTimeout(() => {
+    const popup = document.getElementById('pwaInstallPopup');
+    const bar = popup.querySelector('.pwa-progress');
+    bar.style.animation = 'none';
+    bar.offsetHeight; // reflow
+    bar.style.animation = 'pwaBar 4s linear forwards';
+    popup.style.animation = 'popupSlideDown 0.4s ease-out';
+    popup.style.display = 'flex';
+    pwaPopupTimer = setTimeout(() => closePwaPopup(), 4000);
+  }, 1500);
+}
 
 function closePwaPopup() {
   const popup = document.getElementById('pwaInstallPopup');
@@ -2099,9 +2173,7 @@ function triggerInstall(e) {
   if (!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
   deferredInstallPrompt.userChoice.then(choice => {
-    if (choice.outcome === 'accepted') {
-      showToast('Uygulama yükleniyor...', 'info');
-    }
+    if (choice.outcome === 'accepted') showToast('Uygulama yükleniyor...', 'info');
     deferredInstallPrompt = null;
     document.getElementById('installBtnWrapper').style.display = 'none';
   });
