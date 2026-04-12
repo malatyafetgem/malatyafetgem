@@ -660,6 +660,23 @@ async function reqAnl() {
   let eT = getEl('aEx').value, dt = getEl('aDate') ? getEl('aDate').value : '', aT = getEl('aType').value, sub = getEl('aSub') ? getEl('aSub').value : '';
   let needed = [];
   
+  // Seçili öğrencinin sınıf seviyesi (summary modunda filtreleme için)
+  let stuGrade = null;
+  if(aNo) { let st = DB.s.find(x=>x.no===aNo); if(st) stuGrade = getGrade(st.class); }
+
+  // Tüm eşleşen sınav tarihlerini bul (grade filtreli)
+  let allMatchingDates = [];
+  Object.keys(EXAM_META).forEach(bId => {
+    let m = EXAM_META[bId];
+    if (m.examType !== eT) return;
+    if (aT === 'examdetail' && sub === 'summary' && stuGrade) {
+      // Sadece bu öğrencinin sınıf seviyesinde sonuç olan sınavlar
+      if (m.grades && m.grades.length > 0 && !m.grades.includes(stuGrade)) return;
+    }
+    allMatchingDates.push(m.date);
+  });
+  allMatchingDates = [...new Set(allMatchingDates)].sort(srt);
+
   Object.keys(EXAM_META).forEach(bId => {
     let m = EXAM_META[bId];
     if (m.examType === eT) {
@@ -670,7 +687,14 @@ async function reqAnl() {
       }
       
       if (aT === 'examdetail' && sub !== 'general_summary') {
-        if (m.date === dt) needed.push(bId);
+        if (m.date === dt) {
+          needed.push(bId);
+        } else if (sub === 'summary') {
+          // Önceki sınav tarihini de indir
+          let currentIndex = allMatchingDates.indexOf(dt);
+          let prevDate = currentIndex > 0 ? allMatchingDates[currentIndex - 1] : null;
+          if (prevDate && m.date === prevDate) needed.push(bId);
+        }
       } else {
         needed.push(bId);
       }
@@ -692,7 +716,7 @@ async function sAct(no,clr=false){
   getEl('homeArea').innerHTML='';
   
   if(no) await reqProfile();
-  if(getEl('sonuclar').classList.contains('active-pane')){uExamTypes();uExamDates();}
+  if(getEl('sonuclar').classList.contains('active-pane')){uExamTypes();uExamDates();reqAnl();}
 }
 
 function sTab(id,el){
@@ -1079,9 +1103,20 @@ function uSub(){
 function uExamDates(){
   let t=getEl('aEx').value, dates=[];
   let datePublisherMap = {};
+  let aT = getEl('aType') ? getEl('aType').value : '';
+  let sub = getEl('aSub') ? getEl('aSub').value : '';
+
+  // summary modunda ve öğrenci seçiliyse sadece o öğrencinin sınıf seviyesindeki sınavlar
+  let stuGrade = null;
+  if(aNo && aT === 'examdetail' && sub === 'summary') {
+    let st = DB.s.find(x=>x.no===aNo);
+    if(st) stuGrade = getGrade(st.class);
+  }
 
   Object.values(EXAM_META).forEach(m => {
     if(m.examType === t) {
+      // Sınıf seviyesi filtresi uygula
+      if(stuGrade && m.grades && m.grades.length > 0 && !m.grades.includes(stuGrade)) return;
       dates.push(m.date);
       if(m.publisher) datePublisherMap[m.date] = m.publisher;
     }
@@ -1130,7 +1165,11 @@ function uUI(){
 
 function handleSubChange(){
   let t = getEl('aType').value, sub = getEl('aSub').value;
-  if(t === 'examdetail') getEl('gDate').style.display = (sub === 'general_summary') ? 'none' : 'block';
+  if(t === 'examdetail') {
+    getEl('gDate').style.display = (sub === 'general_summary') ? 'none' : 'block';
+    // summary <-> list geçişinde tarih listesini yenile (grade filtresi değişebilir)
+    uExamDates();
+  }
   reqAnl();
 }
 
@@ -1548,8 +1587,14 @@ function rAnl(){
       let batch = baseExams.filter(x => x.date === dt); let currentExams = batch.filter(x => !x.abs);
       if (!currentExams.length) { r.innerHTML='<div class="alert alert-default-warning">Bu sınavda geçerli sonuç bulunmuyor.</div>'; return; }
 
-      let allDates = [...new Set(baseExams.map(x=>x.date))].sort(srt); let currentIndex = allDates.indexOf(dt); let prevDate = currentIndex > 0 ? allDates[currentIndex - 1] : null;
-      let prevExams = []; if (prevDate) prevExams = baseExams.filter(x=>x.date === prevDate && !x.abs);
+      // Önceki sınavı, grade filtresine uyan sınavlar arasında bul
+      let filteredDates = [...new Set(baseExams.map(x=>x.date))].sort(srt);
+      let currentIndex = filteredDates.indexOf(dt); 
+      let prevDate = currentIndex > 0 ? filteredDates[currentIndex - 1] : null;
+      // Önceki tarih DB.e'de mevcut değilse (cache'de yoksa) progress boş olur ama bu render-time sorunudur; fetch zaten reqAnl'de yapılmıştır
+      let prevBatch = prevDate ? DB.e.filter(x => x.examType === eT && x.date === prevDate) : [];
+      if(targetLvl) prevBatch = prevBatch.filter(x => getGrade(x.studentClass) === targetLvl);
+      let prevExams = prevBatch.filter(x => !x.abs);
       let sortedExams = [...currentExams].sort((a,b) => b.totalNet - a.totalNet), winner = sortedExams[0];
       let progress = [];
       currentExams.forEach(ce => { let pe = prevExams.find(x => x.studentNo === ce.studentNo); if (pe) progress.push({ no: ce.studentNo, name: getName(ce.studentNo), cls: ce.studentClass, diff: ce.totalNet - pe.totalNet, cur: ce.totalNet, prev: pe.totalNet }); });
