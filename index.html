@@ -909,7 +909,7 @@ function xXLMul(cId,fn){
   }
   XLSX.writeFile(wb,fn+'.xlsx');
 }
-
+<script>
 /* ===== İZOLE YAZDIRMA (PRINT) FONKSİYONU ===== */
 function xPR(sourceId, title, btn) {
   let orig = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-1'></i>"; btn.disabled = true;
@@ -999,6 +999,7 @@ function xPR(sourceId, title, btn) {
   printWin.document.write(printHtml); printWin.document.close();
   btn.innerHTML = orig; btn.disabled = false;
 }
+</script>
 <script>
 // ===== ARAMA İŞLEMLERİ =====
 function debounceSearch(){clearTimeout(searchDebounceTimer);searchDebounceTimer=setTimeout(sSearch,280);}
