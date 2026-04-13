@@ -1913,25 +1913,25 @@ function renderWizardStep() {
       <p class="text-muted" style="font-size:0.85em;margin-top:-10px;">Sadece analize dahil etmek istediğiniz dersleri seçin ve isimlendirin. Eşleştirilmeyenler tabloda — olarak görünür.</p>
       <div id="subjectMapContainer"></div>
     </div>`;
-  } else if(wizardStep === 3) {
+  }   } else if(wizardStep === 3) {
     stepHtml = `<div class="wizard-section">
       <h6><i class="fas fa-medal mr-1"></i> Dereceler (İsteğe Bağlı)</h6>
       <p class="text-muted" style="font-size:0.85em;">Bu alanlar isteğe bağlıdır. Boş bırakılanlar tabloda — olarak görünür. Dereceler Excel'den otomatik alınır, hesaplanmaz.</p>
       <div class="row">
-        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-school mr-1"></i>Sınıf Sırası Sütunu</label><select id="map_e_cR" class="form-control">${buildOptions(h, saved.cR||'sınıf sıra'), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label>Sınıf Kişi Sayısı Sütunu</label><select id="map_e_cP" class="form-control">${buildOptions(h, saved.cP||''), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-building mr-1"></i>Okul Sırası Sütunu</label><select id="map_e_iR" class="form-control">${buildOptions(h, saved.iR||'okul sıra'), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label>Okul Kişi Sayısı Sütunu</label><select id="map_e_iP" class="form-control">${buildOptions(h, saved.iP||''), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-city mr-1"></i>İlçe Sırası Sütunu</label><select id="map_e_dR" class="form-control">${buildOptions(h, saved.dR||'ilçe sıra'), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label>İlçe Kişi Sayısı Sütunu</label><select id="map_e_dP" class="form-control">${buildOptions(h, saved.dP||''), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-map-marker-alt mr-1"></i>İl Sırası Sütunu</label><select id="map_e_pR" class="form-control">${buildOptions(h, saved.pR||'il sıra'), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label>İl Kişi Sayısı Sütunu</label><select id="map_e_pP" class="form-control">${buildOptions(h, saved.pP||''), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-globe-europe mr-1"></i>Genel Sırası Sütunu</label><select id="map_e_gR" class="form-control">${buildOptions(h, saved.gR||'genel sıra'), true)</select></div></div>
-        <div class="col-md-6"><div class="form-group"><label>Genel Kişi Sayısı Sütunu</label><select id="map_e_gP" class="form-control">${buildOptions(h, saved.gP||''), true)</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-school mr-1"></i>Sınıf Sırası Sütunu</label><select id="map_e_cR" class="form-control">${buildOptions(h, saved.cR||'sınıf sıra', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label>Sınıf Kişi Sayısı Sütunu</label><select id="map_e_cP" class="form-control">${buildOptions(h, saved.cP||'', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-building mr-1"></i>Okul Sırası Sütunu</label><select id="map_e_iR" class="form-control">${buildOptions(h, saved.iR||'okul sıra', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label>Okul Kişi Sayısı Sütunu</label><select id="map_e_iP" class="form-control">${buildOptions(h, saved.iP||'', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-city mr-1"></i>İlçe Sırası Sütunu</label><select id="map_e_dR" class="form-control">${buildOptions(h, saved.dR||'ilçe sıra', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label>İlçe Kişi Sayısı Sütunu</label><select id="map_e_dP" class="form-control">${buildOptions(h, saved.dP||'', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-map-marker-alt mr-1"></i>İl Sırası Sütunu</label><select id="map_e_pR" class="form-control">${buildOptions(h, saved.pR||'il sıra', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label>İl Kişi Sayısı Sütunu</label><select id="map_e_pP" class="form-control">${buildOptions(h, saved.pP||'', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label><i class="fas fa-globe-europe mr-1"></i>Genel Sırası Sütunu</label><select id="map_e_gR" class="form-control">${buildOptions(h, saved.gR||'genel sıra', true)}</select></div></div>
+        <div class="col-md-6"><div class="form-group"><label>Genel Kişi Sayısı Sütunu</label><select id="map_e_gP" class="form-control">${buildOptions(h, saved.gP||'', true)}</select></div></div>
       </div>
     </div>`;
   }
-
+  
   b.innerHTML = progHtml + stepHtml;
   
   if(wizardStep === 2) {
@@ -2406,4 +2406,4 @@ function triggerInstall(e) {
 }
 </script>
 </body>
-  </html>
+</html>
