@@ -543,6 +543,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
     <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button></div>
   </div></div>
 </div>
+
 <div class="modal fade" id="mStu" tabindex="-1">
   <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci İşlemi</h5></div>
@@ -1062,7 +1063,7 @@ function rAnl(){
     let isRank = sb.startsWith('rank_');
     let ls = sb === 'score' ? 'Puan' : (sb === 'rank_c' ? 'Sınıf Sırası' : (sb === 'rank_i' ? 'Kurum Sırası' : (sb === 'rank_g' ? 'Genel Sıra' : (sb === 'totalNet' || !sb ? 'Toplam Net' : sb.replace('s_','') + ' Neti'))));
     let valHeader = isRank ? 'Sıra' : (sb === 'score' ? 'Puan' : 'Net');
-    let getVal = (e) => { if (e.abs) return null; if (sb === 'score') return e.score; if (sb === 'rank_c') return pN(e.cR); if (sb === 'rank_i') return pN(e.iR); if (sb === 'rank_g') return pN(e.gR); if (sb === 'totalNet' || !sb) return e.totalNet; return e.subs[sb.replace('s_','')]?.net ?? 0; };
+    let getVal = (e) => { if (e.abs) return null; if (sb === 'score') return e.score; if (sb === 'rank_c') return pN(e.cR); if (sb === 'rank_i') return pN(e.iR); if (sb === 'rank_g') return pN(e.gR); if (sb === 'totalNet' || !sb) return e.totalNet; return e.subs[sb.replace('s_','')].net ?? 0; };
 
     ex.forEach((e,i)=>{
       let n=getVal(e), pn=i>0 ? getVal(ex[i-1]) : n; let dfStr = '', cl = '';
@@ -1124,16 +1125,16 @@ function rAnl(){
     sd.forEach(dt=>{ 
       let cl={}; d[dt].forEach(e=>(cl[e.studentClass]=cl[e.studentClass]||[]).push(e)); 
       Object.keys(cl).sort().forEach(cc=>{ 
-        cs.add(cc); let n=cl[cc].map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[sb.replace('s_','')]?.net || 0; }); 
+        cs.add(cc); let n=cl[cc].map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[sb.replace('s_','')].net || 0; }); 
         let pub = cl[cc][0]?.publisher || '—'; tr.push(`<tr><td>${cIdx++}</td><td>${cc}</td><td>${dt}</td><td>${pub}</td><td>${n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0}</td></tr>`); 
       }); 
     });
 
     let lvlForAvg = l || (ex.length > 0 ? getGrade(ex[0].studentClass) : ''), exForAvg = lvlForAvg ? ex.filter(x => getGrade(x.studentClass) === lvlForAvg) : ex;
-    let allVals = exForAvg.map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')]?.net||0; });
+    let allVals = exForAvg.map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')].net||0; });
     let classAvgRows = '', sortedClasses = [...cs].sort();
     sortedClasses.forEach(clsName => {
-      let clsExams = ex.filter(x => x.studentClass === clsName), clsVals = clsExams.map(x => { if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')]?.net||0; });
+      let clsExams = ex.filter(x => x.studentClass === clsName), clsVals = clsExams.map(x => { if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')].net||0; });
       if(clsVals.length > 0) { let clsAvg = (clsVals.reduce((a,b)=>a+b,0)/clsVals.length).toFixed(2); classAvgRows += `<tr class="avg-row"><td colspan="4" style="text-align:right; padding-right:15px;">${clsName} ORTALAMA</td><td>${clsAvg}</td></tr>`; }
     });
     
@@ -1143,7 +1144,7 @@ function rAnl(){
     
     let clsPerfHtml = '';
     if(sortedClasses.length > 0 && allVals.length > 0) {
-      let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')]?.net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
+      let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[sb.replace('s_','')].net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
       let best = topCls[0], worst = topCls[topCls.length-1], genAvgPerf = allVals.reduce((a,b)=>a+b,0)/allVals.length, aboveAvg = topCls.filter(x=>x.avg >= genAvgPerf).length;
       clsPerfHtml = `<div class="row mb-3">
         <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
@@ -1161,7 +1162,7 @@ function rAnl(){
       let sdLabels = sd.map(dt => datePublisherMap[dt] ? `${dt} (${datePublisherMap[dt]})` : dt);
       let ds=[...cs].sort().map((cl,i)=>({
         label:cl, backgroundColor:cols[i%cols.length]+'cc', borderColor:cols[i%cols.length], borderWidth:1.5,
-        data:sd.map(dt=>{ let o=(d[dt]||[]).filter(x=>x.studentClass===cl); let n=o.map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[sb.replace('s_','')]?.net || 0; }); return n.length?n.reduce((x,y)=>x+y,0)/n.length:null; })
+        data:sd.map(dt=>{ let o=(d[dt]||[]).filter(x=>x.studentClass===cl); let n=o.map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[sb.replace('s_','')].net || 0; }); return n.length?n.reduce((x,y)=>x+y,0)/n.length:null; })
       })); 
       c.a=mkChart('cA',sdLabels,ds); 
     },100);
@@ -1190,18 +1191,8 @@ function rAnl(){
     let top5 = stuArr.slice(0, 5), bottom5 = stuArr.slice(-5).reverse();
     let clsArr = Object.entries(classStats).map(([cls, data]) => ({ cls, avg: data.totalNet / data.count, count: data.count })).sort((a,b) => b.avg - a.avg);
     
-    let trendData = [];
-    Object.values(allStudentStats).forEach(st => {
-      if(st.nets.length >= 2) {
-        let stuExams = ex.filter(e => e.studentNo === st.no).sort((a,b) => srt(a.date, b.date));
-        let firstEx = stuExams[0], lastEx = stuExams[stuExams.length - 1];
-        let diff = lastEx.subs[subj].net - firstEx.subs[subj].net;
-        trendData.push({ ...st, name: st.name, firstNet: firstEx.subs[subj].net, lastNet: lastEx.subs[subj].net, diff });
-      }
-    });
-    trendData.sort((a,b) => b.diff - a.diff);
-    
-    let bestTrend = trendData.length > 0 && trendData[0].diff > 0 ? trendData[0] : null, worstTrend = trendData.length > 0 && trendData[trendData.length-1].diff < 0 ? trendData[trendData.length-1] : null;
+    let bestStudent = stuArr.length > 0 ? stuArr[0] : null;
+    let worstStudent = stuArr.length > 0 ? stuArr[stuArr.length - 1] : null;
     let genAvg = ex.reduce((a,e) => a + e.subs[subj].net, 0) / ex.length, lvlStr = (lvl ? `${lvl}. Sınıflar` : 'Tüm Sınıflar') + (br ? ` / ${br} Şubesi` : '');
     
     let h = `
@@ -1212,8 +1203,8 @@ function rAnl(){
       <div class="row mb-3">
         <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ortalama</span><span class="info-box-number">${genAvg.toFixed(2)} Net</span></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Toplam Kayıt</span><span class="info-box-number">${ex.length} Sonuç</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Gelişim</span><span class="info-box-number" style="font-size:0.95em;">${bestTrend ? bestTrend.name : 'Veri Yok'}</span><span class="progress-description">${bestTrend ? `+${bestTrend.diff.toFixed(2)} Net` : ''}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">En Çok Düşüş</span><span class="info-box-number" style="font-size:0.95em;">${worstTrend ? worstTrend.name : 'Veri Yok'}</span><span class="progress-description">${worstTrend ? `${worstTrend.diff.toFixed(2)} Net` : ''}</span></div></div></div>
+        <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${bestStudent ? bestStudent.name : 'Veri Yok'}</span><span class="progress-description">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
+        <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span><div class="info-box-content"><span class="info-box-text">En Zayıf Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${worstStudent ? worstStudent.name : 'Veri Yok'}</span><span class="progress-description">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
       </div>
       <div class="row">
         <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
