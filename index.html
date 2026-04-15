@@ -407,14 +407,9 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 </div>
                 <div class="col-sm-6 col-md-3">
                   <div class="form-group"><label>Sınav Türü</label>
-                    <select id="rExType" class="form-control" onchange="raporFillExams()">
+                    <select id="rExType" class="form-control">
                       <option value="ALL">Tüm Sınav Türleri (Genel Karne)</option>
                     </select>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-3">
-                  <div class="form-group"><label>Sınav</label>
-                    <select id="rExDate" class="form-control" disabled><option value="ALL">Tüm Sınavlar (Genel Karne)</option></select>
                   </div>
                 </div>
                 <div class="col-sm-12 col-md-1 d-flex align-items-end">
@@ -1000,7 +995,7 @@ function uUI(){
   let t=getEl('aType').value;
   getEl('gStu').style.display=(t==='student'||t==='examdetail')?'block':'none';
   getEl('gLvl').style.display=(t==='class'||t==='examdetail'||t==='subject')?'block':'none';
-  getEl('gBr').style.display=(t==='class'||t==='subject')?'block':'none';
+  getEl('gBr').style.display=(t==='class'||t==='subject'||t==='examdetail')?'block':'none';
   getEl('gSub').style.display='block'; getEl('lblSub').textContent = t==='subject' ? 'Ders' : 'Veri';
   
   if(t==='class'){
@@ -1011,7 +1006,7 @@ function uUI(){
   } else if (t==='examdetail' || t==='subject') {
     let l=new Set(), b=new Set(); DB.s.forEach(s=>{ let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m){l.add(m[1]); b.add(m[2].toUpperCase());} });
     getEl('aLvl').innerHTML='<option value="">Tümü</option>'+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
-    if(t==='subject') getEl('aBr').innerHTML='<option value="">Tümü</option>'+[...b].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+    if(t==='subject'||t==='examdetail') getEl('aBr').innerHTML='<option value="">Tümü</option>'+[...b].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
     if(aNo) { let selStu = DB.s.find(x=>x.no===aNo); if(selStu) { let m=selStu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m) { getEl('aLvl').value=m[1]; if(t==='subject') getEl('aBr').value=''; } } }
   }
   uExamTypes();uSub();uExamDates();
@@ -1111,8 +1106,18 @@ function rH(){
     
     let attended = el.filter(e => !e.abs);
     if(attended.length > 0){
+      let allGradeExams = DB.e.filter(x => x.examType === t && !x.abs && getGrade(x.studentClass) === stGrade);
+      let allClassExams = DB.e.filter(x => x.examType === t && !x.abs && x.studentClass === s.class);
+      let genAvgSubs = sb.map(x => { let v = allGradeExams.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
+      let genAvgNet = allGradeExams.length > 0 ? (allGradeExams.reduce((a,e)=>a+e.totalNet,0)/allGradeExams.length).toFixed(2) : '—';
+      let genAvgScore = allGradeExams.length > 0 ? (allGradeExams.reduce((a,e)=>a+e.score,0)/allGradeExams.length).toFixed(2) : '—';
+      let clsAvgSubs = sb.map(x => { let v = allClassExams.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
+      let clsAvgNet = allClassExams.length > 0 ? (allClassExams.reduce((a,e)=>a+e.totalNet,0)/allClassExams.length).toFixed(2) : '—';
+      let clsAvgScore = allClassExams.length > 0 ? (allClassExams.reduce((a,e)=>a+e.score,0)/allClassExams.length).toFixed(2) : '—';
       let avgSubs = sb.map(x => { let v = attended.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
       let avgNet = (attended.reduce((a,e)=>a+e.totalNet,0)/attended.length).toFixed(2), avgScore = (attended.reduce((a,e)=>a+e.score,0)/attended.length).toFixed(2);
+      h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">GENEL ORTALAMA (${stGrade}. Sınıflar)</td>${genAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="5">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">SINIF ORTALAMA (${s.class})</td>${clsAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNet}</td><td>${clsAvgScore}</td><td colspan="5">—</td></tr>`;
       h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">ORTALAMA</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="5">—</td></tr>`;
     }
 
@@ -1343,6 +1348,8 @@ function rAnl(){
     let lvl = getEl('aLvl') ? getEl('aLvl').value : '', baseExams = DB.e.filter(x => x.examType === eT);
     let targetLvl = lvl; if (!targetLvl && aNo) { let st = DB.s.find(x=>x.no===aNo); if(st) targetLvl = getGrade(st.class); }
     if (targetLvl) { baseExams = baseExams.filter(x => getGrade(x.studentClass) === targetLvl); }
+    let brFilterED = getEl('aBr') ? getEl('aBr').value : '';
+    if (brFilterED) { baseExams = baseExams.filter(x => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toUpperCase()===brFilterED; }); }
 
     let getName = (no) => DB.s.find(s=>s.no===no)?.name || 'Bilinmiyor';
 
@@ -1896,7 +1903,7 @@ function raporInit() {
   lvlSel.innerHTML = '<option value="">Seçiniz</option>' + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
   let etSel = getEl('rExType'), types = new Set(); Object.values(EXAM_META).forEach(m => types.add(m.examType));
   etSel.innerHTML = '<option value="ALL">Tüm Sınav Türleri (Genel Karne)</option>' + [...types].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
-  raporFillBranches(); raporFillExams();
+  raporFillBranches();
 }
 
 function raporFillBranches() {
@@ -1914,16 +1921,15 @@ function raporFillExams() {
 }
 
 async function generateRapor() {
-  let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value, examVal = getEl('rExDate').value;
+  let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value;
   if(!lvl) { showToast('Lütfen sınıf seviyesi seçin.','warning'); return; }
-  if(eTypeSel !== 'ALL' && !examVal) { showToast('Lütfen bir sınav seçin.','warning'); return; }
   
   let students = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(m[1] !== lvl) return false; if(br && m[2].toUpperCase() !== br) return false; return true; });
   if(!students.length) { showToast('Bu filtreye uygun öğrenci bulunamadı.','warning'); return; }
   
   let neededBatches = [];
   if (eTypeSel === 'ALL') { neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); }); } else {
-      let [examDate, examType] = examVal.split('__'); neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return m.examType === examType && (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); });
+      neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return m.examType === eTypeSel && (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); });
   }
   await fetchBatches(neededBatches);
   
@@ -1937,7 +1943,7 @@ async function generateRapor() {
 
     let grp = {};
     if (eTypeSel === 'ALL') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
-        let [eD, eT] = examVal.split('__'); stuExams.filter(e => e.examType === eT).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
+        stuExams.filter(e => e.examType === eTypeSel).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
     }
 
     let typs = Object.keys(grp).sort(); if(typs.length === 0) return;
@@ -1964,9 +1970,19 @@ async function generateRapor() {
       
       let attended = el.filter(e=>!e.abs), avgRow = '';
       if(attended.length > 0) {
+        let allGradeExamsR = DB.e.filter(x => x.examType === t && !x.abs && getGrade(x.studentClass) === stGrade);
+        let allClassExamsR = DB.e.filter(x => x.examType === t && !x.abs && x.studentClass === stu.class);
+        let genAvgSubsR = sb.map(x => { let v = allGradeExamsR.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
+        let genAvgNetR = allGradeExamsR.length > 0 ? (allGradeExamsR.reduce((a,e)=>a+e.totalNet,0)/allGradeExamsR.length).toFixed(2) : '—';
+        let genAvgScoreR = allGradeExamsR.length > 0 ? (allGradeExamsR.reduce((a,e)=>a+e.score,0)/allGradeExamsR.length).toFixed(2) : '—';
+        let clsAvgSubsR = sb.map(x => { let v = allClassExamsR.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
+        let clsAvgNetR = allClassExamsR.length > 0 ? (allClassExamsR.reduce((a,e)=>a+e.totalNet,0)/allClassExamsR.length).toFixed(2) : '—';
+        let clsAvgScoreR = allClassExamsR.length > 0 ? (allClassExamsR.reduce((a,e)=>a+e.score,0)/allClassExamsR.length).toFixed(2) : '—';
         let avgSubs = sb.map(x => { let v=attended.filter(e=>e.subs[x]!==undefined).map(e=>e.subs[x].net); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2):'—'; });
         let avgNet = (attended.reduce((a,e)=>a+e.totalNet,0)/attended.length).toFixed(2), avgScore = (attended.reduce((a,e)=>a+e.score,0)/attended.length).toFixed(2);
-        avgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">ORTALAMA</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="5">—</td></tr>`;
+        avgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">GENEL ORTALAMA (${stGrade}. Sınıflar)</td>${genAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNetR}</td><td>${genAvgScoreR}</td><td colspan="5">—</td></tr>`;
+        avgRow += `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">SINIF ORTALAMA (${stu.class})</td>${clsAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNetR}</td><td>${clsAvgScoreR}</td><td colspan="5">—</td></tr>`;
+        avgRow += `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">ORTALAMA</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="5">—</td></tr>`;
       }
       
       let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
@@ -1988,7 +2004,7 @@ async function generateRapor() {
       let stuExams = DB.e.filter(x => x.studentNo === stu.no).sort((a,b) => srt(a.date, b.date)); if (!stuExams.length) return;
       let grp = {};
       if (eTypeSel === 'ALL') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
-          let [eD, eT] = examVal.split('__'); stuExams.filter(e => e.examType === eT).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
+          stuExams.filter(e => e.examType === eTypeSel).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
       }
 
       let stGrade = getGrade(stu.class);
