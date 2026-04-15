@@ -41,7 +41,6 @@ body.dark-mode tr.highlight-row td { background-color:rgba(255,193,7,0.45) !impo
 
 /* ===== ORTALAMA SATIRI TASARIMI ===== */
 tr.avg-row td { background-color: #e6f0fa !important; color: #1e3a5f !important; font-weight: bold !important; border-top: 2px solid #1e3a5f !important; font-size: 0.95em; vertical-align: middle !important; }
-tr.avg-row td:first-child { text-transform: uppercase; letter-spacing: 0.5px; }
 body.dark-mode tr.avg-row td { background-color: #2a3b4c !important; color: #e2e8f0 !important; border-top-color: #4b5563 !important; }
 
 /* Yetki */
@@ -189,7 +188,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
 </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
-
 <div id="loader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;justify-content:center;align-items:center;flex-direction:column;color:white;font-size:1.2em;">
   <div class="spinner-border text-light mb-3" style="width:3rem;height:3rem;"></div>
   <div id="l-txt">İşlem yapılıyor...</div>
@@ -277,14 +275,9 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
           <li class="nav-item"><a href="#" class="nav-link active" onclick="sTab('dashboard',this)"><i class="nav-icon fas fa-home"></i><p>Ana Sayfa</p></a></li>
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Öğrenci<i class="right fas fa-angle-left"></i></p></a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('anasayfa',this)"><i class="far fa-circle nav-icon"></i><p>Sorgula</p></a></li>
-              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('sonuclar',this)"><i class="far fa-circle nav-icon"></i><p>Analiz</p></a></li>
-              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('rapor',this)"><i class="far fa-circle nav-icon"></i><p>Toplu Rapor</p></a></li>
-            </ul>
-          </li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('anasayfa',this)"><i class="nav-icon fas fa-search"></i><p>Öğrenci Sorgula</p></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('sonuclar',this)"><i class="nav-icon fas fa-chart-pie"></i><p>Analiz</p></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('rapor',this)"><i class="nav-icon fas fa-file-alt"></i><p>Toplu Rapor</p></a></li>
           <li id="nav-ayarlar" class="nav-item admin-only"><a href="#" class="nav-link" onclick="sTab('ayarlar',this)"><i class="nav-icon fas fa-cog"></i><p>Ayarlar</p></a></li>
         </ul>
       </nav>
@@ -311,7 +304,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
         <!-- ANA SAYFA -->
         <div id="dashboard" class="pane active-pane">
           <div class="row">
-            <div class="col-lg-4 col-sm-6 col-12">
+            <div class="col-lg-3 col-sm-6 col-12">
               <div class="small-box bg-gradient-primary">
                 <div class="inner">
                   <h3 id="dashStudentCount">0</h3>
@@ -321,7 +314,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 <a href="#" class="small-box-footer" onclick="sTab('anasayfa',null)">Öğrenci Sorgula <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
-            <div class="col-lg-4 col-sm-6 col-12">
+            <div class="col-lg-3 col-sm-6 col-12">
               <div class="small-box bg-gradient-success">
                 <div class="inner">
                   <h3 id="dashExamCount">0</h3>
@@ -331,7 +324,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 <a href="#" class="small-box-footer" onclick="sTab('sonuclar',null)">Analizlere Git <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
-            <div class="col-lg-4 col-sm-6 col-12">
+            <div class="col-lg-3 col-sm-6 col-12">
               <div class="small-box bg-gradient-warning">
                 <div class="inner">
                   <h3 id="dashExamTypeCount">0</h3>
@@ -341,21 +334,28 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 <a href="#" class="small-box-footer" onclick="sTab('rapor',null)">Toplu Rapor <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
+            <div class="col-lg-3 col-sm-6 col-12">
+              <div class="small-box bg-gradient-danger">
+                <div class="inner">
+                  <h3 id="dashPartRate">0%</h3>
+                  <p>Katılım Oranı</p>
+                </div>
+                <div class="icon"><i class="fas fa-percentage"></i></div>
+                <a href="#" class="small-box-footer" onclick="sTab('sonuclar',null)">Analizlere Git <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-outline card-info mt-2">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div>
+            <div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div>
           </div>
 
           <div class="row">
-            <div class="col-lg-6">
+            <div class="col-lg-12">
               <div class="card card-primary card-outline">
                 <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie mr-2"></i>Sınıf Dağılımı</h3></div>
                 <div class="card-body"><div id="dashClassDist"></div></div>
-              </div>
-            </div>
-            <div class="col-lg-6">
-              <div class="card card-success card-outline">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-list-alt mr-2"></i>Son Yüklenen Sınavlar</h3></div>
-                <div class="card-body p-0">
-                  <div class="table-responsive"><table class="table table-sm table-hover m-0" id="dashRecentExams"><thead><tr><th>Sınav Türü</th><th>Tarih</th><th>Seviye</th></tr></thead><tbody></tbody></table></div>
-                </div>
               </div>
             </div>
           </div>
@@ -401,10 +401,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
             </div>
           </div>
           <div id="homeArea"></div>
-          <div class="card card-outline card-info mt-3">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div>
-            <div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div>
-          </div>
         </div>
 
         <!-- SONUÇLAR & ANALİZLER -->
@@ -531,6 +527,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
               <button class="btn btn-danger btn-block mt-2 admin-only" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek?')"><i class="fas fa-trash mr-1"></i>Tümünü Sil</button>
             </div>
           </div>
+          
           <div class="card card-warning card-outline">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri Yükleme</h3></div>
             <div class="card-body">
@@ -540,8 +537,8 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
               </div>
               <div id="tExA" class="table-responsive mt-2"></div>
             </div>
-          </div></div>
           </div>
+          
           <div class="card card-danger card-outline admin-only">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yönetimi</h3></div>
             <div class="card-body">
@@ -551,7 +548,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 <input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)">
               </div>
               <small class="text-muted d-block mb-3"><i class="fas fa-info-circle mr-1"></i>Tüm öğrenci, sınav meta ve sınav sonuçlarını tek dosyaya yedekler.</small>
-              <button class="btn btn-danger btn-sm" onclick="cDel('all','TÜM VERİTABANI SİLİNECEK, ONAYLIYOR MUSUNUZ?')"><i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla</button>
+              <button class="btn btn-danger btn-sm" onclick="cDel('all','Tüm Veritabanı Silinecek, Onaylıyor Musunuz?')"><i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla</button>
             </div>
           </div>
         </div>
@@ -626,9 +623,9 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
     </div>
     <div class="modal-body">
       <input type="hidden" id="eExBatchId">
-      <div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="eExDate" class="form-control" placeholder="15.04.2024"></div>
-      <div class="form-group"><label>Sınav Türü</label><input type="text" id="eExType" class="form-control" placeholder="Örn: TYT"></div>
-      <div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="eExPub" class="form-control" placeholder="Örn: MEB"></div>
+      <div class="form-group"><label>Tarih <small class="text-muted">(Gg.Aa.Yyyy)</small></label><input type="text" id="eExDate" class="form-control" placeholder="15.04.2024"></div>
+      <div class="form-group"><label>Sınav Türü</label><input type="text" id="eExType" class="form-control" placeholder="Örn: Tyt"></div>
+      <div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="eExPub" class="form-control" placeholder="Örn: Meb"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
@@ -656,7 +653,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
     <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">İptal</button><button class="btn btn-success" onclick="svStu()"><i class="fas fa-save mr-1"></i>Kaydet</button></div>
   </div></div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
@@ -825,8 +821,11 @@ async function init(){
     let sData = snap.val(); DB.s = sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : []; rTabS(); 
   });
   
-  database.ref('db_v2/examMeta').on('value', snap => {
-    EXAM_META = snap.val() || {}; uDrp(); rTabE(); uStat();
+  database.ref('db_v2/examMeta').on('value', async snap => {
+    EXAM_META = snap.val() || {}; 
+    let bIds = Object.keys(EXAM_META);
+    if(bIds.length > 0) { await fetchBatches(bIds); }
+    uDrp(); rTabE(); uStat(); updateDashboard();
     if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
     if(aNo) reqProfile();
     ld(0);
@@ -975,7 +974,7 @@ function xPR(sourceId, title, btn, orientation) {
 
     tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.avg-row td { background: #e6f0fa !important; color: #1e3a5f !important; font-weight: bold !important; border-top: 2px solid #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .card { border: 1px solid #dee2e6 !important; border-radius: 4px; margin-bottom: 10px; display: block; } .card-header { background: #f8f9fa !important; padding: 8px 12px; border-bottom: 1px solid #dee2e6; } .card-body { padding: 10px 12px; } .card-outline.card-primary { border-top: 3px solid #1e3a5f !important; } .card-outline.card-info { border-top: 3px solid #17a2b8 !important; } .card-outline.card-success { border-top: 3px solid #28a745 !important; } .card-outline.card-warning { border-top: 3px solid #ffc107 !important; }
-    .info-box { display: flex !important; align-items: stretch; border-radius: 4px; margin-bottom: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-icon { display: flex !important; align-items: center; justify-content: center; width: 60px !important; min-width: 60px; font-size: 1.4em; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-content { padding: 8px 10px; flex: 1; } .info-box-text { display: block; font-size: 0.78em; text-transform: uppercase; font-weight: 600; } .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 2px 0; } .progress-description { display: block; font-size: 0.78em; }
+    .info-box { display: flex !important; align-items: stretch; border-radius: 4px; margin-bottom: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-icon { display: flex !important; align-items: center; justify-content: center; width: 60px !important; min-width: 60px; font-size: 1.4em; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-content { padding: 8px 10px; flex: 1; } .info-box-text { display: block; font-size: 0.78em; font-weight: 600; } .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 2px 0; } .progress-description { display: block; font-size: 0.78em; }
     .bg-primary { background: #1e3a5f !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-success { background: #28a745 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-danger { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-warning { background: #ffc107 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-info { background: #17a2b8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-teal { background: #20c997 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .print-chart-img { max-width: 100%; width: 100%; max-height: ${isPortrait ? "260px" : "180px"}; height: auto; object-fit: contain; display: block; margin: 4px auto 10px; } .chart-box { height: auto !important; margin-bottom: 10px; }
     ${isPortrait ? ".col-md-3 { width: 25% !important; } .col-md-4 { width: 33.33% !important; } .col-md-6 { width: 50% !important; } .col-lg-4 { width: 33.33% !important; } .col-lg-6 { width: 50% !important; }" : ""}
@@ -1033,6 +1032,12 @@ function updateDashboard(){
   getEl('dashExamCount').textContent = examCount;
   let examTypes = new Set(); Object.values(EXAM_META).forEach(m => examTypes.add(m.examType));
   getEl('dashExamTypeCount').textContent = examTypes.size;
+
+  // Katılım Oranı
+  let totalExams = DB.e.length;
+  let attendedExams = DB.e.filter(x => !x.abs).length;
+  let partRate = totalExams > 0 ? Math.round((attendedExams / totalExams) * 100) : 0;
+  getEl('dashPartRate').textContent = partRate + '%';
   
   // Sınıf dağılımı
   let classDist = {};
@@ -1041,14 +1046,9 @@ function updateDashboard(){
     let pct = DB.s.length ? Math.round(cnt/DB.s.length*100) : 0;
     let colors = {'9. Sınıf':'bg-primary','10. Sınıf':'bg-success','11. Sınıf':'bg-warning','12. Sınıf':'bg-danger'};
     let bg = colors[cls] || 'bg-info';
-    return '<div class="mb-2"><div class="d-flex justify-content-between mb-1"><span>'+escapeHtml(cls)+'</span><span><strong>'+cnt+'</strong> öğrenci ('+pct+'%)</span></div><div class="progress" style="height:20px;"><div class="progress-bar '+bg+'" style="width:'+pct+'%"></div></div></div>';
+    return '<div class="mb-2"><div class="d-flex justify-content-between mb-1"><span>'+escapeHtml(cls)+'</span><span><strong>'+cnt+'</strong> Öğrenci ('+pct+'%)</span></div><div class="progress" style="height:20px;"><div class="progress-bar '+bg+'" style="width:'+pct+'%"></div></div></div>';
   }).join('');
   getEl('dashClassDist').innerHTML = distHtml || '<p class="text-muted">Henüz öğrenci yüklenmemiş.</p>';
-  
-  // Son sınavlar
-  let exams = Object.values(EXAM_META).sort((a,b)=>srt(b.date,a.date)).slice(0,8);
-  let tbody = getEl('dashRecentExams').querySelector('tbody');
-  tbody.innerHTML = exams.map(m => '<tr><td>'+escapeHtml(m.examType)+'</td><td>'+escapeHtml(m.date)+'</td><td>'+(m.grades?m.grades.join(', '):'—')+'</td></tr>').join('') || '<tr><td colspan="3" class="text-muted text-center">Henüz sınav yüklenmemiş.</td></tr>';
 }
 
 function uStat(){
@@ -1135,16 +1135,13 @@ function uUI(){
 function handleSubChange(){ let t = getEl('aType').value, sub = getEl('aSub').value; if(t === 'examdetail') { getEl('gDate').style.display = (sub === 'general_summary' || sub === 'list_all') ? 'none' : 'block'; uExamDates(); } reqAnl(); }
 
 function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
-  // Öğrencinin bu tür ve seviyedeki ortalaması
   let attended = examsData.filter(e => !e.abs);
   if(!attended.length) return null;
   let stuAvg = attended.reduce((a,e)=>a+e.totalNet,0) / attended.length;
   
-  // Genel ortalama (aynı tür, aynı sınıf seviyesi)
   let allSameGrade = DB.e.filter(x => x.examType===examType && !x.abs && getGrade(x.studentClass)===grade);
   let genAvg = allSameGrade.length ? allSameGrade.reduce((a,e)=>a+e.totalNet,0)/allSameGrade.length : null;
   
-  // Derece hesabı: aynı tür ve sınıf seviyesindeki her öğrencinin ortalaması
   let stuMap = {};
   allSameGrade.forEach(e => {
     if(!stuMap[e.studentNo]) stuMap[e.studentNo] = {sum:0,cnt:0};
@@ -1154,7 +1151,6 @@ function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
   let rank = rankings.findIndex(x=>x.no===stuNo)+1;
   let totalStudents = rankings.length;
   
-  // Trend
   let nets = attended.map(e=>e.totalNet);
   let trend = null;
   if(nets.length >= 2){
@@ -1193,7 +1189,6 @@ function buildKarneExamCards(summary, examType) {
   </div>`;
   return cardsHtml;
 }
-
 function rH(){
   let s=DB.s.find(x=>x.no===aNo); if(!s)return; let r=getEl('homeArea');
   let combined=DB.e.filter(x=>x.studentNo===aNo).sort((a,b)=>srt(a.date,b.date));
@@ -1217,7 +1212,7 @@ function rH(){
     let kIdx = 1;
     el.forEach(e=>{
       let pub = e.publisher || '—', sNo = e.abs ? '—' : kIdx++;
-      if(e.abs) h+=`<tr class="absent-row"><td>${sNo}</td><td>${e.date}</td><td>${pub}</td><td colspan="${sb.length+7}" class="text-center font-weight-bold">🔴 KATILMADI</td></tr>`;
+      if(e.abs) h+=`<tr class="absent-row"><td>${sNo}</td><td>${e.date}</td><td>${pub}</td><td colspan="${sb.length+7}" class="text-center font-weight-bold">🔴 Katılmadı</td></tr>`;
       else h+=`<tr><td>${sNo}</td><td>${e.date}</td><td>${pub}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td><td>${e.dR||'—'}/${e.dP||'—'}</td><td>${e.pR||'—'}/${e.pP||'—'}</td><td>${e.gR||'—'}/${e.gP||'—'}</td></tr>`;
     });
     
@@ -1681,381 +1676,12 @@ function rAnl(){
   }
 }
 
-/* ===== AYARLAR ===== */
-function rTabS(){
-  let t=getEl('tStu').querySelector('tbody');
-  t.innerHTML=DB.s.map((s,idx)=>`<tr><td>${idx+1}</td><td>${escapeHtml(s.no)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.class)}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu('${s.no}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student','${s.no} silinecek.','${s.no}')"><i class='fas fa-trash'></i></button></div></td></tr>`).join('');
-}
-
-function filterStudentTable(){
-  let q = normTR((getEl('stuTableFilter')?.value||'').trim()), rows = getEl('tStu').querySelector('tbody').querySelectorAll('tr');
-  if(!q){ rows.forEach(r=>r.style.display=''); return; }
-  let terms = q.split(/\s+/);
-  rows.forEach(r=>{ let txt = normTR(r.textContent); r.style.display = terms.every(t=>txt.includes(t)) ? '' : 'none'; });
-}
-function rTabE(){
-  let u = Object.keys(EXAM_META).map(bId => ({ examBatchId: bId, ...EXAM_META[bId] })).sort((a,b)=>{
-    let dateCmp = srt(a.date, b.date);
-    if(dateCmp !== 0) return dateCmp;
-    let aGrade = (a.grades && a.grades.length > 0) ? Math.min(...a.grades.map(g=>parseInt(g)||99)) : 99;
-    let bGrade = (b.grades && b.grades.length > 0) ? Math.min(...b.grades.map(g=>parseInt(g)||99)) : 99;
-    return aGrade - bGrade;
-  });
-  getEl('tExA').innerHTML=`<table class="table table-sm table-hover text-nowrap"><thead><tr><th>#</th><th>Tarih</th><th>Tür</th><th>Sınıf Seviyesi</th><th>Yayınevi</th><th>Sayı</th><th>İşlem</th></tr></thead><tbody>${u.map((e,idx)=>{ let gl = (e.grades && e.grades.length > 0) ? e.grades.sort().join(', ') : 'Tümü'; return `<tr><td>${idx+1}</td><td>${e.date}</td><td>${e.examType}</td><td>${gl}</td><td>${e.publisher||'—'}</td><td>${e.count}</td><td><div class="btn-group btn-group-sm"><button class="btn btn-warning admin-only" onclick="eExam('${e.examBatchId}')" title="Düzenle"><i class='fas fa-edit'></i></button><button class="btn btn-danger admin-only" onclick="cDel('exam','Silinsin mi?','${e.examBatchId}')"><i class='fas fa-trash'></i></button></div></td></tr>`; }).join('')}</tbody></table>`;
-}
-
-function eExam(bId){
-  let m = EXAM_META[bId]; if(!m) return;
-  getEl('eExBatchId').value = bId;
-  getEl('eExDate').value = m.date;
-  getEl('eExType').value = m.examType;
-  getEl('eExPub').value = m.publisher || '';
-  jQuery('#mEditExam').modal('show');
-}
-
-async function svExam(){
-  let bId = getEl('eExBatchId').value;
-  let newDate = getEl('eExDate').value.trim();
-  let newType = getEl('eExType').value.trim().toUpperCase();
-  let newPub = getEl('eExPub').value.trim();
-  if(!newDate || !newType){ showToast('Tarih ve tür zorunludur!','warning'); return; }
-  let m = EXAM_META[bId]; if(!m) return;
-  let oldDate = m.date, oldType = m.examType;
-  
-  // Aynı tarih+tür+sınıfSeviyesi kombinasyonu zaten var mı kontrol et (kendisi hariç)
-  let dupId = Object.keys(EXAM_META).find(id => {
-    if(id === bId) return false;
-    let em = EXAM_META[id];
-    if(em.examType !== newType || em.date !== newDate) return false;
-    // Aynı sınıf seviyesine sahip başka bir batch varsa çakışır
-    let myGrades = m.grades || [], otherGrades = em.grades || [];
-    if(myGrades.length === 0 || otherGrades.length === 0) return true;
-    return myGrades.some(g => otherGrades.includes(g));
-  });
-  if(dupId){ showToast('Bu tarih ve tür kombinasyonu aynı sınıf seviyesi için zaten mevcut!','error'); return; }
-  
-  ld(1,'Sınav güncelleniyor...');
-  try {
-    // Meta güncelle
-    EXAM_META[bId].date = newDate; EXAM_META[bId].examType = newType; EXAM_META[bId].publisher = newPub;
-    await database.ref('db_v2/examMeta/'+bId).update({ date: newDate, examType: newType, publisher: newPub });
-    // Sonuçları güncelle
-    if(CACHED_RESULTS[bId]){
-      CACHED_RESULTS[bId] = CACHED_RESULTS[bId].map(e => ({...e, date: newDate, examType: newType, publisher: newPub}));
-      await database.ref('db_v2/examResults/'+bId).set(CACHED_RESULTS[bId]);
-    } else {
-      let snap = await database.ref('db_v2/examResults/'+bId).once('value');
-      let arr = snap.val() || [];
-      let updated = arr.map(e => e ? ({...e, date: newDate, examType: newType, publisher: newPub}) : null);
-      await database.ref('db_v2/examResults/'+bId).set(updated);
-      CACHED_RESULTS[bId] = updated.filter(x=>x);
-    }
-    DB.e = DB.e.map(e => e.examBatchId === bId ? {...e, date: newDate, examType: newType, publisher: newPub} : e);
-    rTabE(); uDrp(); uStat(); updateDashboard();
-    if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
-    jQuery('#mEditExam').modal('hide');
-    showToast('Sınav bilgileri güncellendi.','success');
-  } catch(err){ showToast('Hata: '+err.message,'error'); }
-  ld(0);
-}
-
-function oMod(id){jQuery('#'+id).modal('show');}
-function cMod(id){jQuery('#'+id).modal('hide');}
-function oModAdd(){getEl('mSTit').textContent='Öğrenci Ekle';getEl('mSNo').value='';getEl('mSNo').disabled=false;getEl('mSNa').value='';getEl('mSCl').value='';oMod('mStu');}
-function eStu(n){let s=DB.s.find(x=>x.no===n);if(s){getEl('mSTit').textContent='Öğrenci Düzenle';getEl('mSNo').value=s.no;getEl('mSNo').disabled=true;getEl('mSNa').value=s.name;getEl('mSCl').value=s.class;oMod('mStu');}}
-function cDel(t,m,id=null){dInf={t,id};getEl('cTxt').textContent=m;oMod('mConf');}
-
-async function xDel(){
-  let t=dInf.t,id=dInf.id;
-  try {
-  if(t==='student'){ DB.s=DB.s.filter(x=>x.no!==id); await database.ref('db_v2/students').set(DB.s);
-      let delPromises = [];
-      Object.keys(EXAM_META).forEach(bId => {
-        if(CACHED_RESULTS[bId]) { CACHED_RESULTS[bId] = CACHED_RESULTS[bId].filter(x => x.studentNo !== id); delPromises.push(database.ref('db_v2/examResults/'+bId).set(CACHED_RESULTS[bId])); }
-      });
-      if(delPromises.length) await Promise.all(delPromises);
-      DB.e = DB.e.filter(x => x.studentNo !== id); if(aNo===id)sAct(null); }
-  else if(t==='allStudents'){ await database.ref('db_v2/students').set([]); await database.ref('db_v2/examResults').remove(); await database.ref('db_v2/examMeta').remove(); DB.s=[]; CACHED_RESULTS={}; DB.e=[]; EXAM_META={}; sAct(null); rTabS(); rTabE(); uStat(); uDrp(); }
-  else if(t==='exam'){ await database.ref('db_v2/examResults/'+id).remove(); await database.ref('db_v2/examMeta/'+id).remove(); if(CACHED_RESULTS[id]) delete CACHED_RESULTS[id]; delete EXAM_META[id]; DB.e = DB.e.filter(x => x.examBatchId !== id); rTabE(); uStat(); uDrp(); if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl(); }
-  else if(t==='all'){ ld(1,'Sıfırlanıyor...'); await database.ref('db_v2').remove(); await database.ref('sinavDB').remove(); location.reload(); return; }
-  cMod('mConf');
-  } catch(err) { showToast('Silme hatası: '+err.message,'error'); cMod('mConf'); }
-}
-
-async function svStu(){
-  let n=String(getEl('mSNo').value).trim(),nm=getEl('mSNa').value.trim(),cc=getEl('mSCl').value.trim();
-  if(!n||!nm||!cc){showToast('Tüm alanları doldurun!','warning');return;}
-  let s=DB.s.find(x=>x.no===n); let oldClass = s ? s.class : null;
-  if(s){ s.name=nm; s.class=cc;
-    // Sınıf değiştiğinde examResults'taki studentClass'ları da güncelle
-    if(oldClass && oldClass !== cc) {
-      let updatePromises = [];
-      Object.keys(CACHED_RESULTS).forEach(bId => {
-        let changed = false;
-        CACHED_RESULTS[bId].forEach(e => { if(e.studentNo === n) { e.studentClass = cc; changed = true; } });
-        if(changed) updatePromises.push(database.ref('db_v2/examResults/'+bId).set(CACHED_RESULTS[bId]));
-      });
-      DB.e.forEach(e => { if(e.studentNo === n) e.studentClass = cc; });
-      if(updatePromises.length) Promise.all(updatePromises).catch(err => showToast('Sınav kayıtları güncellenemedi: '+err.message,'error'));
-    }
-    if(aNo===n) reqProfile();
-  } else{ DB.s.push({no:n,name:nm,class:cc}); }
-  try { await database.ref('db_v2/students').set(DB.s); } catch(err) { showToast('Kayıt hatası: '+err.message,'error'); ld(0); cMod('mStu'); return; } rTabS(); uStat();
-  if(aNo){ let upd=DB.s.find(x=>x.no===aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; } }
-  cMod('mStu'); showToast('Öğrenci bilgileri kaydedildi.', 'success');
-}
-
-async function expDB(){
-  ld(1,'Yedek hazırlanıyor, lütfen bekleyin...');
-  try { let resultsSnap = await database.ref('db_v2/examResults').once('value'); let payload = { _version: 2, _date: new Date().toISOString(), students: DB.s, examMeta: EXAM_META, examResults: resultsSnap.val() || {} }; let b = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `TamYedek_${new Date().toLocaleDateString('tr-TR').replace(/\./g,'-')}.json`; a.click(); } catch(err) { showToast('Yedek alınamadı: ' + err.message, 'error'); }
-  ld(0);
-}
-
-async function impDB(e){
-  if(auth.currentUser.uid !== ADMIN_UID){ showToast('Bu işlem sadece admin tarafından yapılabilir.', 'error'); e.target.value = ''; return; }
-  let f = e.target.files[0]; if(!f){ e.target.value=''; return; }
-  if(!confirm('⚠️ Mevcut tüm verinin üzerine yazılacak.\nBu işlem geri alınamaz. Devam edilsin mi?')){ e.target.value=''; return; }
-
-  let rd = new FileReader();
-  rd.onload = async ev => {
-    try {
-      let p = JSON.parse(ev.target.result); if(typeof p !== 'object' || !Array.isArray(p.students)) throw new Error('Geçersiz yedek dosyası. students alanı bulunamadı.'); if(!p.examMeta || typeof p.examMeta !== 'object') throw new Error('Geçersiz yedek dosyası. examMeta alanı bulunamadı.');
-      ld(1,'Veriler geri yükleniyor...'); await database.ref('db_v2').remove(); await database.ref('db_v2/students').set(p.students); await database.ref('db_v2/examMeta').set(p.examMeta); if(p.examResults && Object.keys(p.examResults).length > 0) await database.ref('db_v2/examResults').set(p.examResults);
-      CACHED_RESULTS = {}; alert('✅ Geri yükleme tamamlandı. Sayfa yenilenecek.'); location.reload();
-    } catch(err) { showToast('Geri yükleme başarısız: ' + err.message, 'error'); ld(0); }
-  }; rd.readAsText(f); e.target.value = '';
-}
-
-function cancelUpload() { PENDING_UPLOAD = null; getEl('fStu').value = ''; getEl('fEx').value = ''; wizardStep = 0; jQuery('#mMappings').modal('hide'); jQuery('#mUploadPreview').modal('hide'); }
-function backToMapping() { jQuery('#mUploadPreview').modal('hide'); jQuery('#mMappings').modal('show'); }
-
-/* ===== EŞLEŞTİRME SİHİRBAZI ===== */
-function upl(e, t) {
-  let f = e.target.files[0]; if(!f) return;
-  ld(1, 'Dosya Analiz Ediliyor...'); currentUploadType = t;
-  setTimeout(() => {
-    let rd = new FileReader();
-    rd.onload = ev => {
-      try {
-        let wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'}); currentExcelData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: ''});
-        if(!currentExcelData.length) throw new Error('Dosya boş veya okunamadı.');
-        let sheet = wb.Sheets[wb.SheetNames[0]], range = XLSX.utils.decode_range(sheet['!ref']); currentHeaders = [];
-        for(let C = range.s.c; C <= range.e.c; C++){ let cell = sheet[XLSX.utils.encode_cell({c:C, r:range.s.r})]; if(cell && cell.v) currentHeaders.push(String(cell.v).trim()); }
-        buildMappingUI(); ld(0); jQuery('#mMappings').modal('show');
-      } catch(err) { ld(0); getEl('fStu').value=''; getEl('fEx').value=''; showToast('Hata: ' + err.message, 'error'); }
-    }; rd.readAsArrayBuffer(f);
-  }, 100);
-}
-
-function buildOptions(headers, selectedGuess, allowEmpty) {
-  let html = allowEmpty ? '<option value="">-- Boş Geç --</option>' : '<option value="">-- Seçiniz --</option>';
-  headers.forEach(h => { let sel = (selectedGuess && selectedGuess !== '' && (h.toLowerCase() === selectedGuess.toLowerCase() || h.toLowerCase().includes(selectedGuess.toLowerCase()))) ? 'selected' : ''; html += `<option value="${h}" ${sel}>${h}</option>`; }); return html;
-}
-
-let wizardStep = 0;
-
-function buildMappingUI() {
-  let b = getEl('mMappingsBody'), h = currentHeaders;
-  if(currentUploadType === 's') {
-    let saved = JSON.parse(localStorage.getItem('map_s') || '{}');
-    b.innerHTML = `<div class="alert alert-info py-2" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i> Excel dosyanızdaki sütunları sistemdeki alanlarla eşleştirin.</div>
-      <div class="wizard-section"><h6><i class="fas fa-id-card mr-1"></i> Temel Alanlar</h6>
-        <div class="form-group"><label>Öğrenci No Sütunu</label><select id="map_s_no" class="form-control">${buildOptions(h, saved.no || 'no')}</select></div>
-        <div class="form-group"><label>Ad Soyad Sütunu</label><select id="map_s_name" class="form-control">${buildOptions(h, saved.name || 'ad')}</select></div>
-        <div class="form-group"><label>Sınıf Sütunu</label><select id="map_s_cls" class="form-control">${buildOptions(h, saved.cls || 'sınıf')}</select></div>
-      </div>`;
-    getEl('mMappingsFooter').innerHTML = `<button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><button class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ml-1"></i></button>`;
-  } else {
-    wizardStep = 0; renderWizardStep();
-    getEl('mMappingsFooter').innerHTML = `<button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><div class="ml-auto d-flex" style="gap:6px;"><button class="btn btn-outline-secondary" id="wizBtnBack" onclick="wizardNav(-1)" style="display:none;"><i class="fas fa-arrow-left mr-1"></i>Geri</button><button class="btn btn-primary" id="wizBtnNext" onclick="wizardNav(1)">İleri <i class="fas fa-arrow-right ml-1"></i></button><button class="btn btn-success" id="wizBtnDone" onclick="processMappings()" style="display:none;">Onayla ve Analiz Et <i class="fas fa-check ml-1"></i></button></div>`;
-  }
-}
-
-const WIZARD_STEPS = [ { id:'wiz-step-0', title:'1. Sınav Genel Bilgileri' }, { id:'wiz-step-1', title:'2. Sabit Excel Sütunları' }, { id:'wiz-step-2', title:'3. Ders Netleri Eşleştirmesi' }, { id:'wiz-step-3', title:'4. Dereceler (İsteğe Bağlı)' } ];
-
-function renderWizardStep() {
-  let h = currentHeaders, saved = {}; try { saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
-  let today = new Date().toISOString().split('T')[0], [y,m,d] = today.split('-'), trDate = `${d}.${m}.${y}`, b = getEl('mMappingsBody');
-
-  let progHtml = `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;">${WIZARD_STEPS.map((s,i) => `<div style="flex:1;text-align:center;font-size:0.72em;font-weight:bold;padding:0 2px;color:${i===wizardStep?'#1e3a5f':i<wizardStep?'#28a745':'#adb5bd'};word-break:break-word;line-height:1.3;">${i<wizardStep?'✓ ':''}${s.title}</div>`).join('')}</div><div class="progress" style="height:7px;border-radius:4px;"><div class="progress-bar bg-primary" style="width:${((wizardStep+1)/WIZARD_STEPS.length)*100}%;border-radius:4px;transition:width 0.3s;"></div></div></div>`;
-
-  let stepHtml = '';
-  if(wizardStep === 0) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-tag mr-1"></i> Sınav Genel Bilgileri (Zorunlu)</h6>
-      <div class="row"><div class="col-md-4"><div class="form-group"><label>Sınav Türü <small class="text-muted">(Örn: TYT)</small></label><input type="text" id="map_e_type" class="form-control" placeholder="TYT" value="${saved.type||''}"></div></div><div class="col-md-4"><div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="map_e_date" class="form-control" placeholder="15.04.2024" value="${trDate}"></div></div><div class="col-md-4"><div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="map_e_pub" class="form-control" placeholder="MEB" value="${saved.pub||''}"></div></div></div></div>`;
-  } else if(wizardStep === 1) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-columns mr-1"></i> Sabit Excel Sütunları</h6>
-      <div class="row"><div class="col-md-4"><div class="form-group"><label>Öğrenci No Sütunu <span class="text-danger">*</span></label><select id="map_e_no" class="form-control">${buildOptions(h, saved.no||'no')}</select></div></div><div class="col-md-4"><div class="form-group"><label>Toplam Net Sütunu <span class="text-danger">*</span></label><select id="map_e_tnet" class="form-control">${buildOptions(h, saved.tnet||'toplam')}</select></div></div><div class="col-md-4"><div class="form-group"><label>Toplam Puan Sütunu <span class="text-danger">*</span></label><select id="map_e_score" class="form-control">${buildOptions(h, saved.score||'puan')}</select></div></div></div></div>`;
-  } else if(wizardStep === 2) {
-    stepHtml = `<div class="wizard-section"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="mb-0 border-0"><i class="fas fa-book-open mr-1"></i> Ders Netleri Eşleştirmesi</h6><button class="btn btn-success btn-sm" onclick="addSubjectRow()"><i class="fas fa-plus mr-1"></i>Ders Ekle</button></div><p class="text-muted" style="font-size:0.85em;margin-top:-10px;">Sadece analize dahil etmek istediğiniz dersleri seçin ve isimlendirin. Eşleştirilmeyenler tabloda — olarak görünür.</p><div id="subjectMapContainer"></div></div>`;
-  } else if(wizardStep === 3) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-medal mr-1"></i> Dereceler (İsteğe Bağlı)</h6><p class="text-muted" style="font-size:0.85em;">Sınıf ve Kurum sıralaması artık sistem tarafından otomatik hesaplanmaktadır. Buradan yalnızca İlçe, İl ve Genel sıralamayı Excel'den alabilirsiniz.</p>
-      <div class="row"><div class="col-md-6"><div class="form-group"><label><i class="fas fa-city mr-1"></i>İlçe Sırası Sütunu</label><select id="map_e_dR" class="form-control">${buildOptions(h, saved.dR||'ilçe sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>İlçe Kişi Sayısı Sütunu</label><select id="map_e_dP" class="form-control">${buildOptions(h, saved.dP||'', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label><i class="fas fa-map-marker-alt mr-1"></i>İl Sırası Sütunu</label><select id="map_e_pR" class="form-control">${buildOptions(h, saved.pR||'il sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>İl Kişi Sayısı Sütunu</label><select id="map_e_pP" class="form-control">${buildOptions(h, saved.pP||'', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label><i class="fas fa-globe-europe mr-1"></i>Genel Sırası Sütunu</label><select id="map_e_gR" class="form-control">${buildOptions(h, saved.gR||'genel sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>Genel Kişi Sayısı Sütunu</label><select id="map_e_gP" class="form-control">${buildOptions(h, saved.gP||'', true)}</select></div></div></div></div>`;
-  }
-  
-  b.innerHTML = progHtml + stepHtml;
-  
-  if(wizardStep === 2) {
-    let savedSubs = []; try { savedSubs = JSON.parse(localStorage.getItem('map_e') || '{}').subs || []; } catch(e){}
-    if(savedSubs.length > 0) { savedSubs.forEach(s => addSubjectRow(s.col, s.name)); } else {
-      let trCol = h.find(x => x.toLowerCase().includes('türkçe') || x.toLowerCase() === 'tr'), matCol = h.find(x => x.toLowerCase().includes('matematik') || x.toLowerCase() === 'mat');
-      if(trCol) addSubjectRow(trCol, 'Türkçe'); if(matCol) addSubjectRow(matCol, 'Matematik'); if(!trCol && !matCol) addSubjectRow();
-    }
-  }
-
-  let btnBack = getEl('wizBtnBack'), btnNext = getEl('wizBtnNext'), btnDone = getEl('wizBtnDone');
-  if(btnBack) btnBack.style.display = wizardStep > 0 ? 'inline-block' : 'none';
-  if(btnNext) btnNext.style.display = wizardStep < WIZARD_STEPS.length - 1 ? 'inline-block' : 'none';
-  if(btnDone) btnDone.style.display = wizardStep === WIZARD_STEPS.length - 1 ? 'inline-block' : 'none';
-}
-
-function wizardNav(dir) { saveWizardStepData(); wizardStep = Math.max(0, Math.min(WIZARD_STEPS.length - 1, wizardStep + dir)); renderWizardStep(); }
-
-function saveWizardStepData() {
-  let saved = {}; try { saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
-  if(wizardStep === 0) { let t = getEl('map_e_type'), d = getEl('map_e_date'), p = getEl('map_e_pub'); if(t) saved.type = t.value; if(d) saved.date = d.value; if(p) saved.pub = p.value; }
-  else if(wizardStep === 1) { let no = getEl('map_e_no'), tn = getEl('map_e_tnet'), sc = getEl('map_e_score'); if(no) saved.no = no.value; if(tn) saved.tnet = tn.value; if(sc) saved.score = sc.value; }
-  else if(wizardStep === 2) { let rows = document.querySelectorAll('.subj-map-row'), subs = []; rows.forEach(r => { let c = r.querySelector('.map-subj-col').value, n = r.querySelector('.map-subj-name').value.trim(); if(c && n) subs.push({col:c,name:n}); }); saved.subs = subs; }
-  else if(wizardStep === 3) { ['dR','dP','pR','pP','gR','gP'].forEach(k => { let el = getEl('map_e_'+k); if(el) saved[k] = el.value; }); ['cR','cP','iR','iP'].forEach(k => { delete saved[k]; }); }
-  localStorage.setItem('map_e', JSON.stringify(saved));
-}
-
-function addSubjectRow(selectedCol = '', typedName = '') {
-  let div = document.createElement('div'); div.className = 'subj-map-row';
-  let html = `<select class="form-control form-control-sm map-subj-col"><option value="">-- Excel Sütunu Seçin --</option>`;
-  currentHeaders.forEach(h => { let sel = (h === selectedCol) ? 'selected' : ''; html += `<option value="${h}" ${sel}>${h}</option>`; });
-  html += `</select><i class="fas fa-arrow-right text-muted mx-2 "></i><input type="text" class="form-control form-control-sm map-subj-name" placeholder="Sistemde Görünecek Ad (Örn: Türkçe)" value="${typedName}"><button class="btn btn-danger btn-sm btn-remove" onclick="this.parentElement.remove()" title="Sil"><i class="fas fa-trash"></i></button>`;
-  div.innerHTML = html; getEl('subjectMapContainer').appendChild(div);
-}
-
-function processMappings() {
-  let d = currentExcelData, previewHtml = '';
-  if(currentUploadType === 's') {
-    let cNo = getEl('map_s_no').value, cName = getEl('map_s_name').value, cCls = getEl('map_s_cls').value;
-    if(!cNo || !cName || !cCls) { showToast('Lütfen tüm temel alanları eşleştirin.', 'warning'); return; }
-    localStorage.setItem('map_s', JSON.stringify({no: cNo, name: cName, cls: cCls}));
-
-    let newStus = [], existingNos = [], invalidRows = [];
-    d.forEach((r, i) => {
-      let n = String(r[cNo]||'').trim(), nm = String(r[cName]||'').trim(), cc = String(r[cCls]||'').trim();
-      if(!n || !nm || !cc) { invalidRows.push({ rowNum: i + 2, data: `${n || '—'} - ${nm || '—'}`, reason: 'Eksik Alan' }); return; }
-      if(DB.s.find(x=>x.no===n)) existingNos.push(n); else newStus.push({no:n, name:nm, class:cc});
-    });
-
-    if(newStus.length === 0 && existingNos.length === 0) { showToast('Geçerli veri bulunamadı.', 'error'); return; }
-
-    previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Öğrenci Listesi Analizi</h5>
-      <div class="row"><div class="col-md-4"><div class="preview-box"><strong>Eklenecek Yeni:</strong><br><span class="text-success" style="font-size:1.5em;">${newStus.length} Kişi</span></div></div>
-      <div class="col-md-4"><div class="preview-box warning"><strong>Zaten Kayıtlı (Atlanacak):</strong><br><span class="text-warning" style="font-size:1.5em;">${existingNos.length} Kişi</span></div></div>
-      <div class="col-md-4"><div class="preview-box danger"><strong>Hatalı/Eksik Satır:</strong><br><span class="text-danger" style="font-size:1.5em;">${invalidRows.length} Satır</span></div></div></div>`;
-    if(existingNos.length > 0) previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Zaten Olan Numaralar:</strong> ${existingNos.slice(0,20).join(', ')}${existingNos.length>20?'...':''}</div>`;
-    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;"><table class="table table-sm table-striped mb-0" style="font-size:0.85em;"><thead style="background-color: #f8d7da; color: #721c24;"><tr><th style="width: 60px;">Satır</th><th>Okunan Veri</th><th>Hata Nedeni</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.data}</td><td class="text-danger">${err.reason}</td></tr>`).join('')}</tbody></table></div>`;
-    PENDING_UPLOAD = { type: 's', data: newStus };
-
-  } else {
-    let _sv = {}; try { _sv = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e) {}
-    let eType = (getEl('map_e_type') ? getEl('map_e_type').value.trim() : (_sv.type||'')).toUpperCase();
-    let eDate = getEl('map_e_date') ? getEl('map_e_date').value.trim() : (_sv.date || ''), ePub = getEl('map_e_pub') ? getEl('map_e_pub').value.trim() : (_sv.pub || '');
-    let cNo = getEl('map_e_no') ? getEl('map_e_no').value : (_sv.no || ''), cTnet = getEl('map_e_tnet') ? getEl('map_e_tnet').value : (_sv.tnet || ''), cScore = getEl('map_e_score') ? getEl('map_e_score').value : (_sv.score || '');
-    
-    saveWizardStepData();
-    let _saved = {}; try { _saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e) {}
-    if(!eType) { showToast('Lütfen Sınav Türünü girin (Adım 1).', 'warning'); return; } if(!eDate) { showToast('Lütfen Sınav Tarihini girin (Adım 1).', 'warning'); return; }
-    if(!/^\d{2}\.\d{2}\.\d{4}$/.test(eDate)){ showToast('Tarih GG.AA.YYYY formatında olmalıdır! (Örn: 15.04.2024)','warning'); return; }
-    { let dp=eDate.split('.'), dd=parseInt(dp[0]),mm=parseInt(dp[1]),yy=parseInt(dp[2]); let testD=new Date(yy,mm-1,dd); if(testD.getDate()!==dd||testD.getMonth()!==mm-1||testD.getFullYear()!==yy){ showToast('Geçersiz tarih! Lütfen doğru bir tarih girin.','warning'); return; } }
-    if(!cNo)   { showToast('Lütfen Öğrenci No sütununu seçin (Adım 2).', 'warning'); return; } if(!cTnet) { showToast('Lütfen Toplam Net sütununu seçin (Adım 2).', 'warning'); return; }
-    if(!cScore){ showToast('Lütfen Puan sütununu seçin (Adım 2).', 'warning'); return; }
-
-    let subRows = document.querySelectorAll('.subj-map-row'), subsMap = []; subRows.forEach(r => { let c = r.querySelector('.map-subj-col').value, n = r.querySelector('.map-subj-name').value.trim(); if(c && n) subsMap.push({col: c, name: n}); });
-    if(subsMap.length === 0) { let _lsSubs = []; try { _lsSubs = JSON.parse(localStorage.getItem('map_e') || '{}').subs || []; } catch(e) {} if(_lsSubs.length > 0) subsMap = _lsSubs; }
-    if(subsMap.length === 0) { showToast('En az bir ders neti eşleştirmelisiniz (Adım 3).', 'warning'); return; }
-
-    saveWizardStepData(); let finalSaved = {}; try { finalSaved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
-    let cRank = { cR: '', cP: '', iR: '', iP: '', dR: finalSaved.dR||'', dP: finalSaved.dP||'', pR: finalSaved.pR||'', pP: finalSaved.pP||'', gR: finalSaved.gR||'', gP: finalSaved.gP||'' };
-
-    let cl=new Set(), sn=new Set(), validResults = [], missingStus = [], invalidRows = [], subjectsFound = new Set(), gradesFound = new Set(), seenStudentNos = new Set();
-    
-    // Pre-scan for grade info to check conflicts
-    d.forEach(r => { let no = String(r[cNo]||'').trim(), st = DB.s.find(x=>x.no===no); if(st){ let g=getGrade(st.class); if(g) gradesFound.add(g); } });
-    
-    let existsId = Object.keys(EXAM_META).find(id => {
-      let em = EXAM_META[id];
-      if(em.examType !== eType || em.date !== eDate) return false;
-      if(!gradesFound.size) return true;
-      let existGrades = em.grades || [];
-      if(existGrades.length === 0) return true;
-      return [...gradesFound].some(g => existGrades.includes(g));
-    });
-    let bId = existsId || Date.now().toString();
-
-    d.forEach((r, i) => {
-      let no = String(r[cNo]||'').trim(), st = DB.s.find(x=>x.no===no), net = r[cTnet];
-      if(!no) { invalidRows.push({ rowNum: i + 2, no: '—', reason: 'Numara Boş' }); return; }
-      if(!st) { missingStus.push(no); return; } 
-      if(net === undefined || net === null || net === '') { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Toplam Net Yok' }); return; }
-      let parsedNet = pN(net);
-      if(parsedNet < -50 || parsedNet > 500) { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Geçersiz Net Değeri: ' + net }); return; }
-      if(seenStudentNos.has(no)) { invalidRows.push({ rowNum: i + 2, no: no, reason: `Mükerrer Öğrenci` }); return; }
-      
-      seenStudentNos.add(no); cl.add(st.class); sn.add(no); let stGrade = getGrade(st.class); if(stGrade) gradesFound.add(stGrade);
-      
-      let getRank = (col) => { if(!col) return '-'; let v = r[col]; return (v !== undefined && v !== null && v !== '') ? String(v) : '-'; };
-      let ex = { examBatchId:bId, studentNo:st.no, studentClass:st.class, date:eDate, examType:eType, publisher:ePub, totalNet:pN(r[cTnet]), score:pN(r[cScore]), 
-        cR:getRank(cRank.cR), cP:getRank(cRank.cP), iR:getRank(cRank.iR), iP:getRank(cRank.iP), dR:getRank(cRank.dR), dP:getRank(cRank.dP), pR:getRank(cRank.pR), pP:getRank(cRank.pP), gR:getRank(cRank.gR), gP:getRank(cRank.gP), abs:false, subs:{} };
-      
-      subsMap.forEach(sm => { let rawVal = r[sm.col]; if(rawVal !== undefined && rawVal !== null && rawVal !== '') { ex.subs[sm.name] = {net: pN(rawVal)}; subjectsFound.add(sm.name); } });
-      validResults.push(ex);
-    });
-
-    let clsGroups = {}, instGroups = {};
-    validResults.filter(x=>!x.abs).forEach(x => {
-      if(!clsGroups[x.studentClass]) clsGroups[x.studentClass] = []; clsGroups[x.studentClass].push(x);
-      let gr = getGrade(x.studentClass); if(!instGroups[gr]) instGroups[gr] = []; instGroups[gr].push(x);
-    });
-    Object.values(clsGroups).forEach(arr => { arr.sort((a,b) => b.totalNet - a.totalNet); arr.forEach((r, idx) => { r.cR = String(idx+1); r.cP = String(arr.length); }); });
-    Object.values(instGroups).forEach(arr => { arr.sort((a,b) => b.totalNet - a.totalNet); arr.forEach((r, idx) => { r.iR = String(idx+1); r.iP = String(arr.length); }); });
-    
-    let absentCount = 0;
-    DB.s.forEach(s => { if(cl.has(s.class) && !sn.has(s.no)) { validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:eDate, examType:eType, publisher:ePub, totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', dR:'-', dP:'-', pR:'-', pP:'-', gR:'-', gP:'-', abs:true, subs:{} }); absentCount++; } });
-
-    if(validResults.length === 0) { showToast('Sisteme eklenecek geçerli bir sınav sonucu bulunamadı.', 'error'); return; }
-
-    let overwriteWarning = existsId ? `<div class="alert alert-danger mt-3"><strong><i class="fas fa-exclamation-triangle mr-2"></i>DİKKAT!</strong> Sistemde <b>${eDate}</b> tarihli bir <b>${eType}</b> sınavı zaten var. Onaylarsanız, eski veriler tamamen silinip bu dosyadaki verilerle değiştirilecektir!</div>` : '';
-
-    previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Sınav Analizi: <strong>${eType}</strong> - ${eDate} <small class="text-muted">(${ePub||'Yayınevi Yok'})</small></h5>
-      <div class="row"><div class="col-md-3"><div class="preview-box" style="padding:10px;"><strong>Geçerli Sonuç:</strong><br><span class="text-success" style="font-size:1.3em;">${validResults.length - absentCount} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box warning" style="padding:10px;" title="Sınıf listesinde olup dosyada bulunmayanlar. Katılmadı olarak işaretlenecek."><strong>Katılmadı:</strong><br><span class="text-warning" style="font-size:1.3em;">${absentCount} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box danger" style="padding:10px;" title="Dosyada olan ama sistemde kaydı olmayanlar."><strong>Sistemde Yok:</strong><br><span class="text-danger" style="font-size:1.3em;">${missingStus.length} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box danger" style="padding:10px; background:#f8d7da; border-color:#dc3545;" title="Excel hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger" style="font-size:1.3em;">${invalidRows.length} Satır</span></div></div></div>
-      ${overwriteWarning}`;
-    if(missingStus.length > 0) previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.slice(0,20).join(', ')}${missingStus.length>20?'...':''}</div>`;
-    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;"><table class="table table-sm table-striped mb-0" style="font-size:0.85em;"><thead style="background-color: #f8d7da; color: #721c24;"><tr><th style="width: 60px;">Satır</th><th style="width: 100px;">Öğrenci No</th><th>Hata Nedeni (Yüklenmeyecek)</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.no}</td><td class="text-danger">${err.reason}</td></tr>`).join('')}</tbody></table></div>`;
-    
-    PENDING_UPLOAD = { type: 'e', existsId: existsId, bId: bId, bD: eDate, bT: eType, bPub: ePub, newResults: validResults, subjects: Array.from(subjectsFound), grades: Array.from(gradesFound) };
-  }
-  getEl('uploadPreviewBody').innerHTML = previewHtml; jQuery('#mMappings').modal('hide'); jQuery('#mUploadPreview').modal('show');
-}
-
-async function confirmUpload() {
-  if(!PENDING_UPLOAD) return cancelUpload(); jQuery('#mUploadPreview').modal('hide'); ld(1, 'Veriler buluta gönderiliyor, lütfen bekleyin...');
-  try {
-    if(PENDING_UPLOAD.type === 's') { DB.s = DB.s.concat(PENDING_UPLOAD.data); await database.ref('db_v2/students').set(DB.s); rTabS(); uStat(); showToast(`${PENDING_UPLOAD.data.length} yeni öğrenci sisteme başarıyla eklendi.`, 'success'); } 
-    else if (PENDING_UPLOAD.type === 'e') {
-      if(PENDING_UPLOAD.existsId) { await database.ref('db_v2/examResults/' + PENDING_UPLOAD.existsId).remove(); await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.existsId).remove(); delete CACHED_RESULTS[PENDING_UPLOAD.existsId]; }
-      await database.ref('db_v2/examResults/' + PENDING_UPLOAD.bId).set(PENDING_UPLOAD.newResults); 
-      await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.bId).set({ date: PENDING_UPLOAD.bD, examType: PENDING_UPLOAD.bT, publisher: PENDING_UPLOAD.bPub, count: PENDING_UPLOAD.newResults.length, subjects: PENDING_UPLOAD.subjects, grades: PENDING_UPLOAD.grades });
-      showToast('Sınav sonuçları sisteme başarıyla kaydedildi.', 'success');
-    }
-  } catch(err) { showToast('Kayıt sırasında hata oluştu: ' + err.message, 'error'); }
-  cancelUpload(); ld(0);
-}
-
 /* ===== TOPLU SINIF RAPORU ===== */
 function raporInit() {
   let lvlSel = getEl('rLvl'), levels = new Set(); DB.s.forEach(s => { let m = s.class.match(/^(\d+)/); if(m) levels.add(m[1]); });
   lvlSel.innerHTML = '<option value="">Seçiniz</option>' + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
   let etSel = getEl('rExType'), types = new Set(); Object.values(EXAM_META).forEach(m => types.add(m.examType));
-  etSel.innerHTML = '<option value="ALL">Tüm Sınav Türleri (Genel Karne)</option>' + [...types].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+  etSel.innerHTML = '<option value="All">Tüm Sınav Türleri (Genel Karne)</option>' + [...types].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
   raporFillBranches();
 }
 
@@ -2065,8 +1691,6 @@ function raporFillBranches() {
   brSel.innerHTML = '<option value="">Tümü</option>' + [...branches].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
 }
 
-/* raporFillExams kaldırıldı — artık kullanılmıyor */
-
 async function generateRapor() {
   let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value;
   if(!lvl) { showToast('Lütfen sınıf seviyesi seçin.','warning'); return; }
@@ -2075,7 +1699,7 @@ async function generateRapor() {
   if(!students.length) { showToast('Bu filtreye uygun öğrenci bulunamadı.','warning'); return; }
   
   let neededBatches = [];
-  if (eTypeSel === 'ALL') { neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); }); } else {
+  if (eTypeSel === 'All') { neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); }); } else {
       neededBatches = Object.keys(EXAM_META).filter(id => { let m = EXAM_META[id]; return m.examType === eTypeSel && (!m.grades || m.grades.length === 0 || m.grades.includes(lvl)); });
   }
   await fetchBatches(neededBatches);
@@ -2089,7 +1713,7 @@ async function generateRapor() {
     let stuExams = DB.e.filter(x => x.studentNo === stu.no).sort((a,b) => srt(a.date,b.date)); if(!stuExams.length) return;
 
     let grp = {};
-    if (eTypeSel === 'ALL') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
+    if (eTypeSel === 'All') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
         stuExams.filter(e => e.examType === eTypeSel).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
     }
 
@@ -2104,13 +1728,12 @@ async function generateRapor() {
       let el = grp[t].sort((a,b)=>srt(a.date,b.date)); let sb = Array.from(new Set(el.filter(e=>!e.abs).flatMap(e=>Object.keys(e.subs)))).sort();
       let shorten = (sb.length + 5) > 10, abbrev = (name) => shorten ? name.substring(0,3) : name;
       
-      // Özet kartlar
       let summary = calcKarneSummaryCards(stu.no, t, stGrade, el);
       let cardsHtml = buildKarneExamCards(summary, t);
       
       let karneRows = '', kIdx = 1;
       el.forEach(e => {
-        if(e.abs) { karneRows += `<tr class="absent-row"><td>—</td><td>${e.date}</td><td>${e.publisher||'—'}</td><td colspan="${sb.length+7}" class="text-center font-weight-bold">🔴 KATILMADI</td></tr>`; } else {
+        if(e.abs) { karneRows += `<tr class="absent-row"><td>—</td><td>${e.date}</td><td>${e.publisher||'—'}</td><td colspan="${sb.length+7}" class="text-center font-weight-bold">🔴 Katılmadı</td></tr>`; } else {
           karneRows += `<tr><td>${kIdx++}</td><td>${e.date}</td><td>${e.publisher||'—'}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td><td>${e.dR||'—'}/${e.dP||'—'}</td><td>${e.pR||'—'}/${e.pP||'—'}</td><td>${e.gR||'—'}/${e.gP||'—'}</td></tr>`;
         }
       });
@@ -2150,7 +1773,7 @@ async function generateRapor() {
     students.forEach(stu => {
       let stuExams = DB.e.filter(x => x.studentNo === stu.no).sort((a,b) => srt(a.date, b.date)); if (!stuExams.length) return;
       let grp = {};
-      if (eTypeSel === 'ALL') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
+      if (eTypeSel === 'All') { stuExams.forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); }); } else {
           stuExams.filter(e => e.examType === eTypeSel).forEach(e => { (grp[e.examType] = grp[e.examType] || []).push(e); });
       }
 
@@ -2167,12 +1790,6 @@ async function generateRapor() {
     });
   }, 200);
 }
-
-
-
-
-
-
 
 window.addEventListener('load', function(){
   checkAuth();
