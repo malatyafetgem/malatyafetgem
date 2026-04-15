@@ -2172,18 +2172,18 @@ function renderCompare(){
   
   let rows=diffs.map((d,i)=>{
     let cl=d.diff>0?'text-success':(d.diff<0?'text-danger':'');
-    return \`<tr><td>\${i+1}</td><td>\${escapeHtml(d.name)}</td><td>\${escapeHtml(d.cls)}</td><td>\${d.net1.toFixed(2)}</td><td>\${d.net2.toFixed(2)}</td><td class="\${cl} font-weight-bold">\${d.diff>0?'+':''}\${d.diff.toFixed(2)}</td><td>\${d.score1.toFixed(2)}</td><td>\${d.score2.toFixed(2)}</td></tr>\`;
+    return `<tr><td>${i+1}</td><td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.cls)}</td><td>${d.net1.toFixed(2)}</td><td>${d.net2.toFixed(2)}</td><td class="${cl} font-weight-bold">${d.diff>0?'+':''}${d.diff.toFixed(2)}</td><td>${d.score1.toFixed(2)}</td><td>${d.score2.toFixed(2)}</td></tr>`;
   }).join('');
   
-  let h=\`<div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-exchange-alt mr-2"></i>Sınav Karşılaştırma: \${d1} vs \${d2} (\${eT})</h3></div><div class="card-body">
+  let h=`<div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-exchange-alt mr-2"></i>Sınav Karşılaştırma: ${d1} vs ${d2} (${eT})</h3></div><div class="card-body">
     <div class="row mb-3">
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">1. Sınav Ort.</span><span class="info-box-number">\${avg1.toFixed(2)}</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-chart-bar"></i></span><div class="info-box-content"><span class="info-box-text">2. Sınav Ort.</span><span class="info-box-number">\${avg2.toFixed(2)}</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Yükselen</span><span class="info-box-number">\${improved} Öğrenci</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Düşen</span><span class="info-box-number">\${declined} Öğrenci</span></div></div></div>
+      <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">1. Sınav Ort.</span><span class="info-box-number">${avg1.toFixed(2)}</span></div></div></div>
+      <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-chart-bar"></i></span><div class="info-box-content"><span class="info-box-text">2. Sınav Ort.</span><span class="info-box-number">${avg2.toFixed(2)}</span></div></div></div>
+      <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Yükselen</span><span class="info-box-number">${improved} Öğrenci</span></div></div></div>
+      <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Düşen</span><span class="info-box-number">${declined} Öğrenci</span></div></div></div>
     </div>
-    <div class="scroll"><table class="table table-sm table-hover table-bordered"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>\${d1} Net</th><th>\${d2} Net</th><th>Fark</th><th>\${d1} Puan</th><th>\${d2} Puan</th></tr></thead><tbody>\${rows}</tbody></table></div>
-  </div></div>\`;
+    <div class="scroll"><table class="table table-sm table-hover table-bordered"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>${d1} Net</th><th>${d2} Net</th><th>Fark</th><th>${d1} Puan</th><th>${d2} Puan</th></tr></thead><tbody>${rows}</tbody></table></div>
+  </div></div>`;
   r.innerHTML=h;
 }
 
