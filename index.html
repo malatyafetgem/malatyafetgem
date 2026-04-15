@@ -276,9 +276,15 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       </div>
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-          <li class="nav-item"><a href="#" class="nav-link active" onclick="sTab('anasayfa',this)"><i class="nav-icon fas fa-user-graduate"></i><p>Öğrenci</p></a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('sonuclar',this)"><i class="nav-icon fas fa-chart-line"></i><p>Sonuçlar &amp; Analizler</p></a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('rapor',this)"><i class="nav-icon fas fa-file-alt"></i><p>Toplu Rapor</p></a></li>
+          <li class="nav-item"><a href="#" class="nav-link active" onclick="sTab('dashboard',this)"><i class="nav-icon fas fa-home"></i><p>Ana Sayfa</p></a></li>
+          <li class="nav-item has-treeview">
+            <a href="#" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Öğrenci<i class="right fas fa-angle-left"></i></p></a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('anasayfa',this)"><i class="far fa-circle nav-icon"></i><p>Sorgula</p></a></li>
+              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('sonuclar',this)"><i class="far fa-circle nav-icon"></i><p>Analiz</p></a></li>
+              <li class="nav-item"><a href="#" class="nav-link" onclick="sTab('rapor',this)"><i class="far fa-circle nav-icon"></i><p>Toplu Rapor</p></a></li>
+            </ul>
+          </li>
           <li id="nav-ayarlar" class="nav-item admin-only"><a href="#" class="nav-link" onclick="sTab('ayarlar',this)"><i class="nav-icon fas fa-cog"></i><p>Ayarlar</p></a></li>
         </ul>
       </nav>
@@ -289,11 +295,11 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
     <div class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
-          <div class="col-sm-6"><h1 class="m-0" id="pageTitle">Öğrenci</h1></div>
+          <div class="col-sm-6"><h1 class="m-0" id="pageTitle">Ana Sayfa</h1></div>
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
               <li class="breadcrumb-item"><i class="fas fa-chart-bar mr-1"></i>Sınav Analizi</li>
-              <li class="breadcrumb-item active" id="breadcrumb">Öğrenci</li>
+              <li class="breadcrumb-item active" id="breadcrumb">Ana Sayfa</li>
             </ol>
           </div>
         </div>
@@ -302,8 +308,85 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
 
     <div class="content">
       <div class="container-fluid">
+        <!-- ANA SAYFA -->
+        <div id="dashboard" class="pane active-pane">
+          <div class="row">
+            <div class="col-lg-4 col-sm-6 col-12">
+              <div class="small-box bg-gradient-primary">
+                <div class="inner">
+                  <h3 id="dashStudentCount">0</h3>
+                  <p>Toplam Öğrenci</p>
+                </div>
+                <div class="icon"><i class="fas fa-user-graduate"></i></div>
+                <a href="#" class="small-box-footer" onclick="sTab('anasayfa',null)">Öğrenci Sorgula <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+            <div class="col-lg-4 col-sm-6 col-12">
+              <div class="small-box bg-gradient-success">
+                <div class="inner">
+                  <h3 id="dashExamCount">0</h3>
+                  <p>Yüklü Sınav</p>
+                </div>
+                <div class="icon"><i class="fas fa-file-alt"></i></div>
+                <a href="#" class="small-box-footer" onclick="sTab('sonuclar',null)">Analizlere Git <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+            <div class="col-lg-4 col-sm-6 col-12">
+              <div class="small-box bg-gradient-warning">
+                <div class="inner">
+                  <h3 id="dashExamTypeCount">0</h3>
+                  <p>Sınav Türü</p>
+                </div>
+                <div class="icon"><i class="fas fa-layer-group"></i></div>
+                <a href="#" class="small-box-footer" onclick="sTab('rapor',null)">Toplu Rapor <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="card card-primary card-outline">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie mr-2"></i>Sınıf Dağılımı</h3></div>
+                <div class="card-body"><div id="dashClassDist"></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card card-success card-outline">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-list-alt mr-2"></i>Son Yüklenen Sınavlar</h3></div>
+                <div class="card-body p-0">
+                  <div class="table-responsive"><table class="table table-sm table-hover m-0" id="dashRecentExams"><thead><tr><th>Sınav Türü</th><th>Tarih</th><th>Seviye</th></tr></thead><tbody></tbody></table></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              <div class="card card-outline card-info">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-th-large mr-2"></i>Hızlı Erişim</h3></div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-3 col-6 text-center mb-3">
+                      <a href="#" onclick="sTab('anasayfa',null)" class="btn btn-outline-primary btn-block py-3"><i class="fas fa-search fa-2x mb-2 d-block"></i>Öğrenci Sorgula</a>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                      <a href="#" onclick="sTab('sonuclar',null)" class="btn btn-outline-success btn-block py-3"><i class="fas fa-chart-line fa-2x mb-2 d-block"></i>Analizler</a>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                      <a href="#" onclick="sTab('rapor',null)" class="btn btn-outline-warning btn-block py-3"><i class="fas fa-file-alt fa-2x mb-2 d-block"></i>Toplu Rapor</a>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3 admin-only">
+                      <a href="#" onclick="sTab('ayarlar',null)" class="btn btn-outline-danger btn-block py-3"><i class="fas fa-cog fa-2x mb-2 d-block"></i>Ayarlar</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ÖĞRENCİ SAYFASI -->
-        <div id="anasayfa" class="pane active-pane">
+        <div id="anasayfa" class="pane">
           <div class="card card-primary card-outline">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div>
             <div class="card-body">
@@ -337,7 +420,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                       <option value="class">Sınıf Analizi</option>
                       <option value="subject">Ders Analizi</option>
                       <option value="examdetail">Sınav Analizi</option>
-                      <option value="compare">Sınav Karşılaştırma</option>
                     </select>
                   </div>
                 </div>
@@ -382,11 +464,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
                 <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;">
                   <div class="form-group"><label>Sınav Seç</label>
                     <select id="aDate" class="form-control" onchange="reqAnl()"></select>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-4 col-lg-2" id="gDate2" style="display:none;">
-                  <div class="form-group"><label>Karşılaştır</label>
-                    <select id="aDate2" class="form-control" onchange="reqAnl()"></select>
                   </div>
                 </div>
               </div>
@@ -463,29 +540,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
               </div>
               <div id="tExA" class="table-responsive mt-2"></div>
             </div>
-          </div>
-          <div class="card card-info card-outline admin-only">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-level-up-alt mr-2"></i>Toplu Sınıf Yükseltme</h3></div>
-            <div class="card-body">
-              <p class="text-muted" style="font-size:0.85em;"><i class="fas fa-info-circle mr-1"></i>Seçilen sınıf seviyesindeki tüm öğrencilerin sınıfını bir üst seviyeye yükseltir. Örn: 9A → 10A, 9B → 10B.</p>
-              <div class="row">
-                <div class="col-md-4">
-                  <div class="form-group"><label>Mevcut Sınıf Seviyesi</label>
-                    <select id="promoFrom" class="form-control form-control-sm" onchange="previewPromotion()">
-                      <option value="">Seçiniz</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="col-md-4 d-flex align-items-center justify-content-center"><i class="fas fa-arrow-right fa-2x text-muted mt-3"></i></div>
-                <div class="col-md-4">
-                  <div class="form-group"><label>Hedef Seviye</label>
-                    <input type="text" id="promoTo" class="form-control form-control-sm" readonly placeholder="Otomatik">
-                  </div>
-                </div>
-              </div>
-              <div id="promoPreview" class="mb-2"></div>
-              <button class="btn btn-info btn-sm" onclick="executePromotion()"><i class="fas fa-level-up-alt mr-1"></i>Yükselt</button>
-            </div>
+          </div></div>
           </div>
           <div class="card card-danger card-outline admin-only">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yönetimi</h3></div>
@@ -804,7 +859,6 @@ async function reqAnl() {
   Object.keys(EXAM_META).forEach(bId => {
     let m = EXAM_META[bId];
     if (m.examType === eT) {
-      if (aT === 'compare') { let lvlFilter = getEl('aLvl') ? getEl('aLvl').value : ''; if (lvlFilter && m.grades && m.grades.length > 0 && !m.grades.includes(lvlFilter)) return; needed.push(bId); return; }
       if (aT === 'student' && aNo) { let st = DB.s.find(x => x.no === aNo); let stGrade = st ? getGrade(st.class) : null; if (stGrade && m.grades && m.grades.length > 0 && !m.grades.includes(stGrade)) return; needed.push(bId); }
       else if (aT === 'class' || aT === 'subject') { let lvlFilter = getEl('aLvl') ? getEl('aLvl').value : ''; if (lvlFilter && m.grades && m.grades.length > 0 && !m.grades.includes(lvlFilter)) return; if (dt && m.date !== dt) return; needed.push(bId); }
       else if (aT === 'examdetail' && sub !== 'general_summary' && sub !== 'list_all') { if (m.date === dt) { needed.push(bId); } else if (sub === 'summary') { let currentIndex = allMatchingDates.indexOf(dt); let prevDate = currentIndex > 0 ? allMatchingDates[currentIndex - 1] : null; if (prevDate && m.date === prevDate) needed.push(bId); } } 
@@ -830,13 +884,14 @@ function sTab(id,el){
   if(id==='ayarlar'&&!document.body.classList.contains('is-admin'))return;
   document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active-pane')); getEl(id).classList.add('active-pane');
   document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active')); if(el)el.classList.add('active');
-  const titles={anasayfa:'Öğrenci',sonuclar:'Sonuçlar & Analizler',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
+  const titles={dashboard:'Ana Sayfa',anasayfa:'Öğrenci Sorgula',sonuclar:'Analiz',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
   if(getEl('pageTitle'))getEl('pageTitle').textContent=titles[id]||id;
   if(getEl('breadcrumb'))getEl('breadcrumb').textContent=titles[id]||id;
+  if(id==='dashboard'){updateDashboard();}
   if(id==='anasayfa'){uStat();if(aNo)reqProfile();}
   if(id==='sonuclar')reqUI();
   if(id==='rapor')raporInit();
-  if(id==='ayarlar'){rTabS();rTabE();initPromotion();}
+  if(id==='ayarlar'){rTabS();rTabE();}
   if(window.innerWidth<992){document.body.classList.remove('sidebar-open');document.body.classList.add('sidebar-collapse');}
 }
 
@@ -970,6 +1025,32 @@ function anlStuSelect(no){
 function anlStuClear(){ getEl('anlStuInp').value=''; getEl('anlStuRes').style.display='none'; getEl('anlStuRes').innerHTML=''; getEl('anlStuBadge').innerHTML=''; sAct(null,false); }
 document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anlStuInp'); if(res&&inp&&!res.contains(e.target)&&e.target!==inp)res.style.display='none'; });
 
+/* ===== ANA SAYFA DASHBOARD ===== */
+function updateDashboard(){
+  // Sayılar
+  getEl('dashStudentCount').textContent = DB.s.length;
+  let examCount = Object.keys(EXAM_META).length;
+  getEl('dashExamCount').textContent = examCount;
+  let examTypes = new Set(); Object.values(EXAM_META).forEach(m => examTypes.add(m.examType));
+  getEl('dashExamTypeCount').textContent = examTypes.size;
+  
+  // Sınıf dağılımı
+  let classDist = {};
+  DB.s.forEach(s => { let g = getGrade(s.class); classDist[g + '. Sınıf'] = (classDist[g + '. Sınıf']||0)+1; });
+  let distHtml = Object.entries(classDist).sort().map(([cls,cnt]) => {
+    let pct = DB.s.length ? Math.round(cnt/DB.s.length*100) : 0;
+    let colors = {'9. Sınıf':'bg-primary','10. Sınıf':'bg-success','11. Sınıf':'bg-warning','12. Sınıf':'bg-danger'};
+    let bg = colors[cls] || 'bg-info';
+    return '<div class="mb-2"><div class="d-flex justify-content-between mb-1"><span>'+escapeHtml(cls)+'</span><span><strong>'+cnt+'</strong> öğrenci ('+pct+'%)</span></div><div class="progress" style="height:20px;"><div class="progress-bar '+bg+'" style="width:'+pct+'%"></div></div></div>';
+  }).join('');
+  getEl('dashClassDist').innerHTML = distHtml || '<p class="text-muted">Henüz öğrenci yüklenmemiş.</p>';
+  
+  // Son sınavlar
+  let exams = Object.values(EXAM_META).sort((a,b)=>srt(b.date,a.date)).slice(0,8);
+  let tbody = getEl('dashRecentExams').querySelector('tbody');
+  tbody.innerHTML = exams.map(m => '<tr><td>'+escapeHtml(m.examType)+'</td><td>'+escapeHtml(m.date)+'</td><td>'+(m.grades?m.grades.join(', '):'—')+'</td></tr>').join('') || '<tr><td colspan="3" class="text-muted text-center">Henüz sınav yüklenmemiş.</td></tr>';
+}
+
 function uStat(){
   const g=getEl('dynamicStatsGrid'), u={}; Object.values(EXAM_META).forEach(m => { u[m.examType] = (u[m.examType]||0) + 1; });
   const cl=['primary','success','warning','danger','info'],ic=['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark'];
@@ -1030,10 +1111,9 @@ function uExamDates(){
 function uUI(){
   let t=getEl('aType').value;
   getEl('gStu').style.display=(t==='student'||t==='examdetail')?'block':'none';
-  if(t==='compare'){ getEl('gLvl').style.display='block'; getEl('gBr').style.display='block'; getEl('gDate').style.display='none'; }
   getEl('gLvl').style.display=(t==='class'||t==='examdetail'||t==='subject')?'block':'none';
   getEl('gBr').style.display=(t==='class'||t==='subject'||t==='examdetail')?'block':'none';
-  getEl('gSub').style.display=(t==='compare')?'none':'block'; getEl('lblSub').textContent = t==='subject' ? 'Ders' : 'Veri';
+  getEl('gSub').style.display='block'; getEl('lblSub').textContent = t==='subject' ? 'Ders' : 'Veri';
   
   if(t==='class'){
     let l=new Set(),b=new Set(); DB.s.forEach(s=>{let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);if(m){l.add(m[1]);b.add(m[2].toUpperCase());}});
@@ -1048,9 +1128,7 @@ function uUI(){
   }
   uExamTypes();uSub();uExamDates();
   let sub = getEl('aSub') ? getEl('aSub').value : '';
-  getEl('gDate').style.display=(t==='examdetail' && sub !== 'general_summary' && sub !== 'list_all') || t==='class' || t==='subject' || t==='compare'?'block':'none';
-  getEl('gDate2').style.display=t==='compare'?'block':'none';
-  if(t==='compare'){ getEl('gDate').querySelector('label').textContent='1. Sınav'; uCompareExamDates(); }
+  getEl('gDate').style.display=(t==='examdetail' && sub !== 'general_summary' && sub !== 'list_all') || t==='class' || t==='subject' ?'block':'none';
   if(t==='class'||t==='subject') { let dateLbl = getEl('gDate').querySelector('label'); if(dateLbl) dateLbl.textContent = 'Sınav Seç'; }
 }
 
@@ -1188,7 +1266,6 @@ function rAnl(){
   if(!eT){r.innerHTML='<div class="alert alert-default-info">Sınav verisi yok.</div>';return;}
   if(aT==='examdetail' && !sb) { if(getEl('aSub')) getEl('aSub').value='summary'; sb='summary'; }
 
-  if(aT==='compare'){ renderCompare(); return; }
   if(aT==='student'){
     let no=aNo;if(!no){r.innerHTML='';return;}
     let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no); if(!st){r.innerHTML='';return;}
@@ -1674,7 +1751,7 @@ async function svExam(){
       CACHED_RESULTS[bId] = updated.filter(x=>x);
     }
     DB.e = DB.e.map(e => e.examBatchId === bId ? {...e, date: newDate, examType: newType, publisher: newPub} : e);
-    rTabE(); uDrp(); uStat();
+    rTabE(); uDrp(); uStat(); updateDashboard();
     if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
     jQuery('#mEditExam').modal('hide');
     showToast('Sınav bilgileri güncellendi.','success');
@@ -2092,100 +2169,9 @@ async function generateRapor() {
 }
 
 
-/* ===== TOPLU SINIF YÜKSELTMESİ ===== */
-function initPromotion(){
-  let levels = new Set(); DB.s.forEach(s=>{ let m=s.class.match(/^(\d+)/); if(m) levels.add(m[1]); });
-  let sel = getEl('promoFrom'); sel.innerHTML = '<option value="">Seçiniz</option>' + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
-}
 
-function previewPromotion(){
-  let fromLvl = getEl('promoFrom').value, preview = getEl('promoPreview');
-  if(!fromLvl){ getEl('promoTo').value=''; preview.innerHTML=''; return; }
-  let toLvl = String(parseInt(fromLvl)+1);
-  getEl('promoTo').value = toLvl + '. Sınıf';
-  let affected = DB.s.filter(s=>getGrade(s.class)===fromLvl);
-  let groups = {}; affected.forEach(s=>{ let m=s.class.match(/^\d+([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); let br=m?m[1]:'?'; groups[br]=(groups[br]||0)+1; });
-  let detail = Object.entries(groups).sort().map(([br,cnt])=>`${fromLvl}${br} → ${toLvl}${br} (${cnt} kişi)`).join(', ');
-  preview.innerHTML=`<div class="alert alert-info py-2" style="font-size:0.85em;"><strong>${affected.length} öğrenci</strong> yükseltilecek: ${detail}</div>`;
-}
 
-async function executePromotion(){
-  let fromLvl = getEl('promoFrom').value;
-  if(!fromLvl){ showToast('Sınıf seviyesi seçin.','warning'); return; }
-  let toLvl = String(parseInt(fromLvl)+1);
-  if(!confirm(fromLvl+'. sınıf öğrencileri '+toLvl+'. sınıfa yükseltilecek. Onaylıyor musunuz?')) return;
-  ld(1,'Sınıf yükseltme işlemi yapılıyor...');
-  try {
-    let count = 0;
-    DB.s.forEach(s=>{
-      if(getGrade(s.class)===fromLvl){
-        let m=s.class.match(/^\d+(.*)$/);
-        s.class = toLvl + (m?m[1]:'');
-        count++;
-      }
-    });
-    await database.ref('db_v2/students').set(DB.s);
-    rTabS(); uStat(); initPromotion(); previewPromotion();
-    showToast(count+' öğrenci başarıyla yükseltildi.','success');
-  } catch(err){ showToast('Hata: '+err.message,'error'); }
-  ld(0);
-}
 
-/* ===== SINAV KARŞILAŞTIRMA ===== */
-function uCompareExamDates(){
-  let eT=getEl('aEx').value, lvl=getEl('aLvl')?getEl('aLvl').value:'', dates=[];
-  Object.values(EXAM_META).forEach(m=>{
-    if(m.examType===eT){
-      if(lvl && m.grades && m.grades.length>0 && !m.grades.includes(lvl)) return;
-      dates.push(m.date);
-    }
-  });
-  dates=[...new Set(dates)].sort(srt);
-  let opts=dates.map(d=>`<option value="${d}">${d}</option>`).join('');
-  getEl('aDate').innerHTML=opts;
-  getEl('aDate2').innerHTML=opts;
-  if(dates.length>=2){ getEl('aDate').value=dates[dates.length-2]; getEl('aDate2').value=dates[dates.length-1]; }
-}
-
-function renderCompare(){
-  let eT=getEl('aEx').value, d1=getEl('aDate').value, d2=getEl('aDate2').value, r=getEl('anlRes');
-  let lvl=getEl('aLvl')?getEl('aLvl').value:'', br=getEl('aBr')?getEl('aBr').value:'';
-  if(!d1||!d2){r.innerHTML='<div class="alert alert-default-info">İki sınav seçin.</div>';return;}
-  if(d1===d2){r.innerHTML='<div class="alert alert-default-warning">Farklı iki sınav seçin.</div>';return;}
-  
-  let ex1=DB.e.filter(x=>x.examType===eT&&x.date===d1&&!x.abs), ex2=DB.e.filter(x=>x.examType===eT&&x.date===d2&&!x.abs);
-  if(lvl){ ex1=ex1.filter(x=>getGrade(x.studentClass)===lvl); ex2=ex2.filter(x=>getGrade(x.studentClass)===lvl); }
-  if(br){ let brF=x=>{let m=x.studentClass.match(/^\d+([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);return m&&m[1].toUpperCase()===br;}; ex1=ex1.filter(brF); ex2=ex2.filter(brF); }
-  
-  if(!ex1.length||!ex2.length){r.innerHTML='<div class="alert alert-default-warning">Seçilen sınavlarda yeterli veri yok.</div>';return;}
-  
-  let map1={},map2={}; ex1.forEach(e=>map1[e.studentNo]=e); ex2.forEach(e=>map2[e.studentNo]=e);
-  let commonNos=Object.keys(map1).filter(no=>map2[no]);
-  
-  let diffs=commonNos.map(no=>{
-    let e1=map1[no],e2=map2[no],st=DB.s.find(x=>x.no===no);
-    return{no,name:st?st.name:'—',cls:st?st.class:'—',net1:e1.totalNet,net2:e2.totalNet,diff:e2.totalNet-e1.totalNet,score1:e1.score,score2:e2.score};
-  }).sort((a,b)=>b.diff-a.diff);
-  
-  let avg1=ex1.reduce((a,e)=>a+e.totalNet,0)/ex1.length, avg2=ex2.reduce((a,e)=>a+e.totalNet,0)/ex2.length;
-  let improved=diffs.filter(d=>d.diff>0).length, declined=diffs.filter(d=>d.diff<0).length, stable=diffs.filter(d=>d.diff===0).length;
-  
-  let rows=diffs.map((d,i)=>{
-    let cl=d.diff>0?'text-success':(d.diff<0?'text-danger':'');
-    return `<tr><td>${i+1}</td><td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.cls)}</td><td>${d.net1.toFixed(2)}</td><td>${d.net2.toFixed(2)}</td><td class="${cl} font-weight-bold">${d.diff>0?'+':''}${d.diff.toFixed(2)}</td><td>${d.score1.toFixed(2)}</td><td>${d.score2.toFixed(2)}</td></tr>`;
-  }).join('');
-  
-  let h=`<div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-exchange-alt mr-2"></i>Sınav Karşılaştırma: ${d1} vs ${d2} (${eT})</h3></div><div class="card-body">
-    <div class="row mb-3">
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">1. Sınav Ort.</span><span class="info-box-number">${avg1.toFixed(2)}</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-chart-bar"></i></span><div class="info-box-content"><span class="info-box-text">2. Sınav Ort.</span><span class="info-box-number">${avg2.toFixed(2)}</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Yükselen</span><span class="info-box-number">${improved} Öğrenci</span></div></div></div>
-      <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Düşen</span><span class="info-box-number">${declined} Öğrenci</span></div></div></div>
-    </div>
-    <div class="scroll"><table class="table table-sm table-hover table-bordered"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>${d1} Net</th><th>${d2} Net</th><th>Fark</th><th>${d1} Puan</th><th>${d2} Puan</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div></div>`;
-  r.innerHTML=h;
-}
 
 
 window.addEventListener('load', function(){
