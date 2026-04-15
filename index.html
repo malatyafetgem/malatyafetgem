@@ -1243,7 +1243,32 @@ function rAnl(){
       </div>`;
     }
     
-    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="pC" class="card card-outline card-success"><div class="pdf-header-bar"><span style="font-size:18px;">Sınıf Analizi — ${eT} (${clsLabel} / ${ls})</span><span style="font-size:14px;"></span></div><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi (${ls})</h3></div><div class="card-body">${clsPerfHtml}<div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div><div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div></div></div>`;
+    // En İyi 5 / En Düşük 5 Öğrenci hesabı (sınıf analizinde)
+    let stuRankMap = {};
+    ex.forEach(e => {
+      let stu = DB.s.find(x => x.no === e.studentNo);
+      if(!stu) return;
+      let m = stu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);
+      if(!m) return;
+      if((l && l !== m[1]) || (b && b !== m[2].toUpperCase())) return;
+      let val;
+      if(sb === 'score') val = e.score;
+      else if(sb === 'totalNet' || !sb) val = e.totalNet;
+      else { let subKey = sb.replace('s_',''); val = (e.subs && e.subs[subKey] !== undefined) ? e.subs[subKey].net : null; }
+      if(val === null || val === undefined) return;
+      if(!stuRankMap[e.studentNo]) stuRankMap[e.studentNo] = { no: e.studentNo, name: stu.name, cls: stu.class, sum: 0, cnt: 0 };
+      stuRankMap[e.studentNo].sum += val; stuRankMap[e.studentNo].cnt++;
+    });
+    let stuRankArr = Object.values(stuRankMap).map(s => ({ ...s, avg: s.sum / s.cnt })).sort((a,b) => b.avg - a.avg);
+    let top5Stu = stuRankArr.slice(0, 5), bottom5Stu = stuRankArr.slice(-5).reverse();
+    let stuTop5Html = top5Stu.length ? top5Stu.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    let stuBottom5Html = bottom5Stu.length ? bottom5Stu.map((s,i) => `<tr><td>${stuRankArr.length - bottom5Stu.length + i + 1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    let top5Bottom5Html = stuRankArr.length > 0 ? `<div class="row mt-3">
+      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuTop5Html}</tbody></table></div></div></div>
+      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuBottom5Html}</tbody></table></div></div></div>
+    </div>` : '';
+
+    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="pC" class="card card-outline card-success"><div class="pdf-header-bar"><span style="font-size:18px;">Sınıf Analizi — ${eT} (${clsLabel} / ${ls})</span><span style="font-size:14px;"></span></div><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi (${ls})</h3></div><div class="card-body">${clsPerfHtml}<div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div>${top5Bottom5Html}<div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div></div></div>`;
     r.innerHTML=h;
     
     chartTimer=setTimeout(()=>{ 
