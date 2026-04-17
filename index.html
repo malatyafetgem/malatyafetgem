@@ -78,9 +78,12 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 /* ===== ARAMA ===== */
 #anlStuSearchWrapper { position:relative; }
-#anlStuRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:220px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
-.anlStu-item { padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.9em; }
+#anlStuRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:320px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
+#anlStuRes:empty { display:none; }
+.anlStu-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.92em; display:flex; justify-content:space-between; align-items:center; gap:10px; transition:background 0.15s ease; line-height:1.35; }
 .anlStu-item:hover { background:#e8f4ff; }
+.anlStu-item:last-child { border-bottom:none; }
+.anlStu-item strong { color:#0d6efd; font-weight:600; margin-right:4px; }
 #anlStuBadge { margin-top:4px; min-height:22px; }
 #sRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:320px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
 #sRes:empty { display:none; }
@@ -967,7 +970,7 @@ function execAnlStuSearch(){
   let v=getEl('anlStuInp').value.trim(), res=getEl('anlStuRes'); if(!v){res.style.display='none';res.innerHTML='';return;}
   let trm=normTR(v).split(/\s+/), m=DB.s.filter(x=>{let txt=normTR(x.no+' '+x.name+' '+x.class);return trm.every(t=>txt.includes(t));});
   if(!m.length){res.innerHTML='<div class="anlStu-item text-muted">Bulunamadı.</div>';res.style.display='block';return;}
-  res.innerHTML=m.slice(0,12).map(x=>`<div class="anlStu-item" onclick="anlStuSelect('${x.no}')"><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div>`).join(''); res.style.display='block';
+  res.innerHTML=m.slice(0,20).map(x=>`<div class="anlStu-item" onclick="anlStuSelect('${x.no}')"><div style="flex:1; min-width:0;"><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div></div>`).join(''); res.style.display='block';
 }
 function anlStuSelect(no){
   getEl('anlStuRes').style.display='none'; let s=DB.s.find(x=>x.no===no); if(s) getEl('anlStuInp').value=s.name+' ('+s.class+')'; aNo = no;
