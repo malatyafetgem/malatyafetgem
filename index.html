@@ -82,6 +82,12 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .anlStu-item { padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.9em; }
 .anlStu-item:hover { background:#e8f4ff; }
 #anlStuBadge { margin-top:4px; min-height:22px; }
+#sRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:320px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
+#sRes:empty { display:none; }
+.s-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.9em; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.s-item:hover { background:#e8f4ff; }
+.s-item .s-info { flex:1; min-width:0; }
+.s-item .s-actions { display:flex; gap:4px; flex-shrink:0; }
 
 /* Kutular */
 .preview-box { background: #f8f9fa; border-left: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
@@ -374,7 +380,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
         </div>
 
         <div id="anasayfa" class="pane">
-          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div><div class="card-body"><div id="aBadge" class="mb-2"></div><div class="input-group"><input type="text" id="sInp" class="form-control" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()"><div class="input-group-append"><button class="btn btn-secondary" onclick="clrS()"><i class="fas fa-times"></i> Temizle</button></div></div><div id="sRes" class="mt-3"></div></div></div>
+          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div><div class="card-body"><div id="aBadge" class="mb-2"></div><div id="sSearchWrapper" style="position:relative;"><div class="input-group"><input type="text" id="sInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="debounceSearch()" autocomplete="off"><div class="input-group-append"><button class="btn btn-outline-secondary" onclick="clrS()" style="border-color:#ced4da;"><i class="fas fa-times"></i></button></div></div><div id="sRes"></div></div></div></div>
           <div id="homeArea"></div>
         </div>
 
@@ -395,8 +401,8 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
           <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-file-alt mr-2"></i>Toplu Sınıf Raporu</h3></div><div class="card-body"><div class="row">
             <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınıf Seviyesi</label><select id="rLvl" class="form-control" onchange="raporFillBranches()"><option value="">Seçiniz</option></select></div></div>
             <div class="col-sm-6 col-md-2"><div class="form-group"><label>Şube</label><select id="rBr" class="form-control" onchange="generateRapor()"><option value="">Tümü</option></select></div></div>
-            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınav Türü</label><select id="rExType" class="form-control"><option value="ALL">Tüm Sınav Türleri (Genel Karne)</option></select></div></div>
-            <div class="col-sm-12 col-md-1 d-flex align-items-end"><div class="form-group w-100"><button class="btn btn-primary btn-block" onclick="generateRapor()"><i class="fas fa-play mr-1"></i>Getir</button></div></div>
+            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınav Türü</label><select id="rExType" class="form-control" onchange="generateRapor()"><option value="ALL">Tüm Sınav Türleri (Genel Karne)</option></select></div></div>
+            
           </div></div></div>
           <div id="raporRes"></div>
         </div>
@@ -775,10 +781,10 @@ function executeTabSwitch(id, isPopState) {
 }
 
 async function sAct(no,clr=false){
-  aNo=no; if(clr){getEl('sInp').value='';getEl('sRes').innerHTML='';}
+  aNo=no; if(clr){let st=DB.s.find(x=>x.no===no); getEl('sInp').value=st?(st.name+' ('+st.class+')'):'';getEl('sRes').innerHTML='';getEl('sRes').style.display='none';}
   let s=DB.s.find(x=>x.no===aNo);
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>';
-  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'';
+  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>';
+  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'';
   getEl('homeArea').innerHTML='';
   if(no) await reqProfile(); if(getEl('sonuclar').classList.contains('active-pane')) reqUI(); 
 }
@@ -851,6 +857,30 @@ function xPR(sourceId, title, btn, orientation) {
 
   let bolumler = clone.querySelectorAll('.karne-bolum, .student-rapor-wrapper');
   bolumler.forEach((b, i) => { if (i < bolumler.length - 1) b.style.pageBreakAfter = 'always'; });
+  // Her sınav türü sayfasının üstüne öğrenci başlığını ekle (ilk sayfa hariç — onun zaten başlığı var)
+  let examBlocks = clone.querySelectorAll('.exam-type-block');
+  examBlocks.forEach((blk, idx) => {
+    let stuName = blk.getAttribute('data-stu-name') || '';
+    let stuClass = blk.getAttribute('data-stu-class') || '';
+    if(!stuName) return;
+    // Tek öğrenci karnesi (kCont) içindeyse: ilk blok hariç başlık ekle
+    // Toplu rapor içindeyse: her student-rapor-wrapper'in ilk bloğu hariç başlık ekle
+    let wrapper = blk.closest('.student-rapor-wrapper');
+    let isFirstInScope = false;
+    if(wrapper) {
+      let siblings = wrapper.querySelectorAll('.exam-type-block');
+      isFirstInScope = (siblings[0] === blk);
+    } else {
+      // kCont scope
+      isFirstInScope = (idx === 0);
+    }
+    if(isFirstInScope) return;
+    let hdr = document.createElement('div');
+    hdr.className = 'report-header';
+    hdr.style.cssText = 'margin-bottom:10px;page-break-before:always;';
+    hdr.innerHTML = `<span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stuName}</strong></span><span style="font-size:13px;">Sınıf: ${stuClass}</span>`;
+    blk.parentNode.insertBefore(hdr, blk);
+  });
 
   let printHtml = `<!DOCTYPE html>
 <html lang="tr">
@@ -903,13 +933,13 @@ function xPR(sourceId, title, btn, orientation) {
 
 function debounceSearch(){clearTimeout(searchDebounceTimer);searchDebounceTimer=setTimeout(sSearch,280);}
 function sSearch(){
-  let v=getEl('sInp').value.trim(),r=getEl('sRes'); if(!v){r.innerHTML='';return;}
+  let v=getEl('sInp').value.trim(),r=getEl('sRes'); if(!v){r.innerHTML='';r.style.display='none';return;}
   let trm=normTR(v).split(/\s+/), m=DB.s.filter(x=>{let txt=normTR(x.no+' '+x.name+' '+x.class);return trm.every(t=>txt.includes(t));});
-  if(!m.length){r.innerHTML='<div class="alert alert-default-warning">Bulunamadı.</div>';return;}
-  let h=''; m.forEach(x=>h+=`<div class="callout callout-info py-2 px-3 mb-2 d-flex justify-content-between align-items-center"><div><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div><div class="btn-group btn-group-sm"><button class="btn btn-success" onclick="sAct('${x.no}',true)"><i class="fas fa-check mr-1"></i>Seç</button><button class="btn btn-warning admin-only" onclick="eStu('${x.no}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger admin-only" onclick="cDel('student','${x.no} silinsin mi?','${x.no}')"><i class="fas fa-trash"></i></button></div></div>`);
-  r.innerHTML=h;
+  if(!m.length){r.innerHTML='<div class="s-item text-muted">Bulunamadı.</div>';r.style.display='block';return;}
+  let h=''; m.slice(0,20).forEach(x=>h+=`<div class="s-item" onclick="if(event.target.closest('button'))return;sAct('${x.no}',true);"><div class="s-info"><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div><div class="s-actions"><button class="btn btn-sm btn-warning admin-only" onclick="event.stopPropagation();eStu('${x.no}')"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger admin-only" onclick="event.stopPropagation();cDel('student','${x.no} silinsin mi?','${x.no}')"><i class="fas fa-trash"></i></button></div></div>`);
+  r.innerHTML=h; r.style.display='block';
 }
-function clrS(){getEl('sInp').value='';getEl('sRes').innerHTML='';sAct(null,false);}
+function clrS(){getEl('sInp').value='';getEl('sRes').innerHTML='';getEl('sRes').style.display='none';sAct(null,false);}
 
 function anlStuDoSearch(){clearTimeout(anlDebounceTimer);anlDebounceTimer=setTimeout(execAnlStuSearch,280);}
 function execAnlStuSearch(){
@@ -920,11 +950,11 @@ function execAnlStuSearch(){
 }
 function anlStuSelect(no){
   getEl('anlStuRes').style.display='none'; let s=DB.s.find(x=>x.no===no); if(s) getEl('anlStuInp').value=s.name+' ('+s.class+')'; aNo = no;
-  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'';
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
+  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'';
+  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
 }
 function anlStuClear(){ getEl('anlStuInp').value=''; getEl('anlStuRes').style.display='none'; getEl('anlStuRes').innerHTML=''; getEl('anlStuBadge').innerHTML=''; sAct(null,false); }
-document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anlStuInp'); if(res&&inp&&!res.contains(e.target)&&e.target!==inp)res.style.display='none'; });
+document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anlStuInp'); if(res&&inp&&!res.contains(e.target)&&e.target!==inp)res.style.display='none'; let res2=getEl('sRes'),inp2=getEl('sInp'); if(res2&&inp2&&!res2.contains(e.target)&&e.target!==inp2)res2.style.display='none'; });
 
 function uStat(){
   const g=getEl('dynamicStatsGrid'), u={}; Object.values(EXAM_META).forEach(m => { u[m.examType] = (u[m.examType]||0) + 1; });
@@ -986,7 +1016,7 @@ function uExamDates(){
 
 function uUI(){
   let t=getEl('aType').value;
-  getEl('gStu').style.display=(t==='student'||t==='examdetail')?'block':'none';
+  getEl('gStu').style.display=(t==='student')?'block':'none';
   getEl('gLvl').style.display=(t==='class'||t==='examdetail'||t==='subject')?'block':'none';
   getEl('gBr').style.display=(t==='class'||t==='subject'||t==='examdetail')?'block':'none';
   getEl('gSub').style.display='block'; getEl('lblSub').textContent = t==='subject' ? 'Ders' : 'Veri';
@@ -1090,7 +1120,7 @@ function rH(){
     let summary = calcKarneSummaryCards(aNo, t, stGrade, el);
     let cardsHtml = buildKarneExamCards(summary, t);
     
-    h+=`<div class="karne-bolum"><h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5>${cardsHtml}<div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>`;
+    h+=`<div class="karne-bolum exam-type-block" data-stu-name="${s.name.replace(/"/g,'&quot;')}" data-stu-class="${s.class}"><h5 class="mt-3 mb-2 text-primary border-bottom pb-2">${t} Sınavları</h5>${cardsHtml}<div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>`;
     
     let kIdx = 1;
     el.forEach(e=>{
@@ -1716,7 +1746,7 @@ async function generateRapor() {
       }
       
       let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
-      html += `<div class="card shadow-sm mb-4 avoid-break" style="border-top:3px solid #0d6efd;">
+      html += `<div class="card shadow-sm mb-4 avoid-break exam-type-block" data-stu-name="${stu.name.replace(/"/g,'&quot;')}" data-stu-class="${stu.class}" style="border-top:3px solid #0d6efd;">
         <div class="card-header bg-light"><h3 class="card-title m-0" style="font-size:15px; font-weight:bold; color:#4a6fa5;"><i class="fas fa-book mr-2"></i>${t} Sınavları</h3></div>
         <div class="card-body p-2">
           ${cardsHtml}
@@ -1850,7 +1880,7 @@ async function svStu(){
   } else{ DB.s.push({no:n,name:toTitleCase(nm),class:cc}); }
   
   await database.ref('db_v2/students').set(DB.s); rTabS(); uStat();
-  if(aNo){ let upd=DB.s.find(x=>x.no===aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; } }
+  if(aNo){ let upd=DB.s.find(x=>x.no===aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; } }
   cMod('mStu'); showToast('Öğrenci bilgileri kaydedildi.', 'success');
 }
 
@@ -2082,5 +2112,7 @@ function showPwaPopupIfReady() {
 function closePwaPopup() { const popup = document.getElementById('pwaInstallPopup'); if (!popup || popup.style.display === 'none') return; clearTimeout(pwaPopupTimer); popup.style.animation = 'popupSlideUp 0.3s ease-in forwards'; setTimeout(() => { popup.style.display = 'none'; popup.style.animation = ''; }, 300); }
 function triggerInstall(e) { e.preventDefault(); closePwaPopup(); if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.then(choice => { if (choice.outcome === 'accepted') showToast('Uygulama yükleniyor...', 'info'); deferredInstallPrompt = null; document.getElementById('installBtnWrapper').style.display = 'none'; }); }
 </script>
+
+<footer class="main-footer text-center" style="background:#fff;border-top:1px solid #dee2e6;padding:10px;font-size:0.85em;color:#6c757d;">© 2026 AYUSTASI</footer>
 </body>
 </html>
