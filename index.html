@@ -410,11 +410,11 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
           <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-filter mr-2"></i>Analiz Filtreleri</h3></div><div class="card-body"><div class="row">
             <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Analiz Türü</label><select id="aType" class="form-control" onchange="reqUI()"><option value="student">Öğrenci Analizi</option><option value="class">Sınıf Analizi</option><option value="subject">Ders Analizi</option><option value="examdetail">Sınav Analizi</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-3" id="gStu"><div class="form-group"><label>Öğrenci Seçin</label><div id="anlStuSearchWrapper"><div class="input-group"><input type="text" id="anlStuInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="anlStuDoSearch()" autocomplete="off"><div class="input-group-append"><button class="btn btn-outline-secondary" onclick="anlStuClear()" style="border-color:#ced4da;"><i class="fas fa-times"></i></button></div></div><div id="anlStuRes"></div></div><div id="anlStuBadge"></div></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-control" onchange="uExamTypes(); uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Sınıf Seviyesi Seç</option></select></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;"><div class="form-group"><label>Şube</label><select id="aBr" class="form-control" onchange="uExamTypes(); uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Şube Seç</option></select></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Sınav Türü</label><select id="aEx" class="form-control" onchange="uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Sınav Türü Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-control" onchange="onLvlChange()"><option value="" disabled selected>Sınıf Seviyesi Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;"><div class="form-group"><label>Şube</label><select id="aBr" class="form-control" onchange="onBrChange()"><option value="" disabled selected>Şube Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Sınav Türü</label><select id="aEx" class="form-control" onchange="onExTypeChange()"><option value="" disabled selected>Sınav Türü Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="form-group"><label>Sınav Seç</label><select id="aDate" class="form-control" onchange="onDateChange()"><option value="" disabled selected>Sınav Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gSub"><div class="form-group"><label id="lblSub">Veri</label><select id="aSub" class="form-control" onchange="handleSubChange()"></select></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="form-group"><label>Sınav Seç</label><select id="aDate" class="form-control" onchange="reqAnl()"><option value="" disabled selected>Sınav Seç</option></select></div></div>
           </div></div></div>
           <div id="anlRes"></div>
         </div>
@@ -994,6 +994,29 @@ function uDrp(){
   uExamTypes(); if(aNo){ let s=DB.s.find(x=>x.no===aNo); if(s&&getEl('anlStuInp'))getEl('anlStuInp').value=s.name+' ('+s.class+')'; }
 }
 
+function uBranches(){
+  // Sınıf Seviyesi'ne göre yalnızca o seviyede verisi olan şubeleri listele
+  let aT = getEl('aType') ? getEl('aType').value : '';
+  if(!(aT==='class'||aT==='subject'||aT==='examdetail')) return;
+  let brSel = getEl('aBr'); if(!brSel) return;
+  let lvlF = getEl('aLvl') ? getEl('aLvl').value : '';
+  let prev = brSel.value, branches = new Set();
+  DB.e.forEach(x => {
+    let m = String(x.studentClass||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return;
+    if(lvlF && m[1] !== lvlF) return;
+    branches.add(m[2].toUpperCase());
+  });
+  // Eğer Sınıf Seviyesi seçilmemişse tüm öğrencilerin şubelerini ver (fallback)
+  if(!lvlF){
+    branches.clear();
+    DB.s.forEach(s=>{ let m=String(s.class||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m) branches.add(m[2].toUpperCase()); });
+  }
+  let sorted = [...branches].sort();
+  brSel.innerHTML = `<option value="" disabled${prev?'':' selected'}>Şube Seç</option><option value="__ALL__"${prev==='__ALL__'?' selected':''}>Tümü</option>`+sorted.map(x=>`<option value="${x}"${prev===x?' selected':''}>${x}</option>`).join('');
+  if(prev==='__ALL__' || sorted.includes(prev)) brSel.value = prev;
+  else brSel.value = '';
+}
+
 function uExamTypes(){
   let types=new Set();
   let aT = getEl('aType') ? getEl('aType').value : '';
@@ -1021,9 +1044,11 @@ function uSub(){
   let aT=getEl('aType')?getEl('aType').value:'', t=getEl('aEx').value, s=new Set();
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
   let brF  = (aT==='class'||aT==='subject'||aT==='examdetail') ? getBrVal() : '';
-  if(t && (lvlF || brF)){
+  let dtF  = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aDate') ? getEl('aDate').value : '';
+  if(t && (lvlF || brF || dtF)){
     DB.e.forEach(x => {
       if(x.examType !== t || !x.subs) return;
+      if(dtF && x.date !== dtF) return;
       let m = String(x.studentClass||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return;
       if(lvlF && m[1] !== lvlF) return;
       if(brF  && m[2].toUpperCase() !== brF) return;
@@ -1050,6 +1075,29 @@ function uSub(){
   } else {
     getEl('aSub').innerHTML='<option value="" disabled selected>Veri Seç</option>'+[...s].sort().map(x=>`<option value="${x}">${toTitleCase(x)}</option>`).join('');
   }
+}
+
+// === Cascading filter handlers (Sınıf/Ders/Sınav Analizi) ===
+function _resetSel(id){
+  let el = getEl(id); if(!el) return;
+  el.value = '';
+  if(el.options.length && el.options[0].disabled){ el.options[0].selected = true; }
+}
+function onLvlChange(){
+  _resetSel('aBr'); _resetSel('aEx'); _resetSel('aDate'); _resetSel('aSub');
+  uBranches(); uExamTypes(); uExamDates(); uSub(); reqAnl();
+}
+function onBrChange(){
+  _resetSel('aEx'); _resetSel('aDate'); _resetSel('aSub');
+  uExamTypes(); uExamDates(); uSub(); reqAnl();
+}
+function onExTypeChange(){
+  _resetSel('aDate'); _resetSel('aSub');
+  uExamDates(); uSub(); reqAnl();
+}
+function onDateChange(){
+  _resetSel('aSub');
+  uSub(); reqAnl();
 }
 
 function uExamDates(){
@@ -1288,7 +1336,7 @@ function rAnl(){
       let attendedKeys = new Set();
       DB.e.forEach(x => { if(x.studentNo===no && x.examType===eT && !x.abs) attendedKeys.add(x.date+'||'+(x.publisher||'')); });
       let attendedCnt = attendedKeys.size;
-      let partRate = totalGradeExams > 0 ? (attendedCnt / totalGradeExams * 100).toFixed(0) : 0;
+      let partRate = totalGradeExams > 0 ? Math.max(0, Math.min(100, Math.round(attendedCnt / totalGradeExams * 100))) : 0;
       perfHtml = `<div class="row mt-3 mb-2">
         <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Yüksek</span><span class="info-box-number">${maxVal.toFixed(2)}</span></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük</span><span class="info-box-number">${minVal.toFixed(2)}</span></div></div></div>
@@ -1351,34 +1399,48 @@ function rAnl(){
       let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
       let best = topCls[0], worst = topCls[topCls.length-1], genAvgPerf = allVals.reduce((a,b)=>a+b,0)/allVals.length, aboveAvg = topCls.filter(x=>x.avg >= genAvgPerf).length;
       
-      // Sınıf Katılım Oranı: Seçilen sınıf seviyesi/şubedeki uygun her öğrencinin, kendi sınıf seviyesinde düzenlenen aynı sınav türündeki sınavların her birine katılma fırsatı baz alınır.
+      // === Sınıf Katılım Oranı ===
+      // Mantık: Seçilen sınıf seviyesi (+ varsa şube) içindeki uygun her öğrenci için,
+      //   o öğrencinin sınıf seviyesinde düzenlenen aynı sınav türündeki HER sınav (date+publisher) bir "potansiyel katılım"dır.
+      // Katılan: Bu öğrencinin o sınava (date+publisher) ait, abs=false olan UNIQUE kaydı varsa 1 sayılır.
       let eligibleStus = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase())) return false; return true; });
       // Her sınav (date+publisher) hangi sınıf seviyelerini kapsıyor?
-      let examGradeMap = {}; // key: date||publisher -> Set of grades
+      let examGradeMap = {}; // key -> { grades:Set, date, publisher }
       Object.values(EXAM_META).forEach(m => {
         if(m.examType !== eT) return;
         if(dateFilter && m.date !== dateFilter) return;
         let key = m.date + '||' + (m.publisher || '');
-        if(!examGradeMap[key]) examGradeMap[key] = new Set();
+        if(!examGradeMap[key]) examGradeMap[key] = { grades:new Set(), date:m.date, publisher:m.publisher||'' };
         let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
-        gs.forEach(g => examGradeMap[key].add(g));
+        gs.forEach(g => examGradeMap[key].grades.add(g));
       });
-      let baseCount = 0;
+      // Öğrenci başına katıldığı (date+publisher) setini DB.e'den hazırla
+      let attendedSetByStu = {};
+      DB.e.forEach(e => {
+        if(e.examType !== eT || e.abs) return;
+        if(dateFilter && e.date !== dateFilter) return;
+        let k = e.date + '||' + (e.publisher || '');
+        if(!attendedSetByStu[e.studentNo]) attendedSetByStu[e.studentNo] = new Set();
+        attendedSetByStu[e.studentNo].add(k);
+      });
+      let baseCount = 0, attendedCount = 0;
       eligibleStus.forEach(stu => {
         let g = getGrade(stu.class);
-        Object.values(examGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCount++; });
+        let stuAttended = attendedSetByStu[stu.no] || new Set();
+        Object.entries(examGradeMap).forEach(([key, info]) => {
+          if(!(info.grades.has('*') || info.grades.has(g))) return;
+          baseCount++;
+          if(stuAttended.has(key)) attendedCount++;
+        });
       });
-      // Katılan: ex.length (filtreli, sadece katılanlar)
-      let attendedCount = ex.length;
-      // EX'te abs olanlar yok ama DB.e'de olabilir - hesaba katılım kaydı için kullanmıyoruz, sadece "katıldı" sayısı.
-      let partRate = baseCount > 0 ? Math.round((attendedCount / baseCount) * 100) : 0;
+      let partRate = baseCount > 0 ? Math.max(0, Math.min(100, Math.round((attendedCount / baseCount) * 100))) : 0;
 
       clsPerfHtml = `<div class="row mb-3">
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-danger h-100"><span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük Sınıf</span><span class="info-box-number">${worst.cls}</span><span class="progress-description">Ort: ${worst.avg.toFixed(2)}</span></div></div></div>
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-primary h-100"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Kurum Ort. (${lvlLabel})</span><span class="info-box-number">${genAvgPerf.toFixed(2)}</span></div></div></div>
         <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box bg-info h-100"><span class="info-box-icon"><i class="fas fa-star"></i></span><div class="info-box-content"><span class="info-box-text">Ort. Üstü Sınıf</span><span class="info-box-number">${aboveAvg} / ${topCls.length}</span></div></div></div>
-        <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRate}</span><span class="progress-description" style="color:#e0e0e0;">${ex.length} / ${baseCount} Sonuç</span></div></div></div>
+        <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRate}</span><span class="progress-description" style="color:#e0e0e0;">${attendedCount} / ${baseCount} Katılım</span></div></div></div>
       </div>`;
     }
     
@@ -1460,9 +1522,8 @@ function rAnl(){
     let worstStudent = stuArr.length > 0 ? stuArr[stuArr.length - 1] : null;
     let genAvg = ex.reduce((a,e) => a + e.subs[toTitleCase(subj)].net, 0) / ex.length, lvlStr = (lvl ? `${lvl}. Sınıflar` : 'Tüm Sınıflar') + (br ? ` / ${br} Şubesi` : '');
     
-    // Ders Katılım Oranı: Bu dersi içeren ve öğrencinin sınıf seviyesine uygun aynı sınav türündeki sınavlar baz alınır.
+    // === Ders Katılım Oranı ===
     let eligibleStusS = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(lvl && m[1] !== lvl) return false; if(br && m[2].toUpperCase() !== br) return false; return true; });
-    // Bu dersi içeren sınavlar (date+publisher) ve hangi seviyelere ait olduğu
     let subjLower = subj.toLowerCase();
     let subjExamGradeMap = {};
     Object.values(EXAM_META).forEach(m => {
@@ -1470,16 +1531,30 @@ function rAnl(){
       if(dateFilterS && m.date !== dateFilterS) return;
       if(!m.subjects || !m.subjects.map(s=>s.toLowerCase()).includes(subjLower)) return;
       let key = m.date + '||' + (m.publisher || '');
-      if(!subjExamGradeMap[key]) subjExamGradeMap[key] = new Set();
+      if(!subjExamGradeMap[key]) subjExamGradeMap[key] = { grades:new Set() };
       let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
-      gs.forEach(g => subjExamGradeMap[key].add(g));
+      gs.forEach(g => subjExamGradeMap[key].grades.add(g));
     });
-    let baseCountS = 0;
+    let subjAttendedSetByStu = {};
+    DB.e.forEach(e => {
+      if(e.examType !== eT || e.abs) return;
+      if(dateFilterS && e.date !== dateFilterS) return;
+      if(!e.subs || !e.subs[toTitleCase(subj)]) return;
+      let k = e.date + '||' + (e.publisher || '');
+      if(!subjAttendedSetByStu[e.studentNo]) subjAttendedSetByStu[e.studentNo] = new Set();
+      subjAttendedSetByStu[e.studentNo].add(k);
+    });
+    let baseCountS = 0, attendedCountS = 0;
     eligibleStusS.forEach(stu => {
       let g = getGrade(stu.class);
-      Object.values(subjExamGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCountS++; });
+      let stuAtt = subjAttendedSetByStu[stu.no] || new Set();
+      Object.entries(subjExamGradeMap).forEach(([key, info]) => {
+        if(!(info.grades.has('*') || info.grades.has(g))) return;
+        baseCountS++;
+        if(stuAtt.has(key)) attendedCountS++;
+      });
     });
-    let partRateS = baseCountS > 0 ? Math.round((ex.length / baseCountS) * 100) : 0;
+    let partRateS = baseCountS > 0 ? Math.max(0, Math.min(100, Math.round((attendedCountS / baseCountS) * 100))) : 0;
 
     let h = `
     <div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSubj','${toTitleCase(subj)}_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
@@ -1494,7 +1569,7 @@ function rAnl(){
           <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-info h-100"><span class="info-box-icon"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Toplam Kayıt</span><span class="info-box-number">${ex.length} Sonuç</span></div></div></div>
           <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${bestStudent ? bestStudent.name : 'Veri Yok'}</span><span class="progress-description">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
           <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box bg-danger h-100"><span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span><div class="info-box-content"><span class="info-box-text">En Zayıf Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${worstStudent ? worstStudent.name : 'Veri Yok'}</span><span class="progress-description">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
-          <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-chart-pie text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRateS}</span><span class="progress-description" style="color:#e0e0e0;">${ex.length} / ${baseCountS} Sonuç</span></div></div></div>
+          <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-chart-pie text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRateS}</span><span class="progress-description" style="color:#e0e0e0;">${attendedCountS} / ${baseCountS} Katılım</span></div></div></div>
         </div>
         <div class="row">
           <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
@@ -1569,22 +1644,34 @@ function rAnl(){
         let bottom5Html = bottom5List.length ? bottom5List.map((e,i) => buildRow(e, i, 'bottom5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
         let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName = `${eT}_Genel_Ozet`;
 
-        // Genel Katılım Oranı: Her uygun öğrencinin kendi sınıf seviyesinde düzenlenen aynı türdeki sınavlara katılma fırsatı baz alınır.
+        // === Genel Katılım Oranı (Sınav Analizi) — unique attendance ===
         let eligibleStusGS = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toUpperCase() !== brFilterED) return false; } return true; });
         let gsExamGradeMap = {};
         Object.values(EXAM_META).forEach(m => {
           if(m.examType !== eT) return;
           let key = m.date + '||' + (m.publisher || '');
-          if(!gsExamGradeMap[key]) gsExamGradeMap[key] = new Set();
+          if(!gsExamGradeMap[key]) gsExamGradeMap[key] = { grades:new Set() };
           let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
-          gs.forEach(g => gsExamGradeMap[key].add(g));
+          gs.forEach(g => gsExamGradeMap[key].grades.add(g));
         });
-        let baseCountGS = 0;
+        let gsAttendedSetByStu = {};
+        DB.e.forEach(e => {
+          if(e.examType !== eT || e.abs) return;
+          let k = e.date + '||' + (e.publisher || '');
+          if(!gsAttendedSetByStu[e.studentNo]) gsAttendedSetByStu[e.studentNo] = new Set();
+          gsAttendedSetByStu[e.studentNo].add(k);
+        });
+        let baseCountGS = 0, attendedCountGS = 0;
         eligibleStusGS.forEach(stu => {
           let g = getGrade(stu.class);
-          Object.values(gsExamGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCountGS++; });
+          let stuAtt = gsAttendedSetByStu[stu.no] || new Set();
+          Object.entries(gsExamGradeMap).forEach(([key, info]) => {
+            if(!(info.grades.has('*') || info.grades.has(g))) return;
+            baseCountGS++;
+            if(stuAtt.has(key)) attendedCountGS++;
+          });
         });
-        let partRateGS = baseCountGS > 0 ? Math.round((ex.length / baseCountGS) * 100) : 0;
+        let partRateGS = baseCountGS > 0 ? Math.max(0, Math.min(100, Math.round((attendedCountGS / baseCountGS) * 100))) : 0;
 
         let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary','${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
         <div id="pGenSummary" class="card shadow-sm" style="border-top:3px solid #0d6efd; background:#f4f6f9;">
@@ -1601,7 +1688,7 @@ function rAnl(){
               <div class="row mt-2">
                   <div class="col-md-4 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ort. En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} ➔ ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
                   <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#dc3545; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Genel Katılım Oranı</span><span class="info-box-number" style="font-size:1.1em;">%${partRateGS}</span><span class="progress-description" style="font-size:0.9em; color:#e0e0e0;">${ex.length} / ${baseCountGS} Sonuç</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Genel Katılım Oranı</span><span class="info-box-number" style="font-size:1.1em;">%${partRateGS}</span><span class="progress-description" style="font-size:0.9em; color:#e0e0e0;">${attendedCountGS} / ${baseCountGS} Katılım</span></div></div></div>
               </div>
               <div class="row mt-3">
                   <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
