@@ -410,8 +410,8 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
           <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-filter mr-2"></i>Analiz Filtreleri</h3></div><div class="card-body"><div class="row">
             <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Analiz Türü</label><select id="aType" class="form-control" onchange="reqUI()"><option value="student">Öğrenci Analizi</option><option value="class">Sınıf Analizi</option><option value="subject">Ders Analizi</option><option value="examdetail">Sınav Analizi</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-3" id="gStu"><div class="form-group"><label>Öğrenci Seçin</label><div id="anlStuSearchWrapper"><div class="input-group"><input type="text" id="anlStuInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="anlStuDoSearch()" autocomplete="off"><div class="input-group-append"><button class="btn btn-outline-secondary" onclick="anlStuClear()" style="border-color:#ced4da;"><i class="fas fa-times"></i></button></div></div><div id="anlStuRes"></div></div><div id="anlStuBadge"></div></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-control" onchange="reqAnl()"><option value="" disabled selected>Sınıf Seviyesi Seç</option></select></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;"><div class="form-group"><label>Şube</label><select id="aBr" class="form-control" onchange="reqAnl()"><option value="" disabled selected>Şube Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-control" onchange="uExamTypes(); uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Sınıf Seviyesi Seç</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;"><div class="form-group"><label>Şube</label><select id="aBr" class="form-control" onchange="uExamTypes(); uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Şube Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Sınav Türü</label><select id="aEx" class="form-control" onchange="uSub(); uExamDates(); reqAnl();"><option value="" disabled selected>Sınav Türü Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gSub"><div class="form-group"><label id="lblSub">Veri</label><select id="aSub" class="form-control" onchange="handleSubChange()"></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="form-group"><label>Sınav Seç</label><select id="aDate" class="form-control" onchange="reqAnl()"><option value="" disabled selected>Sınav Seç</option></select></div></div>
@@ -826,6 +826,7 @@ function srt(a,b){
 }
 
 function getGrade(cls){ let m=String(cls||'').match(/^(\d+)/); return m?m[1]:''; }
+function getBrVal(){ let el=getEl('aBr'); if(!el) return ''; let v=el.value; return (v==='__ALL__'||!v)?'':v; }
 
 function mkChart(canvasId,labels,datasets,rev=false){
   let gCol='#e2e8f0';
@@ -994,15 +995,43 @@ function uDrp(){
 }
 
 function uExamTypes(){
-  let types=new Set(); Object.values(EXAM_META).forEach(m => types.add(m.examType));
+  let types=new Set();
+  let aT = getEl('aType') ? getEl('aType').value : '';
+  let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
+  let brF  = (aT==='class'||aT==='subject'||aT==='examdetail') ? getBrVal() : '';
+  if(lvlF || brF){
+    // Sadece seçilen sınıf seviyesi/şubeye ait verisi olan sınav türlerini listele
+    DB.e.forEach(x => {
+      if(!x.examType) return;
+      let m = String(x.studentClass||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return;
+      if(lvlF && m[1] !== lvlF) return;
+      if(brF  && m[2].toUpperCase() !== brF) return;
+      types.add(x.examType);
+    });
+  } else {
+    Object.values(EXAM_META).forEach(m => types.add(m.examType));
+  }
   let sortedTypes = [...types].sort(), prev=getEl('aEx').value; 
-  getEl('aEx').innerHTML='<option value="" disabled' + (prev?'':' selected') + '>Sınav Türü Seç</option>'+sortedTypes.map(x=>`<option value="${x}">${x}</option>`).join('');
+  getEl('aEx').innerHTML='<option value="" disabled' + (prev && sortedTypes.includes(prev) ? '' : ' selected') + '>Sınav Türü Seç</option>'+sortedTypes.map(x=>`<option value="${x}">${x}</option>`).join('');
   if(sortedTypes.includes(prev)) getEl('aEx').value=prev;
+  else if(prev){ getEl('aEx').value=''; } // mevcut seçim filtreye uymuyorsa sıfırla
 }
 
 function uSub(){
   let aT=getEl('aType')?getEl('aType').value:'', t=getEl('aEx').value, s=new Set();
-  Object.values(EXAM_META).forEach(m => { if(m.examType === t && m.subjects) m.subjects.forEach(subj => s.add(subj)); });
+  let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
+  let brF  = (aT==='class'||aT==='subject'||aT==='examdetail') ? getBrVal() : '';
+  if(t && (lvlF || brF)){
+    DB.e.forEach(x => {
+      if(x.examType !== t || !x.subs) return;
+      let m = String(x.studentClass||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return;
+      if(lvlF && m[1] !== lvlF) return;
+      if(brF  && m[2].toUpperCase() !== brF) return;
+      Object.keys(x.subs).forEach(subj => s.add(subj.toLowerCase()));
+    });
+  } else {
+    Object.values(EXAM_META).forEach(m => { if(m.examType === t && m.subjects) m.subjects.forEach(subj => s.add(subj)); });
+  }
   
   if(aT === 'student' || aT === 'class') {
     let _prev = getEl('aSub').value;
@@ -1054,7 +1083,7 @@ function uUI(){
     let l=new Set(),b=new Set(); DB.s.forEach(s=>{let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);if(m){l.add(m[1]);b.add(m[2].toUpperCase());}});
     let _pL=getEl('aLvl').value, _pB=getEl('aBr').value;
     getEl('aLvl').innerHTML=`<option value="" disabled${_pL?'':' selected'}>Sınıf Seviyesi Seç</option>`+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
-    getEl('aBr').innerHTML=`<option value="" disabled${_pB?'':' selected'}>Şube Seç</option>`+[...b].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+    getEl('aBr').innerHTML=`<option value="" disabled${_pB?'':' selected'}>Şube Seç</option><option value="__ALL__"${_pB==='__ALL__'?' selected':''}>Tümü</option>`+[...b].sort().map(x=>`<option value="${x}"${_pB===x?' selected':''}>${x}</option>`).join('');
     if(_pL && [...l].includes(_pL)) getEl('aLvl').value=_pL;
     if(_pB && [...b].includes(_pB)) getEl('aBr').value=_pB;
     if(aNo){ let selStu = DB.s.find(x=>x.no===aNo); if(selStu){ let m=selStu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m){ getEl('aLvl').value=m[1]; getEl('aBr').value=m[2].toUpperCase(); } } }
@@ -1062,7 +1091,7 @@ function uUI(){
     let l=new Set(), b=new Set(); DB.s.forEach(s=>{ let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m){l.add(m[1]); b.add(m[2].toUpperCase());} });
     let _pL=getEl('aLvl').value, _pB=getEl('aBr').value;
     getEl('aLvl').innerHTML=`<option value="" disabled${_pL?'':' selected'}>Sınıf Seviyesi Seç</option>`+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
-    if(t==='subject'||t==='examdetail') getEl('aBr').innerHTML=`<option value="" disabled${_pB?'':' selected'}>Şube Seç</option>`+[...b].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+    if(t==='subject'||t==='examdetail') getEl('aBr').innerHTML=`<option value="" disabled${_pB?'':' selected'}>Şube Seç</option><option value="__ALL__"${_pB==='__ALL__'?' selected':''}>Tümü</option>`+[...b].sort().map(x=>`<option value="${x}"${_pB===x?' selected':''}>${x}</option>`).join('');
     if(_pL && [...l].includes(_pL)) getEl('aLvl').value=_pL;
     if(_pB && [...b].includes(_pB)) getEl('aBr').value=_pB;
     if(aNo) { let selStu = DB.s.find(x=>x.no===aNo); if(selStu) { let m=selStu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m) { getEl('aLvl').value=m[1]; if(t==='subject') getEl('aBr').value=''; } } }
@@ -1252,12 +1281,19 @@ function rAnl(){
     let perfHtml = '';
     if(!isRank && dD.length > 0) {
       let maxVal = Math.max(...dD), minVal = Math.min(...dD), avgVal = dD.reduce((a,b)=>a+b,0)/dD.length;
-      let absCnt = ex.filter(e=>e.abs).length; let partRate = ex.length > 0 ? ((ex.length - absCnt) / ex.length * 100).toFixed(0) : 0;
+      // Katılım: öğrencinin sınıf seviyesinde düzenlenen aynı sınav türüne ait TÜM sınavlar baz alınır
+      let gradeExamKeys = new Set();
+      DB.e.forEach(x => { if(x.examType===eT && getGrade(x.studentClass)===stGrade) gradeExamKeys.add(x.date+'||'+(x.publisher||'')); });
+      let totalGradeExams = gradeExamKeys.size;
+      let attendedKeys = new Set();
+      DB.e.forEach(x => { if(x.studentNo===no && x.examType===eT && !x.abs) attendedKeys.add(x.date+'||'+(x.publisher||'')); });
+      let attendedCnt = attendedKeys.size;
+      let partRate = totalGradeExams > 0 ? (attendedCnt / totalGradeExams * 100).toFixed(0) : 0;
       perfHtml = `<div class="row mt-3 mb-2">
         <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Yüksek</span><span class="info-box-number">${maxVal.toFixed(2)}</span></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük</span><span class="info-box-number">${minVal.toFixed(2)}</span></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-balance-scale"></i></span><div class="info-box-content"><span class="info-box-text">Ortalama</span><span class="info-box-number">${avgVal.toFixed(2)}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-percentage"></i></span><div class="info-box-content"><span class="info-box-text">Katılım</span><span class="info-box-number">${partRate}%</span><span class="progress-description">${ex.length-absCnt}/${ex.length} Sınav</span></div></div></div>
+        <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-percentage"></i></span><div class="info-box-content"><span class="info-box-text">Katılım</span><span class="info-box-number">${partRate}%</span><span class="progress-description">${attendedCnt}/${totalGradeExams} Sınav</span></div></div></div>
       </div>`;
     }
 
@@ -1283,7 +1319,7 @@ function rAnl(){
     },100);
 
   }else if(aT==='class'){
-    let l=getEl('aLvl').value,b=getEl('aBr').value, dateFilter = getEl('aDate') ? getEl('aDate').value : '';
+    let l=getEl('aLvl').value,b=getBrVal(), dateFilter = getEl('aDate') ? getEl('aDate').value : '';
     let ex=DB.e.filter(x=>x.examType===eT&&!x.abs&&(!dateFilter||x.date===dateFilter)),d={};
     ex.forEach(e=>{ let m=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m)return; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase()))return; (d[e.date]=d[e.date]||[]).push(e); });
     let sd=Object.keys(d).sort(srt),cs=new Set(),tr=[], ls = sb === 'score' ? 'Puan' : (sb === 'totalNet' || !sb ? 'Toplam Net' : toTitleCase(sb.replace('s_','')) + ' Neti');
@@ -1308,17 +1344,34 @@ function rAnl(){
     
     let clsAvgRow = classAvgRows, lvlLabel = lvlForAvg ? `${lvlForAvg}. Sınıflar` : 'Tüm Sınıflar';
     if (allVals.length > 0) { let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2); clsAvgRow += `<tr class="avg-row"><td colspan="4" style="text-align:right; padding-right:15px;">Kurum Ortalama (${lvlLabel})</td><td>${genAvg}</td></tr>`; }
-    let clsLabel=''; {let lv=getEl('aLvl').value,br=getEl('aBr').value; if(lv&&br)clsLabel=lv+br; else if(lv)clsLabel=lv+'. Sınıflar'; else if(br)clsLabel=br; else clsLabel='Hepsi';}
+    let clsLabel=''; {let lv=getEl('aLvl').value,br=getBrVal(); if(lv&&br)clsLabel=lv+br; else if(lv)clsLabel=lv+'. Sınıflar'; else if(br)clsLabel=br; else clsLabel='Hepsi';}
     
     let clsPerfHtml = '';
     if(sortedClasses.length > 0 && allVals.length > 0) {
       let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
       let best = topCls[0], worst = topCls[topCls.length-1], genAvgPerf = allVals.reduce((a,b)=>a+b,0)/allVals.length, aboveAvg = topCls.filter(x=>x.avg >= genAvgPerf).length;
       
+      // Sınıf Katılım Oranı: Seçilen sınıf seviyesi/şubedeki uygun her öğrencinin, kendi sınıf seviyesinde düzenlenen aynı sınav türündeki sınavların her birine katılma fırsatı baz alınır.
       let eligibleStus = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase())) return false; return true; });
-      let datesCount = new Set(ex.map(x=>x.date)).size;
-      let baseCount = eligibleStus.length * (datesCount || 1);
-      let partRate = baseCount > 0 ? Math.round((ex.length / baseCount) * 100) : 0;
+      // Her sınav (date+publisher) hangi sınıf seviyelerini kapsıyor?
+      let examGradeMap = {}; // key: date||publisher -> Set of grades
+      Object.values(EXAM_META).forEach(m => {
+        if(m.examType !== eT) return;
+        if(dateFilter && m.date !== dateFilter) return;
+        let key = m.date + '||' + (m.publisher || '');
+        if(!examGradeMap[key]) examGradeMap[key] = new Set();
+        let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
+        gs.forEach(g => examGradeMap[key].add(g));
+      });
+      let baseCount = 0;
+      eligibleStus.forEach(stu => {
+        let g = getGrade(stu.class);
+        Object.values(examGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCount++; });
+      });
+      // Katılan: ex.length (filtreli, sadece katılanlar)
+      let attendedCount = ex.length;
+      // EX'te abs olanlar yok ama DB.e'de olabilir - hesaba katılım kaydı için kullanmıyoruz, sadece "katıldı" sayısı.
+      let partRate = baseCount > 0 ? Math.round((attendedCount / baseCount) * 100) : 0;
 
       clsPerfHtml = `<div class="row mb-3">
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
@@ -1381,7 +1434,7 @@ function rAnl(){
 
   }else if(aT==='subject'){
     let subj = sb; if(!subj){r.innerHTML='<div class="alert alert-default-info">Lütfen bir ders seçin.</div>';return;}
-    let lvl = getEl('aLvl').value, br = getEl('aBr') ? getEl('aBr').value : '', dateFilterS = getEl('aDate') ? getEl('aDate').value : '';
+    let lvl = getEl('aLvl').value, br = getBrVal(), dateFilterS = getEl('aDate') ? getEl('aDate').value : '';
     let ex = DB.e.filter(x => x.examType === eT && !x.abs && x.subs[toTitleCase(subj)] && (!dateFilterS || x.date === dateFilterS));
     if(lvl) ex = ex.filter(x => getGrade(x.studentClass) === lvl);
     if(br) ex = ex.filter(x => { let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return m && m[2].toUpperCase()===br; });
@@ -1407,8 +1460,25 @@ function rAnl(){
     let worstStudent = stuArr.length > 0 ? stuArr[stuArr.length - 1] : null;
     let genAvg = ex.reduce((a,e) => a + e.subs[toTitleCase(subj)].net, 0) / ex.length, lvlStr = (lvl ? `${lvl}. Sınıflar` : 'Tüm Sınıflar') + (br ? ` / ${br} Şubesi` : '');
     
+    // Ders Katılım Oranı: Bu dersi içeren ve öğrencinin sınıf seviyesine uygun aynı sınav türündeki sınavlar baz alınır.
     let eligibleStusS = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(lvl && m[1] !== lvl) return false; if(br && m[2].toUpperCase() !== br) return false; return true; });
-    let baseCountS = eligibleStusS.length * (dates.length || 1);
+    // Bu dersi içeren sınavlar (date+publisher) ve hangi seviyelere ait olduğu
+    let subjLower = subj.toLowerCase();
+    let subjExamGradeMap = {};
+    Object.values(EXAM_META).forEach(m => {
+      if(m.examType !== eT) return;
+      if(dateFilterS && m.date !== dateFilterS) return;
+      if(!m.subjects || !m.subjects.map(s=>s.toLowerCase()).includes(subjLower)) return;
+      let key = m.date + '||' + (m.publisher || '');
+      if(!subjExamGradeMap[key]) subjExamGradeMap[key] = new Set();
+      let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
+      gs.forEach(g => subjExamGradeMap[key].add(g));
+    });
+    let baseCountS = 0;
+    eligibleStusS.forEach(stu => {
+      let g = getGrade(stu.class);
+      Object.values(subjExamGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCountS++; });
+    });
     let partRateS = baseCountS > 0 ? Math.round((ex.length / baseCountS) * 100) : 0;
 
     let h = `
@@ -1450,7 +1520,7 @@ function rAnl(){
     let lvl = getEl('aLvl') ? getEl('aLvl').value : '', baseExams = DB.e.filter(x => x.examType === eT);
     let targetLvl = lvl; if (!targetLvl && aNo) { let st = DB.s.find(x=>x.no===aNo); if(st) targetLvl = getGrade(st.class); }
     if (targetLvl) { baseExams = baseExams.filter(x => getGrade(x.studentClass) === targetLvl); }
-    let brFilterED = getEl('aBr') ? getEl('aBr').value : '';
+    let brFilterED = getBrVal();
     if (brFilterED) { baseExams = baseExams.filter(x => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toUpperCase()===brFilterED; }); }
 
     let getName = (no) => DB.s.find(s=>s.no===no)?.name || 'Bilinmiyor';
@@ -1499,8 +1569,21 @@ function rAnl(){
         let bottom5Html = bottom5List.length ? bottom5List.map((e,i) => buildRow(e, i, 'bottom5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
         let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName = `${eT}_Genel_Ozet`;
 
+        // Genel Katılım Oranı: Her uygun öğrencinin kendi sınıf seviyesinde düzenlenen aynı türdeki sınavlara katılma fırsatı baz alınır.
         let eligibleStusGS = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toUpperCase() !== brFilterED) return false; } return true; });
-        let baseCountGS = eligibleStusGS.length * (dates.length || 1);
+        let gsExamGradeMap = {};
+        Object.values(EXAM_META).forEach(m => {
+          if(m.examType !== eT) return;
+          let key = m.date + '||' + (m.publisher || '');
+          if(!gsExamGradeMap[key]) gsExamGradeMap[key] = new Set();
+          let gs = (m.grades && m.grades.length) ? m.grades : ['*'];
+          gs.forEach(g => gsExamGradeMap[key].add(g));
+        });
+        let baseCountGS = 0;
+        eligibleStusGS.forEach(stu => {
+          let g = getGrade(stu.class);
+          Object.values(gsExamGradeMap).forEach(grSet => { if(grSet.has('*') || grSet.has(g)) baseCountGS++; });
+        });
         let partRateGS = baseCountGS > 0 ? Math.round((ex.length / baseCountGS) * 100) : 0;
 
         let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary','${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
@@ -1556,7 +1639,16 @@ function rAnl(){
       let safeName = `${eT}_${dt.replace(/\./g,'-')}_Ozet`, lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
       let pubName = Object.values(EXAM_META).find(m=>m.date===dt&&m.examType===eT)?.publisher || '';
       
-      let eligibleStusE = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toUpperCase() !== brFilterED) return false; } return true; });
+      // Sınav Katılım Oranı: Bu sınavın kapsadığı sınıf seviyelerindeki uygun öğrenciler bazlı.
+      let thisExamMeta = Object.values(EXAM_META).find(m=>m.date===dt && m.examType===eT && (!brFilterED || true));
+      let examGrades = (thisExamMeta && thisExamMeta.grades && thisExamMeta.grades.length) ? new Set(thisExamMeta.grades) : null;
+      let eligibleStusE = DB.s.filter(s => {
+        let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false;
+        if(targetLvl && m[1] !== targetLvl) return false;
+        if(brFilterED && m[2].toUpperCase() !== brFilterED) return false;
+        if(examGrades && !examGrades.has(m[1])) return false;
+        return true;
+      });
       let partRateE = eligibleStusE.length > 0 ? Math.round((currentExams.length / eligibleStusE.length) * 100) : 0;
 
       let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSummary','Sinav_Ozeti_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
