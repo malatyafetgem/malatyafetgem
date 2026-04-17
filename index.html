@@ -2,8 +2,9 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<style>html,body{background:#f4f6f8 !important;}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1e3a5f">
+<meta name="theme-color" content="#6c8ebf">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sınav Analizi">
@@ -24,9 +25,9 @@
 
 <style>
 /* ===== GENEL ===== */
-#loginScreen { display:flex; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#1e3a5f,#2d6a9f); }
+#loginScreen { display:flex; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#d6e4f0,#eaf2fb); }
 .login-card { width:100%; max-width:400px; }
-.login-card .card-header { background:linear-gradient(135deg,#1e3a5f,#2d6a9f); border-radius:8px 8px 0 0 !important; }
+.login-card .card-header { background:linear-gradient(135deg,#d6e4f0,#eaf2fb); border-radius:8px 8px 0 0 !important; }
 #connBadge { font-size:0.78em; padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
 .chart-box { height:380px; position:relative; width:100%; }
 .pane { display:none !important; }
@@ -35,14 +36,11 @@
 
 /* Tablo renkleri */
 .absent-row td { background:rgba(220,53,69,0.07) !important; color:#999 !important; }
-body.dark-mode .absent-row td { background:rgba(220,53,69,0.2) !important; color:#dc3545 !important; }
 tr.highlight-row td { background-color:rgba(255,193,7,0.35) !important; font-weight:bold !important; color:#212529 !important; }
-body.dark-mode tr.highlight-row td { background-color:rgba(255,193,7,0.45) !important; color:#fff !important; }
 
 /* ===== ORTALAMA SATIRI TASARIMI ===== */
-tr.avg-row td { background-color: #e6f0fa !important; color: #1e3a5f !important; font-weight: bold !important; border-top: 2px solid #1e3a5f !important; font-size: 0.95em; vertical-align: middle !important; }
+tr.avg-row td { background-color: #edf2f7 !important; color: #4a6fa5 !important; font-weight: bold !important; border-top: 2px solid #b0c4de !important; font-size: 0.95em; vertical-align: middle !important; }
 tr.avg-row td:first-child { letter-spacing: 0.5px; }
-body.dark-mode tr.avg-row td { background-color: #2a3b4c !important; color: #e2e8f0 !important; border-top-color: #4b5563 !important; }
 
 /* Yetki */
 .admin-only { display:none !important; }
@@ -51,30 +49,42 @@ body.is-admin li.admin-only { display:block !important; }
 body.is-admin button.admin-only { display:inline-block !important; }
 body.is-admin button.btn-block.admin-only { display:block !important; }
 
-.pdf-header-bar { display:none; }
+/* ===== YENİ BİRLEŞTİRİLMİŞ BAŞLIK TASARIMI (Hem Ekran Hem Yazıcı) ===== */
+.report-header { display: flex !important; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #6c8ebf, #8aafd4) !important; color: #fff !important; padding: 12px 20px; border-radius: 4px 4px 0 0; margin-bottom: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.report-header span, .report-header strong, .report-header i { color: #fff !important; }
 
 /* ===== YAZDIR BUTONU ===== */
-.btn-print { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); color: #fff !important; border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(30,58,95,0.25); height: calc(1.5em + .5rem + 2px); }
-.btn-print:hover { background: linear-gradient(135deg, #2d6a9f, #3a80bf); box-shadow: 0 4px 12px rgba(30,58,95,0.35); transform: translateY(-1px); }
-@media print { .no-print { display: none !important; } }
+.btn-print { background: linear-gradient(135deg, #6c8ebf, #8aafd4); color: #fff !important; border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(108,142,191,0.25); height: calc(1.5em + .5rem + 2px); }
+.btn-print:hover { background: linear-gradient(135deg, #8aafd4, #a0c4e8); box-shadow: 0 4px 12px rgba(108,142,191,0.35); transform: translateY(-1px); }
+
+/* DESKTOP-FIRST PRINT (Masaüstü Zorunlu Yazdırma Optimizasyonu) */
+@media print { 
+  .no-print { display: none !important; } 
+  body { min-width: 1024px !important; background: #fff !important; zoom: 0.85; }
+  .container-fluid { width: 100% !important; padding: 0 !important; }
+  .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -8px !important;}
+  .col-md-3 { flex: 0 0 25% !important; max-width: 25% !important; padding: 0 8px !important; }
+  .col-md-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
+  .col-md-6, .col-sm-6, .col-lg-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 8px !important; }
+  .col-12, .col-sm-12, .col-lg-12 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 8px !important; }
+  .table-responsive { overflow-x: visible !important; }
+  .main-sidebar, .main-header { display: none !important; }
+  .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+  .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+  .report-header { background: #4a6fa5 !important; margin-bottom: 12px; border-radius: 6px; }
+}
 
 /* ===== ARAMA ===== */
 #anlStuSearchWrapper { position:relative; }
 #anlStuRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:220px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
-body.dark-mode #anlStuRes { background:#343a40; border-color:#495057; }
 .anlStu-item { padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.9em; }
-body.dark-mode .anlStu-item { border-color:#495057; color:#fff; }
 .anlStu-item:hover { background:#e8f4ff; }
-body.dark-mode .anlStu-item:hover { background:#495057; }
 #anlStuBadge { margin-top:4px; min-height:22px; }
 
 /* Kutular */
 .preview-box { background: #f8f9fa; border-left: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
 .preview-box.warning { border-left-color: #ffc107; background: #fff3cd; }
 .preview-box.danger { border-left-color: #dc3545; background: #f8d7da; }
-body.dark-mode .preview-box { background: #343a40; color: #fff; }
-body.dark-mode .preview-box.warning { background: #664d03; color: #fff; }
-body.dark-mode .preview-box.danger { background: #5c1e22; color: #fff; }
 
 /* ===== TOAST ===== */
 #toastContainer { position: fixed; top: 70px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 350px; }
@@ -82,43 +92,37 @@ body.dark-mode .preview-box.danger { background: #5c1e22; color: #fff; }
 .toast-item.success { background: linear-gradient(135deg, #28a745, #20c997); }
 .toast-item.error { background: linear-gradient(135deg, #dc3545, #e74c3c); }
 .toast-item.warning { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #212529; }
-.toast-item.info { background: linear-gradient(135deg, #17a2b8, #2d6a9f); }
+.toast-item.info { background: linear-gradient(135deg, #17a2b8, #6c8ebf); }
 .toast-item i { margin-right: 10px; font-size: 1.2em; }
 .toast-item .toast-close { margin-left: auto; cursor: pointer; opacity: 0.7; padding: 0 5px; }
 @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 
 /* ===== PWA POPUP ===== */
-#pwaInstallPopup { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 99999; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px 20px; display: flex; align-items: center; gap: 14px; max-width: 360px; width: 90%; animation: popupSlideDown 0.4s ease-out; border-left: 5px solid #1e3a5f; }
-body.dark-mode #pwaInstallPopup { background: #1f2940; color: #e9ecef; }
+#pwaInstallPopup { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 99999; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px 20px; display: flex; align-items: center; gap: 14px; max-width: 360px; width: 90%; animation: popupSlideDown 0.4s ease-out; border-left: 5px solid #6c8ebf; }
 #pwaInstallPopup .pwa-icon { font-size: 2em; flex-shrink: 0; }
 #pwaInstallPopup .pwa-text { flex: 1; }
-#pwaInstallPopup .pwa-text strong { display: block; font-size: 0.95em; color: #1e3a5f; margin-bottom: 2px; }
-body.dark-mode #pwaInstallPopup .pwa-text strong { color: #4dabf7; }
+#pwaInstallPopup .pwa-text strong { display: block; font-size: 0.95em; color: #4a6fa5; margin-bottom: 2px; }
 #pwaInstallPopup .pwa-text span { font-size: 0.8em; color: #6c757d; }
 #pwaInstallPopup .pwa-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-#pwaInstallPopup .btn-pwa-install { background: #1e3a5f; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 0.82em; cursor: pointer; white-space: nowrap; }
-#pwaInstallPopup .btn-pwa-install:hover { background: #2d6a9f; }
+#pwaInstallPopup .btn-pwa-install { background: #6c8ebf; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 0.82em; cursor: pointer; white-space: nowrap; }
+#pwaInstallPopup .btn-pwa-install:hover { background: #8aafd4; }
 #pwaInstallPopup .btn-pwa-close { background: transparent; color: #aaa; border: none; font-size: 1.1em; cursor: pointer; align-self: flex-start; line-height: 1; }
-#pwaInstallPopup .pwa-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: #1e3a5f; border-radius: 0 0 0 12px; animation: pwaBar 4s linear forwards; }
-body.dark-mode #pwaInstallPopup .pwa-progress { background: #4dabf7; }
+#pwaInstallPopup .pwa-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: #6c8ebf; border-radius: 0 0 0 12px; animation: pwaBar 4s linear forwards; }
+
 @keyframes popupSlideDown { from { transform: translateX(-50%) translateY(-20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @keyframes popupSlideUp { from { transform: translateX(-50%) translateY(0); opacity: 1; } to { transform: translateX(-50%) translateY(-20px); opacity: 0; } }
 @keyframes pwaBar { from { width: 100%; } to { width: 0%; } }
 
 /* ===== EŞLEŞTİRME SİHİRBAZI ===== */
 .wizard-section { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
-body.dark-mode .wizard-section { background: #2a3b4c; border-color: #3d4f6f; }
-.wizard-section h6 { margin-top: 0; margin-bottom: 15px; font-weight: bold; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 5px; display: inline-block; }
-body.dark-mode .wizard-section h6 { color: #4dabf7; border-bottom-color: #4dabf7; }
+.wizard-section h6 { margin-top: 0; margin-bottom: 15px; font-weight: bold; color: #5a7fa8; border-bottom: 2px solid #9ab3d5; padding-bottom: 5px; display: inline-block; }
 .subj-map-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; }
-body.dark-mode .subj-map-row { background: #1f2940; border-color: #4b5563; }
 .subj-map-row select, .subj-map-row input { flex: 1; }
 .subj-map-row .btn-remove { flex: 0 0 auto; }
 .wiz-steps { display: flex; justify-content: space-between; font-size: 0.78em; margin-bottom: 4px; }
 .wiz-step-label { text-align: center; flex: 1; padding: 0 2px; line-height: 1.3; }
 #mMappingsFooter { position: sticky; bottom: 0; z-index: 10; }
-body.dark-mode #mMappingsFooter { background: #1f2940 !important; }
 
 /* ===== MOBİL ===== */
 @media (max-width: 768px) {
@@ -142,7 +146,6 @@ body.dark-mode #mMappingsFooter { background: #1f2940 !important; }
   .modal-content { max-height: calc(100vh - 12px) !important; display: flex; flex-direction: column; overflow: hidden; }
   .modal-body { overflow-y: auto !important; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
   .modal-footer { flex-shrink: 0 !important; position: sticky; bottom: 0; background: #fff; z-index: 5; border-top: 2px solid #dee2e6 !important; padding: 8px 12px !important; }
-  body.dark-mode .modal-footer { background: #1f2940 !important; }
   #wizBtnBack, #wizBtnNext, #wizBtnDone { font-size: 0.85em; padding: 6px 12px; }
   .wizard-section { padding: 10px; }
   .wizard-section .row .col-md-4, .wizard-section .row .col-md-6 { margin-bottom: 6px; }
@@ -150,41 +153,10 @@ body.dark-mode #mMappingsFooter { background: #1f2940 !important; }
 .scroll-hint { display: none; }
 @media (max-width: 768px) { .scroll-hint { display: block; font-size: 0.75em; color: #6c757d; text-align: right; margin-bottom: 4px; } }
 
-/* ===== DARK MODE ===== */
-body.dark-mode { background-color: #1a1a2e !important; }
-body.dark-mode .content-wrapper { background-color: #16213e !important; }
-body.dark-mode .card { background-color: #1f2940 !important; border-color: #2d3a52 !important; }
-body.dark-mode .card-header { background-color: #253352 !important; border-color: #3d4f6f !important; }
-body.dark-mode .card-outline.card-primary { border-top-color: #4dabf7 !important; }
-body.dark-mode .card-outline.card-info { border-top-color: #3bc9db !important; }
-body.dark-mode .card-outline.card-success { border-top-color: #51cf66 !important; }
-body.dark-mode .card-outline.card-warning { border-top-color: #fcc419 !important; }
-body.dark-mode .table { color: #e9ecef; }
-body.dark-mode .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(255,255,255,0.03); }
-body.dark-mode .table-hover tbody tr:hover { background-color: rgba(77, 171, 247, 0.1); }
-body.dark-mode .table thead th { background-color: #253352 !important; color: #e9ecef !important; border-color: #3d4f6f !important; }
-body.dark-mode .table td, body.dark-mode .table th { border-color: #3d4f6f !important; }
-body.dark-mode .info-box { background-color: #1f2940; }
-body.dark-mode .form-control { background-color: #253352; border-color: #3d4f6f; color: #e9ecef; }
-body.dark-mode .form-control:focus { background-color: #2d3a52; border-color: #4dabf7; color: #fff; }
-body.dark-mode select.form-control option { background-color: #253352; color: #e9ecef; }
-body.dark-mode .alert-default-info { background-color: rgba(59, 201, 219, 0.15); color: #3bc9db; border-color: #3bc9db; }
-body.dark-mode .alert-default-warning { background-color: rgba(252, 196, 25, 0.15); color: #fcc419; border-color: #fcc419; }
-body.dark-mode .callout-info { background-color: rgba(59, 201, 219, 0.1) !important; border-left-color: #3bc9db !important; }
-body.dark-mode .text-primary { color: #4dabf7 !important; }
-body.dark-mode .text-muted { color: #adb5bd !important; }
-body.dark-mode .badge-success { background-color: #51cf66; }
-body.dark-mode .badge-info { background-color: #3bc9db; }
-body.dark-mode .modal-footer { background-color: #1f2940 !important; border-color: #3d4f6f !important; }
-body.dark-mode .modal-content { background-color: #1f2940 !important; }
-body.dark-mode .modal-header { background-color: #253352 !important; }
-
-/* CSS İçerisindeki Tüm Büyük Harf (Uppercase) Komutları Kaldırıldı */
 .info-box-text { display: block; font-size: 0.78em; font-weight: 600; }
 
 /* ===== TREND ANALİZİ ===== */
 .trend-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
-body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #253352 100%); }
 .trend-indicator { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
 .trend-up { background-color: rgba(40, 167, 69, 0.15); color: #28a745; }
 .trend-down { background-color: rgba(220, 53, 69, 0.15); color: #dc3545; }
@@ -197,6 +169,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
   <div class="spinner-border text-light mb-3" style="width:3rem;height:3rem;"></div>
   <div id="l-txt">İşlem yapılıyor...</div>
 </div>
+
 <div id="loginScreen">
   <div class="login-card card shadow-lg">
     <div class="card-header text-center py-4">
@@ -214,11 +187,11 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       <div class="form-group">
         <label>Şifre</label>
         <div class="input-group">
-          <input type="password" id="loginPass" class="form-control" placeholder="••••••••" onkeypress="if(event.key==='Enter')login()">
+          <input type="password" id="loginPass" class="form-control" placeholder="••••••••" style="border-right:0;" onkeypress="if(event.key==='Enter')login()">
           <div class="input-group-append">
-            <button type="button" class="input-group-text" onclick="togglePassword()" style="cursor:pointer;background:transparent;border:1px solid #ced4da;border-left:0;">
+            <span class="input-group-text" onclick="togglePassword()" style="cursor:pointer; background:transparent; border-left:0;">
               <i class="fas fa-eye" id="togglePassIcon"></i>
-            </button>
+            </span>
           </div>
         </div>
       </div>
@@ -226,7 +199,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
         <i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap
       </button>
       <div class="text-center mt-2">
-        <a href="#" onclick="openForgotPassword(event)" style="font-size:0.85em; color:#2d6a9f;">Şifremi unuttum</a>
+        <a href="#" onclick="openForgotPassword(event)" style="font-size:0.85em; color:#6c8ebf;">Şifremi unuttum</a>
       </div>
       <div id="loginError" class="alert mt-3 mb-0" style="display:none;"></div>
     </div>
@@ -246,7 +219,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
   <div class="pwa-progress"></div>
 </div>
 
-<div id="mainApp" style="display:none;">
+<div id="mainApp" class="wrapper" style="display:none;">
   <nav class="main-header navbar navbar-expand navbar-white navbar-light" id="topNav">
     <ul class="navbar-nav">
       <li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a></li>
@@ -255,7 +228,6 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       </li>
     </ul>
     <ul class="navbar-nav ml-auto">
-      <li class="nav-item"><a href="#" class="nav-link" onclick="toggleTheme()"><i class="fas fa-moon" id="themeIcon"></i></a></li>
       <li class="nav-item" id="installBtnWrapper" style="display:none;">
         <a href="#" class="nav-link text-success" id="installBtn" onclick="triggerInstall(event)" title="Uygulamayı Yükle">
           <i class="fas fa-download mr-1"></i><span class="d-none d-sm-inline">Yükle</span>
@@ -278,7 +250,7 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
       </div>
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-          <li class="nav-item"><a id="nav-anasayfa-genel" href="#" class="nav-link active" onclick="sTab('anasayfa_genel',this)"><i class="nav-icon fas fa-home"></i><p>Ana Sayfa</p></a></li>
+          <li class="nav-item"><a id="nav-anasayfa_genel" href="#" class="nav-link active" onclick="sTab('anasayfa_genel',this)"><i class="nav-icon fas fa-home"></i><p>Ana Sayfa</p></a></li>
           <li class="nav-item"><a id="nav-anasayfa" href="#" class="nav-link" onclick="sTab('anasayfa',this)"><i class="nav-icon fas fa-user-graduate"></i><p>Öğrenci</p></a></li>
           <li class="nav-item"><a id="nav-sonuclar" href="#" class="nav-link" onclick="sTab('sonuclar',this)"><i class="nav-icon fas fa-chart-line"></i><p>Sonuçlar &amp; Analizler</p></a></li>
           <li class="nav-item"><a id="nav-rapor" href="#" class="nav-link" onclick="sTab('rapor',this)"><i class="nav-icon fas fa-file-alt"></i><p>Toplu Rapor</p></a></li>
@@ -289,228 +261,113 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
   </aside>
 
   <div class="content-wrapper">
-    <div class="content-header">
+    <!-- SADELEŞTİRİLMİŞ ÜST BAŞLIK (SADECE BREADCRUMB) -->
+    <div class="content-header" style="padding: 10px 0.5rem; border-bottom: 1px solid #dee2e6; background: #fff; margin-bottom: 15px;">
       <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6"><h1 class="m-0" id="pageTitle">Ana Sayfa</h1></div>
-          <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><i class="fas fa-chart-bar mr-1"></i>Sınav Analizi</li>
-              <li class="breadcrumb-item active" id="breadcrumb">Ana Sayfa</li>
-            </ol>
-          </div>
-        </div>
+        <ol class="breadcrumb" style="background: transparent; padding: 0; margin: 0; font-size: 1.05rem;">
+          <li class="breadcrumb-item text-muted"><i class="fas fa-chart-line mr-1"></i>Sınav Analizi</li>
+          <li class="breadcrumb-item active" id="breadcrumb" style="font-weight: 600; color: #4a6fa5;">Ana Sayfa</li>
+        </ol>
       </div>
     </div>
 
     <div class="content">
       <div class="container-fluid">
-        <!-- ANA SAYFA (YENİ) -->
+        
         <div id="anasayfa_genel" class="pane active-pane">
-          <!-- Hızlı Erişim Kartları -->
           <div class="row mb-3">
-            <div class="col-md-3 col-sm-6 col-12">
-              <div class="info-box bg-primary" onclick="sTab('anasayfa', document.getElementById('nav-anasayfa'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <span class="info-box-icon"><i class="fas fa-user-graduate"></i></span>
-                <div class="info-box-content">
-                  <span class="info-box-text">Öğrenci Profili</span>
-                  <span class="progress-description" style="font-size:0.8em;">Kişisel karneler</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3 col-sm-6 col-12">
-              <div class="info-box bg-success" onclick="sTab('sonuclar', document.getElementById('nav-sonuclar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <span class="info-box-icon"><i class="fas fa-chart-line"></i></span>
-                <div class="info-box-content">
-                  <span class="info-box-text">Sonuçlar & Analizler</span>
-                  <span class="progress-description" style="font-size:0.8em;">Sınıf/Ders analizleri</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3 col-sm-6 col-12">
-              <div class="info-box bg-info" onclick="sTab('rapor', document.getElementById('nav-rapor'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <span class="info-box-icon"><i class="fas fa-file-alt"></i></span>
-                <div class="info-box-content">
-                  <span class="info-box-text">Toplu Rapor</span>
-                  <span class="progress-description" style="font-size:0.8em;">Sınıf karneleri yazdır</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3 col-sm-6 col-12 admin-only">
-              <div class="info-box bg-warning" onclick="sTab('ayarlar', document.getElementById('nav-ayarlar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <span class="info-box-icon"><i class="fas fa-cog text-white"></i></span>
-                <div class="info-box-content text-white">
-                  <span class="info-box-text">Ayarlar & Yükleme</span>
-                  <span class="progress-description" style="font-size:0.8em;">Excel ile veri aktarımı</span>
-                </div>
-              </div>
-            </div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-primary" onclick="sTab('anasayfa', document.getElementById('nav-anasayfa'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-user-graduate"></i></span><div class="info-box-content"><span class="info-box-text">Öğrenci Profili</span><span class="progress-description" style="font-size:0.8em;">Kişisel karneler</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-success" onclick="sTab('sonuclar', document.getElementById('nav-sonuclar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Sonuçlar & Analizler</span><span class="progress-description" style="font-size:0.8em;">Sınıf/Ders analizleri</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-info" onclick="sTab('rapor', document.getElementById('nav-rapor'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-file-alt"></i></span><div class="info-box-content"><span class="info-box-text">Toplu Rapor</span><span class="progress-description" style="font-size:0.8em;">Sınıf karneleri yazdır</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12 admin-only"><div class="info-box bg-warning" onclick="sTab('ayarlar', document.getElementById('nav-ayarlar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-cog text-white"></i></span><div class="info-box-content text-white"><span class="info-box-text">Ayarlar & Yükleme</span><span class="progress-description" style="font-size:0.8em;">Excel ile veri aktarımı</span></div></div></div>
           </div>
-          
-          <!-- Sistem Özeti -->
-          <div class="card card-outline card-info">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div>
-            <div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div>
-          </div>
+          <div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div><div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div></div>
         </div>
 
-        <!-- ÖĞRENCİ SAYFASI -->
         <div id="anasayfa" class="pane">
-          <div class="card card-primary card-outline">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div>
-            <div class="card-body">
-              <div id="aBadge" class="mb-2"></div>
-              <div class="input-group">
-                <input type="text" id="sInp" class="form-control" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()">
-                <div class="input-group-append">
-                  <button class="btn btn-secondary" onclick="clrS()"><i class="fas fa-times"></i> Temizle</button>
-                </div>
-              </div>
-              <div id="sRes" class="mt-3"></div>
-            </div>
-          </div>
+          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-search mr-2"></i>Öğrenci Sorgula</h3></div><div class="card-body"><div id="aBadge" class="mb-2"></div><div class="input-group"><input type="text" id="sInp" class="form-control" placeholder="Öğrenci No veya Adı Soyadı..." onkeyup="debounceSearch()"><div class="input-group-append"><button class="btn btn-secondary" onclick="clrS()"><i class="fas fa-times"></i> Temizle</button></div></div><div id="sRes" class="mt-3"></div></div></div>
           <div id="homeArea"></div>
         </div>
-<!-- SONUÇLAR & ANALİZLER -->
+
         <div id="sonuclar" class="pane">
-          <div class="card card-primary card-outline">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-filter mr-2"></i>Analiz Filtreleri</h3></div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-sm-6 col-md-4 col-lg-2">
-                  <div class="form-group"><label>Analiz Türü</label>
-                    <select id="aType" class="form-control" onchange="reqUI()">
-                      <option value="student">Öğrenci Analizi</option>
-                      <option value="class">Sınıf Analizi</option>
-                      <option value="subject">Ders Analizi</option>
-                      <option value="examdetail">Sınav Analizi</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="col-sm-6 col-md-4 col-lg-3" id="gStu">
-                  <div class="form-group"><label>Öğrenci Seçin</label>
-                    <div id="anlStuSearchWrapper">
-                      <div class="input-group">
-                        <input type="text" id="anlStuInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="anlStuDoSearch()" autocomplete="off">
-                        <div class="input-group-append"><button class="btn btn-outline-secondary" onclick="anlStuClear()" style="border-color:#ced4da;"><i class="fas fa-times"></i></button></div>
-                      </div>
-                      <div id="anlStuRes"></div>
-                    </div>
-                    <div id="anlStuBadge"></div>
-                  </div>
-                </div>
-
-                <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;">
-                  <div class="form-group"><label>Sınıf Seviyesi</label>
-                    <select id="aLvl" class="form-control" onchange="reqAnl()"><option value="">Tümü</option></select>
-                  </div>
-                </div>
-                
-                <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;">
-                  <div class="form-group"><label>Şube</label>
-                    <select id="aBr" class="form-control" onchange="reqAnl()"><option value="">Tümü</option></select>
-                  </div>
-                </div>
-                
-                <div class="col-sm-6 col-md-4 col-lg-2">
-                  <div class="form-group"><label>Sınav Türü</label>
-                    <select id="aEx" class="form-control" onchange="uSub(); uExamDates(); reqAnl();"></select>
-                  </div>
-                </div>
-                
-                <div class="col-sm-6 col-md-4 col-lg-2" id="gSub">
-                  <div class="form-group"><label id="lblSub">Veri</label>
-                    <select id="aSub" class="form-control" onchange="handleSubChange()"></select>
-                  </div>
-                </div>
-                
-                <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;">
-                  <div class="form-group"><label>Sınav Seç</label>
-                    <select id="aDate" class="form-control" onchange="reqAnl()"></select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-filter mr-2"></i>Analiz Filtreleri</h3></div><div class="card-body"><div class="row">
+            <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Analiz Türü</label><select id="aType" class="form-control" onchange="reqUI()"><option value="student">Öğrenci Analizi</option><option value="class">Sınıf Analizi</option><option value="subject">Ders Analizi</option><option value="examdetail">Sınav Analizi</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-3" id="gStu"><div class="form-group"><label>Öğrenci Seçin</label><div id="anlStuSearchWrapper"><div class="input-group"><input type="text" id="anlStuInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="anlStuDoSearch()" autocomplete="off"><div class="input-group-append"><button class="btn btn-outline-secondary" onclick="anlStuClear()" style="border-color:#ced4da;"><i class="fas fa-times"></i></button></div></div><div id="anlStuRes"></div></div><div id="anlStuBadge"></div></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-control" onchange="reqAnl()"><option value="">Tümü</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-1" id="gBr" style="display:none;"><div class="form-group"><label>Şube</label><select id="aBr" class="form-control" onchange="reqAnl()"><option value="">Tümü</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2"><div class="form-group"><label>Sınav Türü</label><select id="aEx" class="form-control" onchange="uSub(); uExamDates(); reqAnl();"></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gSub"><div class="form-group"><label id="lblSub">Veri</label><select id="aSub" class="form-control" onchange="handleSubChange()"></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="form-group"><label>Sınav Seç</label><select id="aDate" class="form-control" onchange="reqAnl()"></select></div></div>
+          </div></div></div>
           <div id="anlRes"></div>
         </div>
 
-        <!-- TOPLU RAPOR SAYFASI -->
         <div id="rapor" class="pane">
-          <div class="card card-primary card-outline">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-file-alt mr-2"></i>Toplu Sınıf Raporu</h3></div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-sm-6 col-md-3">
-                  <div class="form-group"><label>Sınıf Seviyesi</label>
-                    <select id="rLvl" class="form-control" onchange="raporFillBranches()"><option value="">Seçiniz</option></select>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-2">
-                  <div class="form-group"><label>Şube</label>
-                    <select id="rBr" class="form-control" onchange="generateRapor()"><option value="">Tümü</option></select>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-3">
-                  <div class="form-group"><label>Sınav Türü</label>
-                    <select id="rExType" class="form-control">
-                      <option value="ALL">Tüm Sınav Türleri (Genel Karne)</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="col-sm-12 col-md-1 d-flex align-items-end">
-                  <div class="form-group w-100">
-                    <button class="btn btn-primary btn-block" onclick="generateRapor()"><i class="fas fa-play mr-1"></i>Getir</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-file-alt mr-2"></i>Toplu Sınıf Raporu</h3></div><div class="card-body"><div class="row">
+            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınıf Seviyesi</label><select id="rLvl" class="form-control" onchange="raporFillBranches()"><option value="">Seçiniz</option></select></div></div>
+            <div class="col-sm-6 col-md-2"><div class="form-group"><label>Şube</label><select id="rBr" class="form-control" onchange="generateRapor()"><option value="">Tümü</option></select></div></div>
+            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınav Türü</label><select id="rExType" class="form-control"><option value="ALL">Tüm Sınav Türleri (Genel Karne)</option></select></div></div>
+            <div class="col-sm-12 col-md-1 d-flex align-items-end"><div class="form-group w-100"><button class="btn btn-primary btn-block" onclick="generateRapor()"><i class="fas fa-play mr-1"></i>Getir</button></div></div>
+          </div></div></div>
           <div id="raporRes"></div>
         </div>
 
-        <!-- AYARLAR -->
         <div id="ayarlar" class="pane">
-          <div class="card card-primary card-outline">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3>
-              <button class="btn btn-success btn-sm ml-auto" onclick="oModAdd()"><i class="fas fa-plus mr-1"></i>Ekle</button>
+          <div class="row">
+            <div class="col-lg-12">
+              <div class="card card-primary card-outline">
+                <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3><button class="btn btn-success btn-sm ml-auto" onclick="oModAdd()"><i class="fas fa-plus mr-1"></i>Ekle</button></div>
+                <div class="card-body">
+                  <!-- ARAMA KUTUSU EKLENDİ -->
+                  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3" style="gap:10px;">
+                    <div class="btn-group">
+                      <button class="btn btn-primary btn-sm" onclick="getEl('fStu').click()"><i class="fas fa-upload mr-1"></i>Listeden Yükle (Excel)</button>
+                      <input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')" accept=".xlsx,.xls">
+                    </div>
+                    <div class="input-group input-group-sm" style="max-width: 250px;">
+                      <input type="text" id="setStuSearch" class="form-control" placeholder="İsim veya No ile ara..." onkeyup="filterSettingsStudents()">
+                      <div class="input-group-append">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="table-responsive" style="max-height:300px;overflow-y:auto;">
+                    <table class="table table-sm table-hover text-nowrap" id="tStu">
+                      <thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <button class="btn btn-danger btn-block mt-2 admin-only" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek. Onaylıyor musunuz?')"><i class="fas fa-trash mr-1"></i>Tümünü Sil</button>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
-              <div class="btn-group mb-3">
-                <button class="btn btn-primary btn-sm" onclick="getEl('fStu').click()"><i class="fas fa-upload mr-1"></i>Listeden Yükle (Excel)</button>
-                <input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')" accept=".xlsx,.xls">
+
+            <div class="col-lg-12">
+              <div class="card card-warning card-outline">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri Yükleme</h3></div>
+                <div class="card-body">
+                  <div class="btn-group mb-3">
+                    <button class="btn btn-primary btn-sm" onclick="getEl('fEx').click()"><i class="fas fa-magic mr-1"></i>Akıllı Sihirbaz ile Sonuç Yükle</button>
+                    <input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')" accept=".xlsx,.xls">
+                  </div>
+                  <div id="tExA" class="table-responsive mt-2"></div>
+                </div>
               </div>
-              <div class="table-responsive" style="max-height:300px;overflow-y:auto;">
-                <table class="table table-sm table-hover text-nowrap" id="tStu">
-                  <thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-              <button class="btn btn-danger btn-block mt-2 admin-only" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek. Onaylıyor musunuz?')"><i class="fas fa-trash mr-1"></i>Tümünü Sil</button>
             </div>
-          </div>
-          <div class="card card-warning card-outline">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri Yükleme</h3></div>
-            <div class="card-body">
-              <div class="btn-group mb-3">
-                <button class="btn btn-primary btn-sm" onclick="getEl('fEx').click()"><i class="fas fa-magic mr-1"></i>Akıllı Sihirbaz ile Sonuç Yükle</button>
-                <input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')" accept=".xlsx,.xls">
+
+            <div class="col-lg-12 admin-only">
+              <div class="card card-danger card-outline admin-only">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yönetimi</h3></div>
+                <div class="card-body">
+                  <div class="btn-group flex-wrap mb-2">
+                    <button class="btn btn-success btn-sm" onclick="expDB()"><i class="fas fa-download mr-1"></i>Tam Yedeği İndir</button>
+                    <button class="btn btn-primary btn-sm" onclick="getEl('fImp').click()"><i class="fas fa-upload mr-1"></i>Yedekten Geri Yükle</button>
+                    <input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)">
+                  </div>
+                  <small class="text-muted d-block mb-3"><i class="fas fa-info-circle mr-1"></i>Tüm öğrenci, sınav meta ve sınav sonuçlarını tek dosyaya yedekler.</small>
+                  <button class="btn btn-danger btn-sm" onclick="cDel('all','Tüm Veritabanı Silinecek, Onaylıyor Musunuz?')"><i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla</button>
+                </div>
               </div>
-              <div id="tExA" class="table-responsive mt-2"></div>
-            </div>
-          </div>
-          <div class="card card-danger card-outline admin-only">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-database mr-2"></i>Sistem Yönetimi</h3></div>
-            <div class="card-body">
-              <div class="btn-group flex-wrap mb-2">
-                <button class="btn btn-success btn-sm" onclick="expDB()"><i class="fas fa-download mr-1"></i>Tam Yedeği İndir</button>
-                <button class="btn btn-primary btn-sm" onclick="getEl('fImp').click()"><i class="fas fa-upload mr-1"></i>Yedekten Geri Yükle</button>
-                <input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)">
-              </div>
-              <small class="text-muted d-block mb-3"><i class="fas fa-info-circle mr-1"></i>Tüm öğrenci, sınav meta ve sınav sonuçlarını tek dosyaya yedekler.</small>
-              <button class="btn btn-danger btn-sm" onclick="cDel('all','Tüm Veritabanı Silinecek, Onaylıyor Musunuz?')"><i class="fas fa-exclamation-triangle mr-1"></i>Tüm Veritabanını Sıfırla</button>
             </div>
           </div>
         </div>
@@ -521,111 +378,29 @@ body.dark-mode .trend-card { background: linear-gradient(135deg, #1f2940 0%, #25
 </div>
 
 <div id="toastContainer"></div>
+
 <!-- ŞİFREMİ UNUTTUM MODALI -->
-<div class="modal fade" id="mForgot" tabindex="-1">
-  <div class="modal-dialog modal-sm"><div class="modal-content">
-    <div class="modal-header bg-primary text-white">
-      <h5 class="modal-title"><i class="fas fa-key mr-2"></i>Şifre Sıfırlama</h5>
-      <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:0.9em;">Kayıtlı e-posta adresinizi girin. Şifre sıfırlama bağlantısı gönderilecektir.</p>
-      <div class="form-group mb-0">
-        <input type="email" id="forgotEmail" class="form-control" placeholder="ornek@okul.com">
-      </div>
-      <div id="forgotMsg" class="mt-2" style="font-size:0.85em;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
-      <button class="btn btn-primary btn-sm" onclick="sendPasswordReset()"><i class="fas fa-paper-plane mr-1"></i>Gönder</button>
-    </div>
-  </div></div>
-</div>
+<div class="modal fade" id="mForgot" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-key mr-2"></i>Şifre Sıfırlama</h5><button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><p style="font-size:0.9em;">Kayıtlı e-posta adresinizi girin. Şifre sıfırlama bağlantısı gönderilecektir.</p><div class="form-group mb-0"><input type="email" id="forgotEmail" class="form-control" placeholder="ornek@okul.com"></div><div id="forgotMsg" class="mt-2" style="font-size:0.85em;"></div></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-primary btn-sm" onclick="sendPasswordReset()"><i class="fas fa-paper-plane mr-1"></i>Gönder</button></div></div></div></div>
 
 <!-- EŞLEŞTİRME SİHİRBAZI MODALI -->
-<div class="modal fade" id="mMappings" tabindex="-1" data-backdrop="static">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title"><i class="fas fa-magic mr-2"></i>Sütun Eşleştirme Sihirbazı</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" onclick="cancelUpload()"><span>&times;</span></button>
-      </div>
-      <div class="modal-body" id="mMappingsBody" style="max-height:calc(100vh - 200px);overflow-y:auto;"></div>
-      <div class="modal-footer d-flex justify-content-between" id="mMappingsFooter">
-        <button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button>
-        <button class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ml-1"></i></button>
-      </div>
-    </div>
-  </div>
-</div>
+<div class="modal fade" id="mMappings" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-magic mr-2"></i>Sütun Eşleştirme Sihirbazı</h5><button type="button" class="close text-white" data-dismiss="modal" onclick="cancelUpload()"><span>&times;</span></button></div><div class="modal-body" id="mMappingsBody" style="max-height:calc(100vh - 200px);overflow-y:auto;"></div><div class="modal-footer d-flex justify-content-between" id="mMappingsFooter"><button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><button class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ml-1"></i></button></div></div></div></div>
 
 <!-- YÜKLEME ÖN İZLEME MODALI -->
-<div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static">
-  <div class="modal-dialog modal-lg" style="margin:8px auto;max-width:800px;">
-    <div class="modal-content" style="max-height:calc(100vh - 16px);display:flex;flex-direction:column;overflow:hidden;">
-      <div class="modal-header bg-info text-white" style="flex-shrink:0;">
-        <h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Yükleme Ön İzlemesi</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="cancelUpload()"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <div class="modal-body" id="uploadPreviewBody" style="overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch;"></div>
-      <div class="modal-footer" style="position:sticky;bottom:0;background:#fff;z-index:10;border-top:2px solid #dee2e6;padding:10px 15px;">
-        <button class="btn btn-secondary" onclick="backToMapping()"><i class="fas fa-arrow-left mr-1"></i>Geri Dön</button>
-        <button class="btn btn-success ml-auto" onclick="confirmUpload()"><i class="fas fa-check mr-1"></i>Sisteme Kaydet</button>
-      </div>
-    </div>
-  </div>
-</div>
+<div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg" style="margin:8px auto;max-width:800px;"><div class="modal-content" style="max-height:calc(100vh - 16px);display:flex;flex-direction:column;overflow:hidden;"><div class="modal-header bg-info text-white" style="flex-shrink:0;"><h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Yükleme Ön İzlemesi</h5><button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="cancelUpload()"><span aria-hidden="true">&times;</span></button></div><div class="modal-body" id="uploadPreviewBody" style="overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch;"></div><div class="modal-footer" style="position:sticky;bottom:0;background:#fff;z-index:10;border-top:2px solid #dee2e6;padding:10px 15px;"><button class="btn btn-secondary" onclick="backToMapping()"><i class="fas fa-arrow-left mr-1"></i>Geri Dön</button><button class="btn btn-success ml-auto" onclick="confirmUpload()"><i class="fas fa-check mr-1"></i>Sisteme Kaydet</button></div></div></div></div>
 
-<div class="modal fade" id="mEditExam" tabindex="-1">
-  <div class="modal-dialog modal-sm"><div class="modal-content">
-    <div class="modal-header bg-warning text-dark">
-      <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Sınav Düzenle</h5>
-      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="eExBatchId">
-      <div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="eExDate" class="form-control" placeholder="15.04.2024"></div>
-      <div class="form-group"><label>Sınav Türü</label><input type="text" id="eExType" class="form-control" placeholder="Örn: TYT"></div>
-      <div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="eExPub" class="form-control" placeholder="Örn: MEB"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
-      <button class="btn btn-warning btn-sm" onclick="svExam()"><i class="fas fa-save mr-1"></i>Kaydet</button>
-    </div>
-  </div></div>
-</div>
+<div class="modal fade" id="mEditExam" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-warning text-dark"><h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Sınav Düzenle</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><input type="hidden" id="eExBatchId"><div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="eExDate" class="form-control" placeholder="15.04.2024"></div><div class="form-group"><label>Sınav Türü</label><input type="text" id="eExType" class="form-control" placeholder="Örn: TYT"></div><div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="eExPub" class="form-control" placeholder="Örn: MEB"></div></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-warning btn-sm" onclick="svExam()"><i class="fas fa-save mr-1"></i>Kaydet</button></div></div></div></div>
 
-<div class="modal fade" id="mConf" tabindex="-1">
-  <div class="modal-dialog modal-sm"><div class="modal-content">
-    <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Dikkat!</h5></div>
-    <div class="modal-body"><p id="cTxt"></p></div>
-    <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button></div>
-  </div></div>
-</div>
+<div class="modal fade" id="mConf" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Dikkat!</h5></div><div class="modal-body"><p id="cTxt"></p></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button></div></div></div></div>
 
-<div class="modal fade" id="mStu" tabindex="-1">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci İşlemi</h5></div>
-    <div class="modal-body">
-      <div class="form-group"><label>Öğrenci No</label><input type="text" id="mSNo" class="form-control" placeholder="Değiştirilemez"></div>
-      <div class="form-group"><label>Ad Soyad</label><input type="text" id="mSNa" class="form-control" placeholder="Ad Soyad"></div>
-      <div class="form-group"><label>Sınıfı</label><input type="text" id="mSCl" class="form-control" placeholder="Örn: 11A"></div>
-    </div>
-    <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">İptal</button><button class="btn btn-success" onclick="svStu()"><i class="fas fa-save mr-1"></i>Kaydet</button></div>
-  </div></div>
-</div>
+<div class="modal fade" id="mStu" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci İşlemi</h5></div><div class="modal-body"><div class="form-group"><label>Öğrenci No</label><input type="text" id="mSNo" class="form-control" placeholder="Değiştirilemez"></div><div class="form-group"><label>Ad Soyad</label><input type="text" id="mSNa" class="form-control" placeholder="Ad Soyad"></div><div class="form-group"><label>Sınıfı</label><input type="text" id="mSCl" class="form-control" placeholder="Örn: 11A"></div></div><div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">İptal</button><button class="btn btn-success" onclick="svStu()"><i class="fas fa-save mr-1"></i>Kaydet</button></div></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
-if(localStorage.getItem('appTheme')==='dark') document.body.classList.add('dark-mode');
-
-/* Datalabels Eklentisi Kaydı */
 Chart.register(ChartDataLabels);
 
-/* ===== FIREBASE ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyCbgwrcjkFF8yf2S2zOFzIt8w18oqmI6oQ",
   authDomain: "fetgemfen-f9580.firebaseapp.com",
@@ -658,6 +433,14 @@ function checkAuth(){
       document.body.classList.remove('is-admin');
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
       init(); showPwaPopupIfReady();
+      
+      // İlk girişte History API State başlat (Masaüstü sorunları için düzeltildi)
+      setTimeout(() => { 
+        if(!window.history.state) {
+            window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname); 
+        }
+      }, 100);
+
     }else{
       getEl('loginScreen').style.display='flex';
       getEl('mainApp').style.display='none';
@@ -711,31 +494,19 @@ function sendPasswordReset() {
 }
 
 function applyTheme(isDark){
-  const nav=getEl('topNav'),icon=getEl('themeIcon');
-  if(isDark){
-    document.body.classList.add('dark-mode');
-    nav.classList.replace('navbar-white','navbar-dark'); nav.classList.replace('navbar-light','navbar-dark');
-    icon.classList.replace('fa-moon','fa-sun');Chart.defaults.color='#adb5bd';
-  }else{
-    document.body.classList.remove('dark-mode');
-    nav.classList.remove('navbar-dark'); nav.classList.add('navbar-white','navbar-light');
-    icon.classList.replace('fa-sun','fa-moon');Chart.defaults.color='#475569';
-  }
+  Chart.defaults.color='#475569';
   if(c.h)c.h.update();if(c.a)c.a.update();
   if(window._karneCharts) window._karneCharts.forEach(ch=>ch.update());
   if(window._raporCharts) window._raporCharts.forEach(ch=>ch.update());
 }
-function toggleTheme(){
-  const isDark=!document.body.classList.contains('dark-mode');
-  localStorage.setItem('appTheme',isDark?'dark':'light');applyTheme(isDark);
-}
+function toggleTheme(){ /* no-op: dark mode removed */ }
 
 const getEl=i=>document.getElementById(i);
 let DB = { s: [], e: [] }; 
 let EXAM_META = {}; 
 let CACHED_RESULTS = {}; 
 let aNo=null, c={h:null,a:null};
-const cols=['#2d6a9f','#e6194b','#1a7f4b','#d97706','#7c3aed','#f58231','#0ea5e9','#db2777'];
+const cols=['#6c8ebf','#e6194b','#1a7f4b','#d97706','#7c3aed','#f58231','#0ea5e9','#db2777'];
 let dInf={},searchDebounceTimer=null,anlDebounceTimer=null,chartTimer=null;
 let currentExcelData=[], currentUploadType='', currentHeaders=[], PENDING_UPLOAD=null; 
 
@@ -832,6 +603,55 @@ async function reqAnl() {
 
 async function reqUI() { uUI(); await reqAnl(); }
 
+let currentPane = 'anasayfa_genel';
+window.addEventListener('popstate', function(e) {
+  let targetPane = (e.state && e.state.pane) ? e.state.pane : 'anasayfa_genel';
+  executeTabSwitch(targetPane, true);
+});
+
+function sTab(id, el) {
+  try { if (window.event && window.event.preventDefault) window.event.preventDefault(); } catch(e){}
+  if (id === currentPane) return false;
+  executeTabSwitch(id, false);
+  return false;
+}
+
+function executeTabSwitch(id, isPopState) {
+  if(id === 'ayarlar' && !document.body.classList.contains('is-admin')) return;
+
+  if (!isPopState) {
+      if (id === 'anasayfa_genel') {
+          window.history.pushState({pane: id}, '', window.location.pathname);
+      } else if (currentPane === 'anasayfa_genel') {
+          window.history.pushState({pane: id}, '', '#' + id);
+      } else {
+          window.history.replaceState({pane: id}, '', '#' + id);
+      }
+  }
+  currentPane = id;
+
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active-pane')); 
+  getEl(id).classList.add('active-pane');
+  document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active')); 
+  
+  let matchLink = document.getElementById('nav-' + id);
+  if (matchLink) matchLink.classList.add('active');
+
+  const titles={anasayfa_genel:'Ana Sayfa',anasayfa:'Öğrenci',sonuclar:'Sonuçlar & Analizler',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
+  if(getEl('breadcrumb')) getEl('breadcrumb').textContent = titles[id] || id;
+
+  if(id==='anasayfa_genel'){uStat();}
+  if(id==='anasayfa'){if(aNo)reqProfile();}
+  if(id==='sonuclar')reqUI();
+  if(id==='rapor')raporInit();
+  if(id==='ayarlar'){rTabS();rTabE();}
+  
+  if(window.innerWidth < 992){
+      document.body.classList.remove('sidebar-open');
+      document.body.classList.add('sidebar-collapse');
+  }
+}
+
 async function sAct(no,clr=false){
   aNo=no; if(clr){getEl('sInp').value='';getEl('sRes').innerHTML='';}
   let s=DB.s.find(x=>x.no===aNo);
@@ -839,21 +659,6 @@ async function sAct(no,clr=false){
   let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${s.name} (${s.class})</span>`:'';
   getEl('homeArea').innerHTML='';
   if(no) await reqProfile(); if(getEl('sonuclar').classList.contains('active-pane')) reqUI(); 
-}
-
-function sTab(id,el){
-  if(id==='ayarlar'&&!document.body.classList.contains('is-admin'))return;
-  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active-pane')); getEl(id).classList.add('active-pane');
-  document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active')); if(el)el.classList.add('active');
-  const titles={anasayfa_genel:'Ana Sayfa',anasayfa:'Öğrenci',sonuclar:'Sonuçlar & Analizler',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
-  if(getEl('pageTitle'))getEl('pageTitle').textContent=titles[id]||id;
-  if(getEl('breadcrumb'))getEl('breadcrumb').textContent=titles[id]||id;
-  if(id==='anasayfa_genel'){uStat();}
-  if(id==='anasayfa'){if(aNo)reqProfile();}
-  if(id==='sonuclar')reqUI();
-  if(id==='rapor')raporInit();
-  if(id==='ayarlar'){rTabS();rTabE();}
-  if(window.innerWidth<992){document.body.classList.remove('sidebar-open');document.body.classList.add('sidebar-collapse');}
 }
 
 function normTR(s){return String(s||'').toLocaleLowerCase('tr-TR').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');}
@@ -871,15 +676,15 @@ function srt(a,b){
 function getGrade(cls){ let m=String(cls||'').match(/^(\d+)/); return m?m[1]:''; }
 
 function mkChart(canvasId,labels,datasets,rev=false){
-  let isD=document.body.classList.contains('dark-mode'),gCol=isD?'#495057':'#e2e8f0';
-  let txtCol = isD ? '#e2e8f0' : '#475569';
+  let gCol='#e2e8f0';
+  let txtCol='#475569';
   return new Chart(getEl(canvasId),{
     type:'bar', data:{labels,datasets}, plugins: [ChartDataLabels],
     options:{ 
       responsive:true,maintainAspectRatio:false, animation:false, 
       plugins:{
         legend:{ position:'top', labels:{ font:{size:10}, boxWidth:12, padding:6, generateLabels: function(chart) { let orig = Chart.defaults.plugins.legend.labels.generateLabels(chart); orig.forEach(lbl => { if(lbl.text && lbl.text.length > 20) lbl.text = lbl.text.substring(0,18)+'…'; }); return orig; } } },
-        datalabels: { anchor: 'end', align: 'top', color: txtCol, font: { size: 9, weight: 'bold' }, formatter: function(val) { return (val === null || val === undefined || isNaN(val)) ? '' : (Number.isInteger(val) ? val : val.toFixed(2)); } }
+        datalabels: { display: false }
       }, 
       scales:{ x:{grid:{color:gCol}, ticks:{font:{size:9}}}, y:{reverse:rev,min:rev?1:undefined,grid:{color:gCol}, ticks:{font:{size:9}}} } 
     }
@@ -920,7 +725,7 @@ function xPR(sourceId, title, btn, orientation) {
   });
 
   clone.querySelectorAll('.no-print, .d-flex.justify-content-end').forEach(el => el.remove());
-  clone.querySelectorAll('.pdf-header-bar').forEach(el => el.style.display = 'flex');
+  clone.querySelectorAll('.report-header').forEach(el => el.style.display = 'flex');
 
   let bolumler = clone.querySelectorAll('.karne-bolum, .student-rapor-wrapper');
   bolumler.forEach((b, i) => { if (i < bolumler.length - 1) b.style.pageBreakAfter = 'always'; });
@@ -932,25 +737,32 @@ function xPR(sourceId, title, btn, orientation) {
   <title>${title}</title>
   ${cssLinks}
   <style>
-    * { box-sizing: border-box; } body { background: #fff !important; color: #000 !important; font-family: 'Source Sans Pro', Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; }
-    .pdf-header-bar { display: flex !important; align-items: center; justify-content: space-between; background: #1e3a5f !important; color: #fff !important; padding: 12px 20px; border-radius: 6px; margin-bottom: 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .pdf-header-bar span { color: #fff !important; }
-    .table { width: 100% !important; border-collapse: collapse !important; font-size: 8.5px !important; margin-bottom: 6px; } .table th, .table td { border: 1px solid #aaa !important; padding: 2px 3px !important; color: #000 !important; } .table thead th { background: #1e3a5f !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8px !important; }
+    * { box-sizing: border-box; } body { background: #fff !important; color: #000 !important; font-family: 'Source Sans Pro', Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; min-width: 1024px !important; zoom: 0.85; }
+    .report-header { display: flex !important; align-items: center; justify-content: space-between; background: #4a6fa5 !important; color: #fff !important; padding: 12px 20px; border-radius: 6px; margin-bottom: 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .report-header span, .report-header strong, .report-header i { color: #fff !important; }
+    .table { width: 100% !important; border-collapse: collapse !important; font-size: 8.5px !important; margin-bottom: 6px; } .table th, .table td { border: 1px solid #aaa !important; padding: 2px 3px !important; color: #000 !important; } .table thead th { background: #6c8ebf !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8px !important; }
     thead { display: table-header-group; } 
     table, tbody, .card, .card-body, .scroll { page-break-inside: auto !important; break-inside: auto !important; }
     tr, td, th { page-break-inside: avoid !important; break-inside: avoid !important; }
     .chart-box, .info-box, .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
 
-    tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.avg-row td { background: #e6f0fa !important; color: #1e3a5f !important; font-weight: bold !important; border-top: 2px solid #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .card { border: 1px solid #dee2e6 !important; border-radius: 4px; margin-bottom: 10px; display: block; } .card-header { background: #f8f9fa !important; padding: 8px 12px; border-bottom: 1px solid #dee2e6; } .card-body { padding: 10px 12px; } .card-outline.card-primary { border-top: 3px solid #1e3a5f !important; } .card-outline.card-info { border-top: 3px solid #17a2b8 !important; } .card-outline.card-success { border-top: 3px solid #28a745 !important; } .card-outline.card-warning { border-top: 3px solid #ffc107 !important; }
+    tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.avg-row td { background: #edf2f7 !important; color: #4a6fa5 !important; font-weight: bold !important; border-top: 2px solid #b0c4de !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card { border: 1px solid #dee2e6 !important; border-radius: 4px; margin-bottom: 10px; display: block; } .card-header { background: #f8f9fa !important; padding: 8px 12px; border-bottom: 1px solid #dee2e6; } .card-body { padding: 10px 12px; } .card-outline.card-primary { border-top: 3px solid #6c8ebf !important; } .card-outline.card-info { border-top: 3px solid #17a2b8 !important; } .card-outline.card-success { border-top: 3px solid #28a745 !important; } .card-outline.card-warning { border-top: 3px solid #ffc107 !important; }
     .info-box { display: flex !important; align-items: stretch; border-radius: 4px; margin-bottom: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-icon { display: flex !important; align-items: center; justify-content: center; width: 60px !important; min-width: 60px; font-size: 1.4em; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-content { padding: 8px 10px; flex: 1; } .info-box-text { display: block; font-size: 0.78em; font-weight: 600; } .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 2px 0; } .progress-description { display: block; font-size: 0.78em; }
-    .bg-primary { background: #1e3a5f !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-success { background: #28a745 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-danger { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-warning { background: #ffc107 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-info { background: #17a2b8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-teal { background: #20c997 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bg-primary { background: #6c8ebf !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-success { background: #28a745 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-danger { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-warning { background: #ffc107 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-info { background: #17a2b8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-teal { background: #20c997 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .print-chart-img { max-width: 100%; width: 100%; max-height: ${isPortrait ? "260px" : "180px"}; height: auto; object-fit: contain; display: block; margin: 4px auto 10px; } .chart-box { height: auto !important; margin-bottom: 10px; }
-    ${isPortrait ? ".col-md-3 { width: 25% !important; } .col-md-4 { width: 33.33% !important; } .col-md-6 { width: 50% !important; } .col-lg-4 { width: 33.33% !important; } .col-lg-6 { width: 50% !important; }" : ""}
-    .row { display: flex !important; flex-wrap: wrap; margin: 0 -8px; } .col-md-3 { width: 25% !important; padding: 0 8px; } .col-md-4 { width: 33.33% !important; padding: 0 8px; } .col-md-6 { width: 50% !important; padding: 0 8px; } .col-lg-4 { width: 33.33% !important; padding: 0 8px; } .col-lg-6 { width: 50% !important; padding: 0 8px; } .col-sm-6 { width: 50% !important; padding: 0 8px; } .col-sm-12 { width: 100% !important; padding: 0 8px; }
+    
+    /* Desktop Format Sizing override explicitly */
+    .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -8px !important; }
+    .col-md-3 { flex: 0 0 25% !important; max-width: 25% !important; padding: 0 8px !important; }
+    .col-md-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
+    .col-md-6, .col-lg-6, .col-sm-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 8px !important; }
+    .col-lg-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
+    .col-12, .col-sm-12, .col-lg-12 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 8px !important; }
+    
     .trend-card { background: #f8f9fa !important; border-radius: 8px; padding: 12px; margin-bottom: 10px; } .trend-indicator { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 0.82em; font-weight: bold; } .trend-up { background: rgba(40,167,69,0.15); color: #28a745; } .trend-down { background: rgba(220,53,69,0.15); color: #dc3545; } .trend-stable { background: rgba(108,117,125,0.15); color: #6c757d; } .border-left { border-left: 1px solid #dee2e6; }
-    .karne-bolum { padding-bottom: 8px; } .text-primary { color: #1e3a5f !important; } .text-success { color: #28a745 !important; } .text-danger { color: #dc3545 !important; } .text-muted { color: #6c757d !important; } .text-center { text-align: center; } .font-weight-bold { font-weight: bold; }
+    .karne-bolum { padding-bottom: 8px; } .text-primary { color: #4a6fa5 !important; } .text-success { color: #28a745 !important; } .text-danger { color: #dc3545 !important; } .text-muted { color: #6c757d !important; } .text-center { text-align: center; } .font-weight-bold { font-weight: bold; }
     .badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.75em; } .badge-info { background: #17a2b8; color: #fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .shadow-sm { box-shadow: none !important; } h4 { font-size: 14px !important; margin: 8px 0; } h5 { font-size: 12px !important; margin: 6px 0; }
-    .no-print, .d-flex.justify-content-end, .scroll-hint, button, .btn { display: none !important; } .scroll { overflow: visible !important; }
+    .no-print, .d-flex.justify-content-end, .scroll-hint, button, .btn { display: none !important; } .scroll { overflow: visible !important; } .table-responsive { overflow-x: visible !important; }
     [style*="background:#6c757d"] { background: #6c757d !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .info-box[style*="background:#6c757d"] * { color: #fff !important; }
     @page { margin: 8mm 6mm; size: ${isPortrait ? "A4 portrait" : "A4 landscape"}; } @page :first { margin-top: 6mm; } body { font-size: ${isPortrait ? "10px" : "10px"}; }
   </style>
@@ -1075,6 +887,7 @@ function uUI(){
 }
 
 function handleSubChange(){ let t = getEl('aType').value, sub = getEl('aSub').value; if(t === 'examdetail') { getEl('gDate').style.display = (sub === 'general_summary' || sub === 'list_all') ? 'none' : 'block'; uExamDates(); } reqAnl(); }
+
 function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
   let attended = examsData.filter(e => !e.abs);
   if(!attended.length) return null;
@@ -1140,7 +953,13 @@ function rH(){
   let typs=Object.keys(grp).sort(); function abbrevSub(name, shorten){ return shorten?name.substring(0,3):toTitleCase(name); }
   let stGrade = getGrade(s.class);
 
-  let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXLMul('kCont','${s.name}_Karne')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('kCont','${s.name}_Karne',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="kCont" class="card card-primary card-outline"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${s.name}</strong> — Karne Özeti</span><span style="font-size:14px;">Sınıf: ${s.class} | ${new Date().toLocaleDateString('tr-TR')}</span></div><div class="card-header"><h3 class="card-title"><i class="fas fa-user-graduate mr-2"></i>${s.name} Karnesi</h3></div><div class="card-body">`;
+  let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXLMul('kCont','${s.name}_Karne')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('kCont','${s.name}_Karne',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+  <div id="kCont" class="card shadow-sm" style="border-top:3px solid #6c8ebf;">
+    <div class="report-header">
+      <span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${s.name}</strong> — Karne Özeti</span>
+      <span style="font-size:13px;">Sınıf: ${s.class} | ${new Date().toLocaleDateString('tr-TR')}</span>
+    </div>
+    <div class="card-body" style="padding-top:5px;">`;
 
   typs.forEach(t=>{
     let el=grp[t].sort((a,b)=>srt(a.date,b.date)); let sb=Array.from(new Set(el.filter(e=>!e.abs).flatMap(e=>Object.keys(e.subs)))).sort();
@@ -1177,7 +996,7 @@ function rH(){
     }
 
     let canvasId='cKarne_'+t.replace(/[^a-zA-Z0-9]/g,'_');
-    h+=`</tbody></table></div><div class="chart-box avoid-break" style="margin:10px 0 18px 0; height:220px;"><div style="font-size:11px;font-weight:bold;color:#1e3a5f;margin-bottom:4px;text-align:left;">${t} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div>`;
+    h+=`</tbody></table></div><div class="chart-box avoid-break" style="margin:10px 0 18px 0; height:220px;"><div style="font-size:11px;font-weight:bold;color:#4a6fa5;margin-bottom:4px;text-align:left;">${t} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div>`;
   });
 
   h+=`</div></div>`;
@@ -1254,7 +1073,18 @@ function rAnl(){
       </div>`;
     }
 
-    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tS','Ogrenci_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="pS" class="card card-outline card-info"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${st.name}</strong> — Analiz (${eT} / ${ls})</span><span style="font-size:14px;">Sınıf: ${st.class}</span></div><div class="card-header"><h3 class="card-title">📈 ${st.name} — Analiz (${ls})</h3></div><div class="card-body">${perfHtml}${trendHtml}<div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div><div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div></div></div>`;
+    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tS','Ogrenci_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+    <div id="pS" class="card shadow-sm" style="border-top:3px solid #17a2b8;">
+      <div class="report-header">
+        <span style="font-size:16px;"><i class="fas fa-chart-line mr-2"></i><strong>${st.name}</strong> — Analiz (${ls})</span>
+        <span style="font-size:13px;">Sınıf: ${st.class} | ${eT}</span>
+      </div>
+      <div class="card-body" style="padding-top:5px;">
+        ${perfHtml}${trendHtml}
+        <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div>
+        <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+      </div>
+    </div>`;
     r.innerHTML=h;
     
     chartTimer=setTimeout(()=>{ 
@@ -1296,11 +1126,18 @@ function rAnl(){
     if(sortedClasses.length > 0 && allVals.length > 0) {
       let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
       let best = topCls[0], worst = topCls[topCls.length-1], genAvgPerf = allVals.reduce((a,b)=>a+b,0)/allVals.length, aboveAvg = topCls.filter(x=>x.avg >= genAvgPerf).length;
+      
+      let eligibleStus = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if((l&&l!==m[1])||(b&&b!==m[2].toUpperCase())) return false; return true; });
+      let datesCount = new Set(ex.map(x=>x.date)).size;
+      let baseCount = eligibleStus.length * (datesCount || 1);
+      let partRate = baseCount > 0 ? Math.round((ex.length / baseCount) * 100) : 0;
+
       clsPerfHtml = `<div class="row mb-3">
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük Sınıf</span><span class="info-box-number">${worst.cls}</span><span class="progress-description">Ort: ${worst.avg.toFixed(2)}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Kurum Ort. (${lvlLabel})</span><span class="info-box-number">${genAvgPerf.toFixed(2)}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-star"></i></span><div class="info-box-content"><span class="info-box-text">Ort. Üstü Sınıf</span><span class="info-box-number">${aboveAvg} / ${topCls.length}</span></div></div></div>
+        <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
+        <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-danger h-100"><span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük Sınıf</span><span class="info-box-number">${worst.cls}</span><span class="progress-description">Ort: ${worst.avg.toFixed(2)}</span></div></div></div>
+        <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-primary h-100"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Kurum Ort. (${lvlLabel})</span><span class="info-box-number">${genAvgPerf.toFixed(2)}</span></div></div></div>
+        <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box bg-info h-100"><span class="info-box-icon"><i class="fas fa-star"></i></span><div class="info-box-content"><span class="info-box-text">Ort. Üstü Sınıf</span><span class="info-box-number">${aboveAvg} / ${topCls.length}</span></div></div></div>
+        <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRate}</span><span class="progress-description" style="color:#e0e0e0;">${ex.length} / ${baseCount} Sonuç</span></div></div></div>
       </div>`;
     }
     
@@ -1322,13 +1159,26 @@ function rAnl(){
     let stuRankArr = Object.values(stuRankMap).map(s => ({ ...s, avg: s.sum / s.cnt })).sort((a,b) => b.avg - a.avg);
     let top5Stu = stuRankArr.slice(0, 5), bottom5Stu = stuRankArr.slice(-5).reverse();
     let stuTop5Html = top5Stu.length ? top5Stu.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
-    let stuBottom5Html = bottom5Stu.length ? bottom5Stu.map((s,i) => `<tr><td>${stuRankArr.length - bottom5Stu.length + i + 1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    let stuBottom5Html = bottom5Stu.length ? bottom5Stu.map((s,i) => `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    
     let top5Bottom5Html = stuRankArr.length > 0 ? `<div class="row mt-3">
       <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuTop5Html}</tbody></table></div></div></div>
       <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuBottom5Html}</tbody></table></div></div></div>
     </div>` : '';
 
-    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="pC" class="card card-outline card-success"><div class="pdf-header-bar"><span style="font-size:18px;">Sınıf Analizi — ${eT} (${clsLabel} / ${ls})</span><span style="font-size:14px;"></span></div><div class="card-header"><h3 class="card-title">📊 Sınıf Analizi (${ls})</h3></div><div class="card-body">${clsPerfHtml}<div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div>${top5Bottom5Html}<div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div></div></div>`;
+    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tC','Sinif_Analizi')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+    <div id="pC" class="card shadow-sm" style="border-top:3px solid #28a745;">
+      <div class="report-header">
+        <span style="font-size:16px;"><i class="fas fa-users mr-2"></i>Sınıf Analizi — ${eT} (${ls})</span>
+        <span style="font-size:13px;">${clsLabel}</span>
+      </div>
+      <div class="card-body" style="padding-top:5px;">
+        ${clsPerfHtml}
+        <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div>
+        ${top5Bottom5Html}
+        <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+      </div>
+    </div>`;
     r.innerHTML=h;
     
     chartTimer=setTimeout(()=>{ 
@@ -1369,23 +1219,32 @@ function rAnl(){
     let worstStudent = stuArr.length > 0 ? stuArr[stuArr.length - 1] : null;
     let genAvg = ex.reduce((a,e) => a + e.subs[toTitleCase(subj)].net, 0) / ex.length, lvlStr = (lvl ? `${lvl}. Sınıflar` : 'Tüm Sınıflar') + (br ? ` / ${br} Şubesi` : '');
     
+    let eligibleStusS = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(lvl && m[1] !== lvl) return false; if(br && m[2].toUpperCase() !== br) return false; return true; });
+    let baseCountS = eligibleStusS.length * (dates.length || 1);
+    let partRateS = baseCountS > 0 ? Math.round((ex.length / baseCountS) * 100) : 0;
+
     let h = `
     <div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSubj','${toTitleCase(subj)}_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-    <div id="pSubj" class="card card-outline card-primary" style="background:#f4f6f9; padding:15px;">
-      <div class="pdf-header-bar"><span style="font-size:18px;"><strong>${toTitleCase(subj)}</strong> — Ders Analizi</span><span>${eT} | ${lvlStr}</span></div>
-      <h4 class="mb-3 text-center" style="color:#1e3a5f; font-weight:bold;">${toTitleCase(subj)} Dersi Performans Analizi <small class="d-block text-muted mt-1" style="font-size:0.6em;">(${eT} | ${lvlStr} | ${dates.length} Sınav)</small></h4>
-      <div class="row mb-3">
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ortalama</span><span class="info-box-number">${genAvg.toFixed(2)} Net</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Toplam Kayıt</span><span class="info-box-number">${ex.length} Sonuç</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${bestStudent ? bestStudent.name : 'Veri Yok'}</span><span class="progress-description">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
-        <div class="col-md-3 col-sm-6"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span><div class="info-box-content"><span class="info-box-text">En Zayıf Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${worstStudent ? worstStudent.name : 'Veri Yok'}</span><span class="progress-description">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
+    <div id="pSubj" class="card shadow-sm" style="border-top:3px solid #007bff; background:#f4f6f9;">
+      <div class="report-header">
+        <span style="font-size:16px;"><i class="fas fa-book-open mr-2"></i><strong>${toTitleCase(subj)}</strong> — Ders Analizi</span>
+        <span style="font-size:13px;">${eT} | ${lvlStr} | Toplam ${dates.length} Sınav</span>
       </div>
-      <div class="row">
-        <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
-        <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${bottom5.map((s,i) => `<tr><td>${stuArr.length - bottom5.length + i + 1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
-        <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-info text-white"><h3 class="card-title m-0"><i class="fas fa-school mr-1"></i> Sınıf Ortalamaları</h3></div><div class="card-body p-0 table-responsive" style="max-height:200px;"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Sınıf</th><th>Ort.Net</th><th>Kayıt</th></tr></thead><tbody>${clsArr.map((c,i) => `<tr><td>${i+1}</td><td>${c.cls}</td><td><strong>${c.avg.toFixed(2)}</strong></td><td>${c.count}</td></tr>`).join('')}</tbody></table></div></div></div>
+      <div class="card-body" style="padding-top:5px;">
+        <div class="row mb-3">
+          <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-primary h-100"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ortalama</span><span class="info-box-number">${genAvg.toFixed(2)} Net</span></div></div></div>
+          <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-info h-100"><span class="info-box-icon"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Toplam Kayıt</span><span class="info-box-number">${ex.length} Sonuç</span></div></div></div>
+          <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${bestStudent ? bestStudent.name : 'Veri Yok'}</span><span class="progress-description">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
+          <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box bg-danger h-100"><span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span><div class="info-box-content"><span class="info-box-text">En Zayıf Öğrenci</span><span class="info-box-number" style="font-size:0.95em;">${worstStudent ? worstStudent.name : 'Veri Yok'}</span><span class="progress-description">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</span></div></div></div>
+          <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-chart-pie text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRateS}</span><span class="progress-description" style="color:#e0e0e0;">${ex.length} / ${baseCountS} Sonuç</span></div></div></div>
+        </div>
+        <div class="row">
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${bottom5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-info text-white"><h3 class="card-title m-0"><i class="fas fa-school mr-1"></i> Sınıf Ortalamaları</h3></div><div class="card-body p-0 table-responsive" style="max-height:200px;"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Sınıf</th><th>Ort.Net</th><th>Kayıt</th></tr></thead><tbody>${clsArr.map((c,i) => `<tr><td>${i+1}</td><td>${c.cls}</td><td><strong>${c.avg.toFixed(2)}</strong></td><td>${c.count}</td></tr>`).join('')}</tbody></table></div></div></div>
+        </div>
+        <div class="chart-box mt-3 avoid-break" style="height:260px;"><canvas id="cA"></canvas></div>
       </div>
-      <div class="chart-box mt-3 avoid-break" style="height:260px;"><canvas id="cA"></canvas></div>
     </div>`;
     r.innerHTML = h;
     
@@ -1452,22 +1311,31 @@ function rAnl(){
         let bottom5Html = bottom5List.length ? bottom5List.map((e,i) => buildRow(e, i, 'bottom5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
         let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName = `${eT}_Genel_Ozet`;
 
+        let eligibleStusGS = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toUpperCase() !== brFilterED) return false; } return true; });
+        let baseCountGS = eligibleStusGS.length * (dates.length || 1);
+        let partRateGS = baseCountGS > 0 ? Math.round((ex.length / baseCountGS) * 100) : 0;
+
         let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary','${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-        <div id="pGenSummary" class="card card-outline card-primary" style="background:#f4f6f9; padding:15px;">
-            <div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — Genel Sınav Özeti</span><span>${lvlStr}</span></div>
-            <h4 class="mb-3 text-center" style="color:#1e3a5f; font-weight:bold;">${eT} Sınavları Genel Değerlendirme <small class="d-block text-muted mt-1" style="font-size:0.6em;">(${lvlStr}| Toplam ${dates.length} Sınav)</small></h4>
-            <div class="row">
-                <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">En Çok Birinci Olan</span><span class="info-box-number" style="font-size:1.1em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu` : ''}</span></div></div></div>
-                <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla İlerleme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.firstNet.toFixed(2)} ➔ ${bestP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
-                <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla Gerileme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.firstNet.toFixed(2)} ➔ ${worstP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
+        <div id="pGenSummary" class="card shadow-sm" style="border-top:3px solid #6c8ebf; background:#f4f6f9;">
+            <div class="report-header">
+              <span style="font-size:16px;"><i class="fas fa-globe mr-2"></i><strong>${eT}</strong> — Genel Değerlendirme</span>
+              <span style="font-size:13px;">${lvlStr} | Toplam ${dates.length} Sınav</span>
             </div>
-            <div class="row">
-                <div class="col-md-6 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ortalaması En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} ➔ ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
-                <div class="col-md-6 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
-                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> En Çok Son 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+            <div class="card-body" style="padding-top:5px;">
+              <div class="row">
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">En Çok Birinci Olan</span><span class="info-box-number" style="font-size:1.1em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu` : ''}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla İlerleme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.firstNet.toFixed(2)} ➔ ${bestP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla Gerileme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.firstNet.toFixed(2)} ➔ ${worstP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
+              </div>
+              <div class="row mt-2">
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ort. En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} ➔ ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#dc3545; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Genel Katılım Oranı</span><span class="info-box-number" style="font-size:1.1em;">%${partRateGS}</span><span class="progress-description" style="font-size:0.9em; color:#e0e0e0;">${ex.length} / ${baseCountGS} Sonuç</span></div></div></div>
+              </div>
+              <div class="row mt-3">
+                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
+                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> En Çok Son 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+              </div>
             </div>
         </div>`; r.innerHTML = h;
 
@@ -1494,26 +1362,36 @@ function rAnl(){
 
       let buildRow = (e, i) => `<tr><td>${i+1}</td><td>${e.no}</td><td>${getName(e.no)}</td><td>${e.cls}</td><td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td></tr>`;
       let top5Html = sortedExams.slice(0,5).map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, i)).join('');
-      let bottomExams = [...sortedExams].reverse().slice(0,5); let bottom5Html = bottomExams.map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, sortedExams.length - i - 1)).join('');
+      let bottomExams = [...sortedExams].reverse().slice(0,5); 
+      let bottom5Html = bottomExams.map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, i)).join('');
+      
       let safeName = `${eT}_${dt.replace(/\./g,'-')}_Ozet`, lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
       let pubName = Object.values(EXAM_META).find(m=>m.date===dt&&m.examType===eT)?.publisher || '';
       
+      let eligibleStusE = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toUpperCase() !== brFilterED) return false; } return true; });
+      let partRateE = eligibleStusE.length > 0 ? Math.round((currentExams.length / eligibleStusE.length) * 100) : 0;
+
       let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSummary','Sinav_Ozeti_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-      <div id="pSummary" class="card card-outline card-info" style="background:#f4f6f9; padding:15px;">
-          <div class="pdf-header-bar"><span style="font-size:18px;">${dt} Tarihli Sınav Değerlendirmesi</span><span style="font-size:14px;">${eT}${pubName ? ' / ' + toTitleCase(pubName) : ''} | ${lvlStr}</span></div>
-          <h4 class="mb-3 text-center" style="color:#1e3a5f; font-weight:bold;">${dt} Tarihli Sınav Değerlendirmesi <small class="text-muted">(${eT}${pubName ? ' / ' + toTitleCase(pubName) : ''})</small> <small class="d-block text-muted mt-1" style="font-size:0.6em;">(${lvlStr})</small></h4>
-          <div class="row">
-              <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Birincisi</span><span class="info-box-number" style="font-size:1.1em;">${getName(winner.studentNo)} <small>(${winner.studentClass})</small></span><span class="progress-description" style="font-size:0.9em;">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</span></div></div></div>
-              <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Çıkış</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} ➔ ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
-              <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Düşüş</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+      <div id="pSummary" class="card shadow-sm" style="border-top:3px solid #17a2b8; background:#f4f6f9;">
+          <div class="report-header">
+            <span style="font-size:16px;"><i class="fas fa-file-alt mr-2"></i>${dt} Sınav Değerlendirmesi</span>
+            <span style="font-size:13px;">${eT}${pubName ? ' / ' + toTitleCase(pubName) : ''} | ${lvlStr}</span>
           </div>
-          <div class="row">
-              <div class="col-md-6 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
-              <div class="col-md-6 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} ➔ ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
-          </div>
-          <div class="row mt-3">
-              <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> İlk 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
-              <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+          <div class="card-body" style="padding-top:5px;">
+            <div class="row">
+                <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Birincisi</span><span class="info-box-number" style="font-size:1.1em;">${getName(winner.studentNo)} <small>(${winner.studentClass})</small></span><span class="progress-description" style="font-size:0.9em;">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</span></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Çıkış</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} ➔ ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Düşüş</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-4 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#dc3545; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} ➔ ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Katılım Oranı</span><span class="info-box-number" style="font-size:1.1em;">%${partRateE}</span><span class="progress-description" style="font-size:0.9em; color:#e0e0e0;">${currentExams.length} / ${eligibleStusE.length} Öğrenci</span></div></div></div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> İlk 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
+                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+            </div>
           </div>
       </div>`; r.innerHTML = h;
 
@@ -1540,7 +1418,17 @@ function rAnl(){
         listAvgRow = `<tr class="avg-row"><td colspan="5" style="text-align:right; padding-right:15px;">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="5">—</td></tr>`;
       }
       let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName=`${eT}_${dt.replace(/\./g,'-')}`;
-      let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pED','Sinav_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div><div id="pED" class="card card-outline card-warning"><div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${dt} ${lvlStr}Toplu Liste (Tek Sınav)</span><span style="font-size:14px;">${metaStr}</span></div><div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="card-title mb-0">📋 ${eT} — ${dt} ${lvlStr}Toplu Liste (Tek Sınav)</h3><span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStr}</span></div><div class="card-body"><div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div></div></div>`;
+      let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pED','Sinav_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+      <div id="pED" class="card shadow-sm" style="border-top:3px solid #ffc107;">
+        <div class="report-header">
+          <span style="font-size:16px;"><i class="fas fa-list mr-2"></i><strong>${eT}</strong> — ${dt} Toplu Liste</span>
+          <span style="font-size:13px;">${lvlStr} | ${metaStr}</span>
+        </div>
+        <div class="card-body" style="padding-top:5px;">
+          <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
+          <div class="scroll"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${bodyRows}${listAvgRow}</tbody></table></div>
+        </div>
+      </div>`;
       r.innerHTML=h; if(aNo) setTimeout(()=>{ let hlRow=getEl('tED')?.querySelector('tr.highlight-row'); if(hlRow)hlRow.scrollIntoView({behavior:'smooth',block:'center'}); },300);
 
     } else if (subSel === 'list_all') {
@@ -1598,13 +1486,12 @@ function rAnl(){
 
       let safeNameAll = `${eT}_TumSinavlar_Toplu`;
       let hAll = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tEDAll','${safeNameAll}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pEDAll','${safeNameAll}',this,'landscape')"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-      <div id="pEDAll" class="card card-outline card-primary">
-        <div class="pdf-header-bar"><span style="font-size:18px;"><strong>${eT}</strong> — ${lvlStr}Toplu Liste (Tüm Sınavlar)</span><span style="font-size:14px;">${metaStrAll}</span></div>
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-          <h3 class="card-title mb-0">📋 ${eT} — ${lvlStr}Toplu Liste (Tüm Sınavlar)</h3>
-          <span class="badge badge-info ml-auto" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i>${metaStrAll}</span>
+      <div id="pEDAll" class="card shadow-sm" style="border-top:3px solid #007bff;">
+        <div class="report-header">
+          <span style="font-size:16px;"><i class="fas fa-list-alt mr-2"></i><strong>${eT}</strong> — Tüm Sınavlar Toplu Liste</span>
+          <span style="font-size:13px;">${lvlStr} | ${metaStrAll}</span>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="padding-top:5px;">
           <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
           <div class="scroll">
             <table class="table table-sm table-hover table-bordered" id="tEDAll">
@@ -1672,7 +1559,7 @@ async function generateRapor() {
     let stGrade = getGrade(stu.class);
 
     html += `<div class="student-rapor-wrapper" style="${isLastStu?'':'page-break-after:always;'}">`;
-    html += `<div class="pdf-header-bar"><span style="font-size:18px;"><strong>${stu.name}</strong> — Genel Karne Özeti</span><span style="font-size:14px;">Sınıf: ${stu.class} | ${new Date().toLocaleDateString('tr-TR')}</span></div>`;
+    html += `<div class="report-header" style="margin-bottom:10px;"><span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stu.name}</strong> — Genel Karne Özeti</span><span style="font-size:13px;">Sınıf: ${stu.class} | ${new Date().toLocaleDateString('tr-TR')}</span></div>`;
 
     typs.forEach(t => {
       let el = grp[t].sort((a,b)=>srt(a.date,b.date)); let sb = Array.from(new Set(el.filter(e=>!e.abs).flatMap(e=>Object.keys(e.subs)))).sort();
@@ -1707,8 +1594,8 @@ async function generateRapor() {
       }
       
       let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
-      html += `<div class="card card-primary card-outline mb-4 avoid-break">
-        <div class="card-header"><h3 class="card-title"><i class="fas fa-book mr-2"></i>${stu.name} — ${t} Sınavları</h3></div>
+      html += `<div class="card shadow-sm mb-4 avoid-break" style="border-top:3px solid #6c8ebf;">
+        <div class="card-header bg-light"><h3 class="card-title m-0" style="font-size:15px; font-weight:bold; color:#4a6fa5;"><i class="fas fa-book mr-2"></i>${t} Sınavları</h3></div>
         <div class="card-body p-2">
           ${cardsHtml}
           <div class="scroll"><table class="table table-sm table-bordered table-striped"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrev(x)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${karneRows}${avgRow}</tbody></table></div>
@@ -1742,15 +1629,25 @@ async function generateRapor() {
     });
   }, 200);
 }
-/* ===== AYARLAR ===== */
+
 function rTabS(){
   let t=getEl('tStu').querySelector('tbody');
   t.innerHTML=DB.s.map((s,idx)=>`<tr><td>${idx+1}</td><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu('${s.no}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student','${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?','${s.no}')"><i class='fas fa-trash'></i></button></div></td></tr>`).join('');
 }
+
+function filterSettingsStudents() {
+  let input = getEl('setStuSearch').value.toLocaleLowerCase('tr-TR');
+  let rows = getEl('tStu').querySelectorAll('tbody tr');
+  rows.forEach(row => {
+      let no = row.cells[1].textContent.toLocaleLowerCase('tr-TR');
+      let name = row.cells[2].textContent.toLocaleLowerCase('tr-TR');
+      if(no.includes(input) || name.includes(input)) { row.style.display = ''; } else { row.style.display = 'none'; }
+  });
+}
+
 function rTabE(){
   let u = Object.keys(EXAM_META).map(bId => ({ examBatchId: bId, ...EXAM_META[bId] })).sort((a,b)=>{
-    let dateCmp = srt(a.date, b.date);
-    if(dateCmp !== 0) return dateCmp;
+    let dateCmp = srt(a.date, b.date); if(dateCmp !== 0) return dateCmp;
     let aGrade = (a.grades && a.grades.length > 0) ? Math.min(...a.grades.map(g=>parseInt(g)||99)) : 99;
     let bGrade = (b.grades && b.grades.length > 0) ? Math.min(...b.grades.map(g=>parseInt(g)||99)) : 99;
     return aGrade - bGrade;
@@ -1760,30 +1657,18 @@ function rTabE(){
 
 function eExam(bId){
   let m = EXAM_META[bId]; if(!m) return;
-  getEl('eExBatchId').value = bId;
-  getEl('eExDate').value = m.date;
-  getEl('eExType').value = m.examType;
-  getEl('eExPub').value = m.publisher || '';
+  getEl('eExBatchId').value = bId; getEl('eExDate').value = m.date; getEl('eExType').value = m.examType; getEl('eExPub').value = m.publisher || '';
   jQuery('#mEditExam').modal('show');
 }
 
 async function svExam(){
-  let bId = getEl('eExBatchId').value;
-  let newDate = getEl('eExDate').value.trim();
-  let newType = getEl('eExType').value.trim().toUpperCase();
-  let newPub = getEl('eExPub').value.trim();
+  let bId = getEl('eExBatchId').value, newDate = getEl('eExDate').value.trim(), newType = getEl('eExType').value.trim().toUpperCase(), newPub = getEl('eExPub').value.trim();
   if(!newDate || !newType){ showToast('Tarih ve tür zorunludur!','warning'); return; }
-  
   if(!/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.test(newDate)){ showToast('Tarih formatı GG.AA.YYYY şeklinde olmalıdır! (Örn: 15.04.2024)', 'error'); return; }
-
   let m = EXAM_META[bId]; if(!m) return;
-  
   let dupId = Object.keys(EXAM_META).find(id => {
-    if(id === bId) return false;
-    let em = EXAM_META[id];
-    if(em.examType !== newType || em.date !== newDate) return false;
-    let myGrades = m.grades || [], otherGrades = em.grades || [];
-    if(myGrades.length === 0 || otherGrades.length === 0) return true;
+    if(id === bId) return false; let em = EXAM_META[id]; if(em.examType !== newType || em.date !== newDate) return false;
+    let myGrades = m.grades || [], otherGrades = em.grades || []; if(myGrades.length === 0 || otherGrades.length === 0) return true;
     return myGrades.some(g => otherGrades.includes(g));
   });
   if(dupId){ showToast('Bu tarih ve tür kombinasyonu aynı sınıf seviyesi için zaten mevcut!','error'); return; }
@@ -1796,17 +1681,13 @@ async function svExam(){
       CACHED_RESULTS[bId] = CACHED_RESULTS[bId].map(e => ({...e, date: newDate, examType: newType, publisher: newPub}));
       await database.ref('db_v2/examResults/'+bId).set(CACHED_RESULTS[bId]);
     } else {
-      let snap = await database.ref('db_v2/examResults/'+bId).once('value');
-      let arr = snap.val() || [];
+      let snap = await database.ref('db_v2/examResults/'+bId).once('value'), arr = snap.val() || [];
       let updated = arr.map(e => e ? ({...e, date: newDate, examType: newType, publisher: newPub}) : null);
-      await database.ref('db_v2/examResults/'+bId).set(updated);
-      CACHED_RESULTS[bId] = updated.filter(x=>x);
+      await database.ref('db_v2/examResults/'+bId).set(updated); CACHED_RESULTS[bId] = updated.filter(x=>x);
     }
     DB.e = DB.e.map(e => e.examBatchId === bId ? {...e, date: newDate, examType: newType, publisher: newPub} : e);
-    rTabE(); uDrp(); uStat();
-    if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
-    jQuery('#mEditExam').modal('hide');
-    showToast('Sınav bilgileri güncellendi.','success');
+    rTabE(); uDrp(); uStat(); if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
+    jQuery('#mEditExam').modal('hide'); showToast('Sınav bilgileri güncellendi.','success');
   } catch(err){ showToast('Hata: '+err.message,'error'); }
   ld(0);
 }
@@ -1832,41 +1713,19 @@ async function svStu(){
   let s=DB.s.find(x=>x.no===n); 
   
   if(s){ 
-    let oldClass = s.class;
-    s.name=toTitleCase(nm); s.class=cc; 
-    
+    let oldClass = s.class; s.name=toTitleCase(nm); s.class=cc; 
     if (oldClass !== cc) {
       ld(1, 'Sınav kayıtları güncelleniyor...');
       try {
-        let batchesToUpdate = new Set();
-        DB.e.forEach(e => { if (e.studentNo === n) batchesToUpdate.add(e.examBatchId); });
-        
+        let batchesToUpdate = new Set(); DB.e.forEach(e => { if (e.studentNo === n) batchesToUpdate.add(e.examBatchId); });
         let promises = [];
-        batchesToUpdate.forEach(bId => {
-          promises.push(database.ref('db_v2/examResults/' + bId).once('value').then(snap => {
-            let res = snap.val() || [];
-            let changed = false;
-            let updated = res.map(e => {
-              if (e && e.studentNo === n && e.studentClass !== cc) { changed = true; return { ...e, studentClass: cc }; }
-              return e;
-            });
-            if (changed) {
-              if (CACHED_RESULTS[bId]) CACHED_RESULTS[bId] = updated.filter(x=>x);
-              return database.ref('db_v2/examResults/' + bId).set(updated);
-            }
-          }));
-        });
-        await Promise.all(promises);
-        DB.e = DB.e.map(e => e.studentNo === n ? { ...e, studentClass: cc } : e);
-      } catch (err) {
-        showToast('Sınıf güncellenirken hata oluştu: ' + err.message, 'error');
-      }
+        batchesToUpdate.forEach(bId => { promises.push(database.ref('db_v2/examResults/' + bId).once('value').then(snap => { let res = snap.val() || []; let changed = false; let updated = res.map(e => { if (e && e.studentNo === n && e.studentClass !== cc) { changed = true; return { ...e, studentClass: cc }; } return e; }); if (changed) { if (CACHED_RESULTS[bId]) CACHED_RESULTS[bId] = updated.filter(x=>x); return database.ref('db_v2/examResults/' + bId).set(updated); } })); });
+        await Promise.all(promises); DB.e = DB.e.map(e => e.studentNo === n ? { ...e, studentClass: cc } : e);
+      } catch (err) { showToast('Sınıf güncellenirken hata oluştu: ' + err.message, 'error'); }
       ld(0);
     }
     if(aNo===n) reqProfile(); 
-  } else{ 
-    DB.s.push({no:n,name:toTitleCase(nm),class:cc}); 
-  }
+  } else{ DB.s.push({no:n,name:toTitleCase(nm),class:cc}); }
   
   await database.ref('db_v2/students').set(DB.s); rTabS(); uStat();
   if(aNo){ let upd=DB.s.find(x=>x.no===aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>${upd.name} (${upd.class})</span>`; } }
@@ -1883,7 +1742,6 @@ async function impDB(e){
   if(auth.currentUser.uid !== ADMIN_UID){ showToast('Bu işlem sadece admin tarafından yapılabilir.', 'error'); e.target.value = ''; return; }
   let f = e.target.files[0]; if(!f){ e.target.value=''; return; }
   if(!confirm('⚠️ Mevcut tüm verinin üzerine yazılacak.\nBu işlem geri alınamaz. Devam edilsin mi?')){ e.target.value=''; return; }
-
   let rd = new FileReader();
   rd.onload = async ev => {
     try {
@@ -1898,8 +1756,7 @@ function cancelUpload() { PENDING_UPLOAD = null; getEl('fStu').value = ''; getEl
 function backToMapping() { jQuery('#mUploadPreview').modal('hide'); jQuery('#mMappings').modal('show'); }
 
 function upl(e, t) {
-  let f = e.target.files[0]; if(!f) return;
-  ld(1, 'Dosya Analiz Ediliyor...'); currentUploadType = t;
+  let f = e.target.files[0]; if(!f) return; ld(1, 'Dosya Analiz Ediliyor...'); currentUploadType = t;
   setTimeout(() => {
     let rd = new FileReader();
     rd.onload = ev => {
@@ -1944,7 +1801,7 @@ function renderWizardStep() {
   let h = currentHeaders, saved = {}; try { saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
   let today = new Date().toISOString().split('T')[0], [y,m,d] = today.split('-'), trDate = `${d}.${m}.${y}`, b = getEl('mMappingsBody');
 
-  let progHtml = `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;">${WIZARD_STEPS.map((s,i) => `<div style="flex:1;text-align:center;font-size:0.72em;font-weight:bold;padding:0 2px;color:${i===wizardStep?'#1e3a5f':i<wizardStep?'#28a745':'#adb5bd'};word-break:break-word;line-height:1.3;">${i<wizardStep?'✓ ':''}${s.title}</div>`).join('')}</div><div class="progress" style="height:7px;border-radius:4px;"><div class="progress-bar bg-primary" style="width:${((wizardStep+1)/WIZARD_STEPS.length)*100}%;border-radius:4px;transition:width 0.3s;"></div></div></div>`;
+  let progHtml = `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;">${WIZARD_STEPS.map((s,i) => `<div style="flex:1;text-align:center;font-size:0.72em;font-weight:bold;padding:0 2px;color:${i===wizardStep?'#4a6fa5':i<wizardStep?'#28a745':'#adb5bd'};word-break:break-word;line-height:1.3;">${i<wizardStep?'✓ ':''}${s.title}</div>`).join('')}</div><div class="progress" style="height:7px;border-radius:4px;"><div class="progress-bar bg-primary" style="width:${((wizardStep+1)/WIZARD_STEPS.length)*100}%;border-radius:4px;transition:width 0.3s;"></div></div></div>`;
 
   let stepHtml = '';
   if(wizardStep === 0) {
@@ -2025,8 +1882,7 @@ function processMappings() {
     let eDate = getEl('map_e_date') ? getEl('map_e_date').value.trim() : (_sv.date || ''), ePub = getEl('map_e_pub') ? getEl('map_e_pub').value.trim() : (_sv.pub || '');
     let cNo = getEl('map_e_no') ? getEl('map_e_no').value : (_sv.no || ''), cTnet = getEl('map_e_tnet') ? getEl('map_e_tnet').value : (_sv.tnet || ''), cScore = getEl('map_e_score') ? getEl('map_e_score').value : (_sv.score || '');
     
-    saveWizardStepData();
-    let _saved = {}; try { _saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e) {}
+    saveWizardStepData(); let _saved = {}; try { _saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e) {}
     if(!eType) { showToast('Lütfen Sınav Türünü girin (Adım 1).', 'warning'); return; } 
     if(!eDate) { showToast('Lütfen Sınav Tarihini girin (Adım 1).', 'warning'); return; }
     if(!/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.test(eDate)){ showToast('Tarih formatı GG.AA.YYYY şeklinde olmalıdır! (Örn: 15.04.2024)', 'error'); return; }
@@ -2041,20 +1897,8 @@ function processMappings() {
     let cRank = { cR: '', cP: '', iR: '', iP: '', dR: finalSaved.dR||'', dP: finalSaved.dP||'', pR: finalSaved.pR||'', pP: finalSaved.pP||'', gR: finalSaved.gR||'', gP: finalSaved.gP||'' };
 
     let gradesFound = new Set();
-    d.forEach(r => {
-       let no = String(r[cNo]||'').trim();
-       if(no) { let st = DB.s.find(x=>x.no===no); if(st) { let gr = getGrade(st.class); if(gr) gradesFound.add(gr); } }
-    });
-
-    let existsId = Object.keys(EXAM_META).find(id => {
-      let em = EXAM_META[id];
-      if(em.examType !== eType || em.date !== eDate) return false;
-      if(!gradesFound.size) return true;
-      let existGrades = em.grades || [];
-      if(existGrades.length === 0) return true; 
-      return [...gradesFound].some(g => existGrades.includes(g));
-    });
-
+    d.forEach(r => { let no = String(r[cNo]||'').trim(); if(no) { let st = DB.s.find(x=>x.no===no); if(st) { let gr = getGrade(st.class); if(gr) gradesFound.add(gr); } } });
+    let existsId = Object.keys(EXAM_META).find(id => { let em = EXAM_META[id]; if(em.examType !== eType || em.date !== eDate) return false; if(!gradesFound.size) return true; let existGrades = em.grades || []; if(existGrades.length === 0) return true; return [...gradesFound].some(g => existGrades.includes(g)); });
     let bId = existsId || Date.now().toString();
     let cl=new Set(), sn=new Set(), validResults = [], missingStus = [], invalidRows = [], subjectsFound = new Set(), seenStudentNos = new Set();
 
@@ -2064,41 +1908,24 @@ function processMappings() {
       if(!st) { missingStus.push(no); return; } 
       if(net === undefined || net === null || net === '') { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Toplam Net Yok' }); return; }
       if(seenStudentNos.has(no)) { invalidRows.push({ rowNum: i + 2, no: no, reason: `Mükerrer Öğrenci` }); return; }
-      
       seenStudentNos.add(no); cl.add(st.class); sn.add(no);
-      
       let getRank = (col) => { if(!col) return '-'; let v = r[col]; return (v !== undefined && v !== null && v !== '') ? String(v) : '-'; };
-      let ex = { examBatchId:bId, studentNo:st.no, studentClass:st.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:pN(r[cTnet]), score:pN(r[cScore]), 
-        cR:getRank(cRank.cR), cP:getRank(cRank.cP), iR:getRank(cRank.iR), iP:getRank(cRank.iP), dR:getRank(cRank.dR), dP:getRank(cRank.dP), pR:getRank(cRank.pR), pP:getRank(cRank.pP), gR:getRank(cRank.gR), gP:getRank(cRank.gP), abs:false, subs:{} };
-      
+      let ex = { examBatchId:bId, studentNo:st.no, studentClass:st.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:pN(r[cTnet]), score:pN(r[cScore]), cR:getRank(cRank.cR), cP:getRank(cRank.cP), iR:getRank(cRank.iR), iP:getRank(cRank.iP), dR:getRank(cRank.dR), dP:getRank(cRank.dP), pR:getRank(cRank.pR), pP:getRank(cRank.pP), gR:getRank(cRank.gR), gP:getRank(cRank.gP), abs:false, subs:{} };
       subsMap.forEach(sm => { let rawVal = r[sm.col]; if(rawVal !== undefined && rawVal !== null && rawVal !== '') { ex.subs[toTitleCase(sm.name)] = {net: pN(rawVal)}; subjectsFound.add(toTitleCase(sm.name)); } });
       validResults.push(ex);
     });
 
     let clsGroups = {}, instGroups = {};
-    validResults.filter(x=>!x.abs).forEach(x => {
-      if(!clsGroups[x.studentClass]) clsGroups[x.studentClass] = []; clsGroups[x.studentClass].push(x);
-      let gr = getGrade(x.studentClass); if(!instGroups[gr]) instGroups[gr] = []; instGroups[gr].push(x);
-    });
+    validResults.filter(x=>!x.abs).forEach(x => { if(!clsGroups[x.studentClass]) clsGroups[x.studentClass] = []; clsGroups[x.studentClass].push(x); let gr = getGrade(x.studentClass); if(!instGroups[gr]) instGroups[gr] = []; instGroups[gr].push(x); });
     Object.values(clsGroups).forEach(arr => { arr.sort((a,b) => b.totalNet - a.totalNet); arr.forEach((r, idx) => { r.cR = String(idx+1); r.cP = String(arr.length); }); });
     Object.values(instGroups).forEach(arr => { arr.sort((a,b) => b.totalNet - a.totalNet); arr.forEach((r, idx) => { r.iR = String(idx+1); r.iP = String(arr.length); }); });
-    
-    let absentCount = 0;
-    DB.s.forEach(s => { if(cl.has(s.class) && !sn.has(s.no)) { validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', dR:'-', dP:'-', pR:'-', pP:'-', gR:'-', gP:'-', abs:true, subs:{} }); absentCount++; } });
-
+    let absentCount = 0; DB.s.forEach(s => { if(cl.has(s.class) && !sn.has(s.no)) { validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', dR:'-', dP:'-', pR:'-', pP:'-', gR:'-', gP:'-', abs:true, subs:{} }); absentCount++; } });
     if(validResults.length === 0) { showToast('Sisteme eklenecek geçerli bir sınav sonucu bulunamadı.', 'error'); return; }
-
     let overwriteWarning = existsId ? `<div class="alert alert-danger mt-3"><strong><i class="fas fa-exclamation-triangle mr-2"></i>DİKKAT!</strong> Sistemde <b>${eDate}</b> tarihli bir <b>${eType}</b> sınavı zaten var. Onaylarsanız, eski veriler tamamen silinip bu dosyadaki verilerle değiştirilecektir!</div>` : '';
-
     previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Sınav Analizi: <strong>${eType}</strong> - ${eDate} <small class="text-muted">(${toTitleCase(ePub)||'Yayınevi Yok'})</small></h5>
-      <div class="row"><div class="col-md-3"><div class="preview-box" style="padding:10px;"><strong>Geçerli Sonuç:</strong><br><span class="text-success" style="font-size:1.3em;">${validResults.length - absentCount} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box warning" style="padding:10px;" title="Sınıf listesinde olup dosyada bulunmayanlar. Katılmadı olarak işaretlenecek."><strong>Katılmadı:</strong><br><span class="text-warning" style="font-size:1.3em;">${absentCount} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box danger" style="padding:10px;" title="Dosyada olan ama sistemde kaydı olmayanlar."><strong>Sistemde Yok:</strong><br><span class="text-danger" style="font-size:1.3em;">${missingStus.length} Kişi</span></div></div>
-      <div class="col-md-3"><div class="preview-box danger" style="padding:10px; background:#f8d7da; border-color:#dc3545;" title="Excel hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger" style="font-size:1.3em;">${invalidRows.length} Satır</span></div></div></div>
-      ${overwriteWarning}`;
+      <div class="row"><div class="col-md-3"><div class="preview-box" style="padding:10px;"><strong>Geçerli Sonuç:</strong><br><span class="text-success" style="font-size:1.3em;">${validResults.length - absentCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box warning" style="padding:10px;" title="Sınıf listesinde olup dosyada bulunmayanlar. Katılmadı olarak işaretlenecek."><strong>Katılmadı:</strong><br><span class="text-warning" style="font-size:1.3em;">${absentCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box danger" style="padding:10px;" title="Dosyada olan ama sistemde kaydı olmayanlar."><strong>Sistemde Yok:</strong><br><span class="text-danger" style="font-size:1.3em;">${missingStus.length} Kişi</span></div></div><div class="col-md-3"><div class="preview-box danger" style="padding:10px; background:#f8d7da; border-color:#dc3545;" title="Excel hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger" style="font-size:1.3em;">${invalidRows.length} Satır</span></div></div></div>${overwriteWarning}`;
     if(missingStus.length > 0) previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.slice(0,20).join(', ')}${missingStus.length>20?'...':''}</div>`;
     if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;"><table class="table table-sm table-striped mb-0" style="font-size:0.85em;"><thead style="background-color: #f8d7da; color: #721c24;"><tr><th style="width: 60px;">Satır</th><th style="width: 100px;">Öğrenci No</th><th>Hata Nedeni (Yüklenmeyecek)</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.no}</td><td class="text-danger">${err.reason}</td></tr>`).join('')}</tbody></table></div>`;
-    
     PENDING_UPLOAD = { type: 'e', existsId: existsId, bId: bId, bD: eDate, bT: eType, bPub: toTitleCase(ePub), newResults: validResults, subjects: Array.from(subjectsFound), grades: Array.from(gradesFound) };
   }
   getEl('uploadPreviewBody').innerHTML = previewHtml; jQuery('#mMappings').modal('hide'); jQuery('#mUploadPreview').modal('show');
@@ -2111,23 +1938,14 @@ async function confirmUpload() {
     else if (PENDING_UPLOAD.type === 'e') {
       if(PENDING_UPLOAD.existsId) { await database.ref('db_v2/examResults/' + PENDING_UPLOAD.existsId).remove(); await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.existsId).remove(); delete CACHED_RESULTS[PENDING_UPLOAD.existsId]; }
       await database.ref('db_v2/examResults/' + PENDING_UPLOAD.bId).set(PENDING_UPLOAD.newResults); 
-      await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.bId).set({ date: PENDING_UPLOAD.bD, examType: PENDING_UPLOAD.bT, publisher: PENDING_UPLOAD.bPub, count: PENDING_UPLOAD.newResults.length, subjects: PENDING_UPLOAD.subjects, grades: PENDING_UPLOAD.grades });
-      showToast('Sınav sonuçları sisteme başarıyla kaydedildi.', 'success');
+      await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.bId).set({ date: PENDING_UPLOAD.bD, examType: PENDING_UPLOAD.bT, publisher: PENDING_UPLOAD.bPub, count: PENDING_UPLOAD.newResults.length, subjects: PENDING_UPLOAD.subjects, grades: PENDING_UPLOAD.grades }); showToast('Sınav sonuçları sisteme başarıyla kaydedildi.', 'success');
     }
-  } catch(err) { showToast('Kayıt sırasında hata oluştu: ' + err.message, 'error'); }
-  cancelUpload(); ld(0);
+  } catch(err) { showToast('Kayıt sırasında hata oluştu: ' + err.message, 'error'); } cancelUpload(); ld(0);
 }
 
 window.addEventListener('load', function(){
   checkAuth();
-  document.body.addEventListener('click', function(e){
-    if(!document.body.classList.contains('sidebar-open')) return;
-    var sidebar = document.querySelector('.main-sidebar');
-    var toggleBtn = document.querySelector('[data-widget="pushmenu"]');
-    if(sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)){
-      document.body.classList.remove('sidebar-open'); document.body.classList.add('sidebar-collapse');
-    }
-  });
+  document.body.addEventListener('click', function(e){ if(!document.body.classList.contains('sidebar-open')) return; var sidebar = document.querySelector('.main-sidebar'); var toggleBtn = document.querySelector('[data-widget="pushmenu"]'); if(sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)){ document.body.classList.remove('sidebar-open'); document.body.classList.add('sidebar-collapse'); } });
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW kayıtlı:', reg.scope)).catch(err => console.error('SW hatası:', err)); }
 });
 
@@ -2137,28 +1955,10 @@ window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; do
 
 function showPwaPopupIfReady() {
   userLoggedIn = true; if (!deferredInstallPrompt) return; document.getElementById('installBtnWrapper').style.display = 'block';
-  setTimeout(() => {
-    const popup = document.getElementById('pwaInstallPopup'), bar = popup.querySelector('.pwa-progress');
-    bar.style.animation = 'none'; bar.offsetHeight; bar.style.animation = 'pwaBar 4s linear forwards';
-    popup.style.animation = 'popupSlideDown 0.4s ease-out'; popup.style.display = 'flex';
-    pwaPopupTimer = setTimeout(() => closePwaPopup(), 4000);
-  }, 1500);
+  setTimeout(() => { const popup = document.getElementById('pwaInstallPopup'), bar = popup.querySelector('.pwa-progress'); bar.style.animation = 'none'; bar.offsetHeight; bar.style.animation = 'pwaBar 4s linear forwards'; popup.style.animation = 'popupSlideDown 0.4s ease-out'; popup.style.display = 'flex'; pwaPopupTimer = setTimeout(() => closePwaPopup(), 4000); }, 1500);
 }
-
-function closePwaPopup() {
-  const popup = document.getElementById('pwaInstallPopup'); if (!popup || popup.style.display === 'none') return;
-  clearTimeout(pwaPopupTimer); popup.style.animation = 'popupSlideUp 0.3s ease-in forwards';
-  setTimeout(() => { popup.style.display = 'none'; popup.style.animation = ''; }, 300);
-}
-
-function triggerInstall(e) {
-  e.preventDefault(); closePwaPopup(); if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(choice => {
-    if (choice.outcome === 'accepted') showToast('Uygulama yükleniyor...', 'info');
-    deferredInstallPrompt = null; document.getElementById('installBtnWrapper').style.display = 'none';
-  });
-}
+function closePwaPopup() { const popup = document.getElementById('pwaInstallPopup'); if (!popup || popup.style.display === 'none') return; clearTimeout(pwaPopupTimer); popup.style.animation = 'popupSlideUp 0.3s ease-in forwards'; setTimeout(() => { popup.style.display = 'none'; popup.style.animation = ''; }, 300); }
+function triggerInstall(e) { e.preventDefault(); closePwaPopup(); if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.then(choice => { if (choice.outcome === 'accepted') showToast('Uygulama yükleniyor...', 'info'); deferredInstallPrompt = null; document.getElementById('installBtnWrapper').style.display = 'none'; }); }
 </script>
 </body>
 </html>
