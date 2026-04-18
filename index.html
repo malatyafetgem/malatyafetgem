@@ -1155,10 +1155,13 @@ function uSub(){
   
   if(aT === 'student' || aT === 'class') {
     let _prev = getEl('aSub').value;
-    let o = `<option value="" disabled${_prev?'':' selected'}>Veri Seç</option><option value="totalNet">Toplam Net</option><option value="score">Puan</option>`;
-    if (aT === 'student') { o += `<option value="rank_c">Sınıf Sıralaması</option><option value="rank_i">Kurum Sıralaması</option><option value="rank_g">Genel Sıralama</option>`; }
-    [...s].sort().forEach(x=> o += `<option value="s_${x}">${toTitleCase(x)} Neti</option>`); getEl('aSub').innerHTML = o;
-    if(_prev) { let _opt=[...getEl('aSub').options].find(o=>o.value===_prev); if(_opt) getEl('aSub').value=_prev; }
+    // === FIX: class analizi için varsayılan 'score' (Puan); öğrenci analizi için 'totalNet' ===
+    let _defaultVal = (aT === 'class') ? 'score' : 'totalNet';
+    let _selVal = _prev || _defaultVal;
+    let o = `<option value="" disabled${_selVal?'':' selected'}>Veri Seç</option><option value="totalNet"${_selVal==='totalNet'?' selected':''}>Toplam Net</option><option value="score"${_selVal==='score'?' selected':''}>Puan</option>`;
+    if (aT === 'student') { o += `<option value="rank_c"${_selVal==='rank_c'?' selected':''}>Sınıf Sıralaması</option><option value="rank_i"${_selVal==='rank_i'?' selected':''}>Kurum Sıralaması</option><option value="rank_g"${_selVal==='rank_g'?' selected':''}>Genel Sıralama</option>`; }
+    [...s].sort().forEach(x=> o += `<option value="s_${x}"${_selVal==='s_'+x?' selected':''}>${toTitleCase(x)} Neti</option>`); getEl('aSub').innerHTML = o;
+    if(_selVal) { let _opt=[...getEl('aSub').options].find(o=>o.value===_selVal); if(_opt) getEl('aSub').value=_selVal; }
   } else if (aT === 'examdetail') {
     // === FIX: uSub varsayılanı — examdetail için varsayılan 'summary' (Sınav Özeti) ===
     let prev = getEl('aSub').value;
@@ -1210,6 +1213,7 @@ function uExamDates(){
     let st = DB.s.find(x=>x.no===aNo); if(st) stuGrade = getGrade(st.class);
   }
   let lvlGrade = '';
+  // === FIX: examdetail/subject/class için seçili sınıf seviyesi (aLvl) her zaman filtre ===
   if(aT === 'subject' || aT === 'class' || aT === 'examdetail') {
     lvlGrade = getEl('aLvl') ? getEl('aLvl').value : '';
   }
@@ -1290,10 +1294,15 @@ function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
   
   let stuMap = {};
   allSameGrade.forEach(e => {
-    if(!stuMap[e.studentNo]) stuMap[e.studentNo] = {sum:0,cnt:0};
-    stuMap[e.studentNo].sum += (e.score||0); stuMap[e.studentNo].cnt++;
+    if(!stuMap[e.studentNo]) stuMap[e.studentNo] = {scoreSum:0,netSum:0,cnt:0};
+    stuMap[e.studentNo].scoreSum += (e.score||0);
+    stuMap[e.studentNo].netSum  += (e.totalNet||0);
+    stuMap[e.studentNo].cnt++;
   });
-  let rankings = Object.entries(stuMap).map(([no,v])=>({no,avg:v.sum/v.cnt})).sort((a,b)=>b.avg-a.avg);
+  // === Sıralama her zaman PUAN'a (score) göre; eşitlikte totalNet ===
+  let rankings = Object.entries(stuMap).map(([no,v])=>({no,avgScore:v.scoreSum/v.cnt,avgNet:v.netSum/v.cnt})).sort((a,b)=>{
+    let dp=(b.avgScore||0)-(a.avgScore||0); if(dp!==0) return dp; return (b.avgNet||0)-(a.avgNet||0);
+  });
   let rank = rankings.findIndex(x=>x.no===stuNo)+1;
   let totalStudents = rankings.length;
   
@@ -1780,11 +1789,11 @@ function rAnl(){
         dates.forEach(d => {
             // === FIX: Sınav içi sıralama her zaman PUAN'a göre, eşitlikte totalNet ===
             let exDt = ex.filter(x => x.date === d).sort((a,b) => { let dp=(b.score||0)-(a.score||0); if(dp!==0) return dp; return (b.totalNet||0)-(a.totalNet||0); }); if(!exDt.length) return;
-            let firstNet = exDt[0].totalNet;
+            let firstScore = exDt[0].score;
             exDt.forEach((e, idx) => {
                 if(!stuStats[e.studentNo]) stuStats[e.studentNo] = { no: e.studentNo, name: getName(e.studentNo), cls: e.studentClass, first:0, top5:0, bottom5:0, exList:[] };
                 stuStats[e.studentNo].exList.push(e);
-                if(e.totalNet === firstNet) stuStats[e.studentNo].first++;
+                if(e.score === firstScore) stuStats[e.studentNo].first++;
                 if(idx < 5) stuStats[e.studentNo].top5++;
                 if(idx >= exDt.length - 5) stuStats[e.studentNo].bottom5++;
             });
@@ -1793,14 +1802,16 @@ function rAnl(){
         let progressArr = [];
         Object.values(stuStats).forEach(st => {
             st.exList.sort((a,b) => srt(a.date, b.date));
-            // === FIX v11: İlerleme/Gerileme artık Lineer Regresyon eğimi ile hesaplanır.
-            // Eski yöntem (lastNet - firstNet) ortadaki sınavları yok sayıyor, "20→90→15" gibi serileri yanlış okuyordu.
+            // === FIX: İlerleme/Gerileme Lineer Regresyon eğimi (linRegSlope) ile hesaplanır ===
+            // PUAN (score) esas alınır; trend skoru puan serisi üzerinden hesaplanır
             if(st.exList.length >= 2) {
-              let nets = st.exList.map(e => e.totalNet);
-              let slope = linRegSlope(nets);
-              let regChange = slope * (nets.length - 1); // baştan sona regresyon farkı (gerçek trend)
+              let scores = st.exList.map(e => e.score);
+              let nets   = st.exList.map(e => e.totalNet);
+              let slopeScore = linRegSlope(scores);
+              let slopeNet   = linRegSlope(nets);
+              let regChange = slopeScore * (scores.length - 1); // puan üzerinden toplam trend değişimi
               let firstEx = st.exList[0], lastEx = st.exList[st.exList.length - 1];
-              progressArr.push({ ...st, diff: regChange, slope, examCount: nets.length, firstNet: firstEx.totalNet, lastNet: lastEx.totalNet });
+              progressArr.push({ ...st, diff: regChange, slope: slopeScore, slopeNet, examCount: scores.length, firstNet: firstEx.totalNet, lastNet: lastEx.totalNet, firstScore: firstEx.score, lastScore: lastEx.score });
             }
             let tNet = 0, tScore = 0; st.exList.forEach(e => { tNet+=e.totalNet; tScore+=e.score; }); st.avgNet = tNet / st.exList.length; st.avgScore = tScore / st.exList.length;
         });
@@ -1865,8 +1876,8 @@ function rAnl(){
             <div class="card-body" style="padding-top:5px;">
               <div class="row">
                   <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">En Çok Birinci Olan</span><span class="info-box-number" style="font-size:1.1em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu` : ''}</span></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla İlerleme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.firstNet.toFixed(2)} ➔ ${bestP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla Gerileme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.firstNet.toFixed(2)} ➔ ${worstP.lastNet.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla İlerleme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Puan Eğim (${bestP.firstScore.toFixed(2)} ➔ ${bestP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">En Fazla Gerileme Kaydeden</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Puan Eğim (${worstP.firstScore.toFixed(2)} ➔ ${worstP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</span></div></div></div>
               </div>
               <div class="row mt-2">
                   <div class="col-md-4 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Genel Ort. En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} ➔ ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</span></div></div></div>
@@ -1887,6 +1898,7 @@ function rAnl(){
       let filteredDates = [...new Set(baseExams.map(x=>x.date))].sort(srt), currentIndex = filteredDates.indexOf(dt), prevDate = currentIndex > 0 ? filteredDates[currentIndex - 1] : null;
       let prevBatch = prevDate ? DB.e.filter(x => x.examType === eT && x.date === prevDate) : [];
       if(targetLvl) prevBatch = prevBatch.filter(x => getGrade(x.studentClass) === targetLvl);
+      // === FIX: summary sıralama her zaman PUAN'a (score) göre, eşitlikte totalNet ===
       let prevExams = prevBatch.filter(x => !x.abs), sortedExams = [...currentExams].sort((a,b) => { let dp=(b.score||0)-(a.score||0); if(dp!==0) return dp; return (b.totalNet||0)-(a.totalNet||0); }), winner = sortedExams[0], progress = [];
       
       // === FIX: Orphan öğrencileri çıkar (silinmiş öğrencilerin verisi karışmasın) ===
@@ -1971,11 +1983,12 @@ function rAnl(){
       
       let headCols=subKeys.map(k=>`<th>${toTitleCase(k)}</th>`).join('');
       // === FIX: Sıra numarası SADECE katılan (attended) öğrencilere verilir; absent için "—" ===
+      // _rankIdx sadece katılan satırlar için artırılır (absent satırlar atlanır)
       let _rankIdx = 0;
       let bodyRows=sorted.map((e)=>{
         let isSel=aNo&&e.studentNo===aNo, rCls=isSel?'highlight-row':''; let pub = e.publisher || '—';
         if(e.abs) return `<tr class="absent-row ${rCls}"><td>—</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td>${subKeys.map(()=>'<td>—</td>').join('')}<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
-        _rankIdx++;
+        _rankIdx++; // sadece katılan için artır
         return `<tr class="${rCls}"><td>${_rankIdx}</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td>${subKeys.map(k=>`<td>${e.subs[k]!==undefined?e.subs[k].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td><td>${e.dR||'—'}/${e.dP||'—'}</td><td>${e.pR||'—'}/${e.pP||'—'}</td><td>${e.gR||'—'}/${e.gP||'—'}</td></tr>`;
       }).join('');
 
