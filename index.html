@@ -170,6 +170,23 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 .info-box-text { display: block; font-size: 0.78em; font-weight: 600; }
 
+/* ===== KUTU GRAFİĞİ ===== */
+.boxplot-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.boxplot-svg { display: block; width: 100%; min-width: 280px; }
+.boxplot-box { fill: rgba(13,110,253,0.15); stroke: #0d6efd; stroke-width: 1.5; }
+.boxplot-median { stroke: #dc3545; stroke-width: 2.5; stroke-linecap: round; }
+.boxplot-whisker { stroke: #495057; stroke-width: 1.5; stroke-dasharray: 4,3; }
+.boxplot-whisker-cap { stroke: #495057; stroke-width: 1.5; }
+.boxplot-mean { fill: #fd7e14; }
+.boxplot-student { fill: #dc3545; stroke: #fff; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(220,53,69,0.6)); }
+.boxplot-outlier { fill: none; stroke: #6f42c1; stroke-width: 1.5; }
+.boxplot-label { font-family: inherit; font-size: 11px; fill: #495057; text-anchor: middle; }
+.boxplot-axis { stroke: #dee2e6; stroke-width: 1; }
+.boxplot-gridline { stroke: #f0f0f0; stroke-width: 1; }
+.boxplot-legend { font-size: 11px; fill: #6c757d; }
+.boxplot-card { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-top: 14px; }
+.boxplot-title { font-size: 11px; font-weight: bold; color: #4a6fa5; margin-bottom: 8px; }
+
 /* ===== TREND ANALİZİ ===== */
 .trend-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
 .trend-indicator { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
@@ -889,6 +906,152 @@ function linRegSlope(values){
   return (n*sumXY - sumX*sumY) / denom;
 }
 
+// ===== KUTU GRAFİĞİ HESAPLAMA & ÇİZİM =====
+function calcBoxPlot(values) {
+  // null/undefined önce filtrele, sonra sayıya çevir (Number(null)=0 tuzağından kaçın)
+  let arr = (values||[]).filter(v => v !== null && v !== undefined).map(Number).filter(v => !isNaN(v)).sort((a,b) => a-b);
+  if(arr.length === 0) return null;
+  let n = arr.length;
+  // Lineer interpolasyonlu quartile (numpy 'linear' yöntemi ile uyumlu)
+  // Küçük n'de basit index kesme yerine interpolasyon kullan
+  function quantile(sorted, p) {
+    let idx = p * (sorted.length - 1);
+    let lo = Math.floor(idx), hi = Math.ceil(idx), frac = idx - lo;
+    if(lo === hi) return sorted[lo];
+    return sorted[lo] * (1 - frac) + sorted[hi] * frac;
+  }
+  let q1 = quantile(arr, 0.25);
+  let median = quantile(arr, 0.5);
+  let q3 = quantile(arr, 0.75);
+  let iqr = q3 - q1;
+  let whiskerLo = Math.max(arr[0], q1 - 1.5 * iqr);
+  let whiskerHi = Math.min(arr[n-1], q3 + 1.5 * iqr);
+  let outliers = arr.filter(v => v < whiskerLo || v > whiskerHi);
+  let mean = arr.reduce((a,b)=>a+b,0)/n;
+  return { min: arr[0], max: arr[n-1], q1, median, q3, mean, whiskerLo, whiskerHi, outliers, n };
+}
+
+/* mkBoxPlotSVG(groups, studentVal, options)
+   groups: [ { label, values, color? }, ... ]
+   studentVal: number|null — öğrencinin değeri (noktayla gösterilir)
+   options: { width?, height?, title?, yLabel?, twoGroups? }
+*/
+function mkBoxPlotSVG(groups, studentVal, options) {
+  options = options || {};
+  let W = options.width || 560, H = options.height || 220;
+  let marginLeft = 46, marginRight = 16, marginTop = 28, marginBottom = 38;
+  let plotW = W - marginLeft - marginRight, plotH = H - marginTop - marginBottom;
+
+  // İstatistikleri hesapla
+  let stats = groups.map(g => ({ ...g, bp: calcBoxPlot(g.values) })).filter(g => g.bp);
+  if(stats.length === 0) return '<div class="text-muted small text-center py-2">Kutu grafiği için yeterli veri yok.</div>';
+
+  // Y ekseni min/max
+  let allVals = stats.flatMap(g => g.bp ? [g.bp.min, g.bp.max, ...(g.bp.outliers||[])] : []);
+  if(studentVal !== null && studentVal !== undefined) allVals.push(studentVal);
+  let yMin = Math.min(...allVals), yMax = Math.max(...allVals);
+  let pad = (yMax - yMin) * 0.12 || 2;
+  yMin = yMin - pad; yMax = yMax + pad;
+
+  let toY = v => marginTop + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+  // Izgara çizgileri
+  let gridLines = '', gridLabels = '';
+  let tickCount = 5;
+  for(let i = 0; i <= tickCount; i++) {
+    let v = yMin + (yMax - yMin) * (i / tickCount);
+    let y = toY(v);
+    gridLines += `<line class="boxplot-gridline" x1="${marginLeft}" y1="${y.toFixed(1)}" x2="${W - marginRight}" y2="${y.toFixed(1)}"/>`;
+    gridLabels += `<text class="boxplot-label" x="${(marginLeft-4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" text-anchor="end">${v.toFixed(1)}</text>`;
+  }
+
+  // Kutuları çiz
+  let boxWidth = Math.min(60, plotW / (stats.length * 2.2));
+  let spacing = plotW / (stats.length + 1);
+  let boxes = '';
+  stats.forEach((g, i) => {
+    let bp = g.bp;
+    let cx = marginLeft + spacing * (i + 1);
+    let color = g.color || '#0d6efd';
+    let yQ1 = toY(bp.q1), yQ3 = toY(bp.q3), yMed = toY(bp.median);
+    let yWLo = toY(bp.whiskerLo), yWHi = toY(bp.whiskerHi), yMean = toY(bp.mean);
+    let bx = cx - boxWidth/2;
+
+    // Bıyıklar
+    boxes += `<line class="boxplot-whisker" x1="${cx.toFixed(1)}" y1="${yQ3.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWHi.toFixed(1)}"/>`;
+    boxes += `<line class="boxplot-whisker" x1="${cx.toFixed(1)}" y1="${yQ1.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWLo.toFixed(1)}"/>`;
+    boxes += `<line class="boxplot-whisker-cap" x1="${(cx - boxWidth*0.3).toFixed(1)}" y1="${yWHi.toFixed(1)}" x2="${(cx + boxWidth*0.3).toFixed(1)}" y2="${yWHi.toFixed(1)}"/>`;
+    boxes += `<line class="boxplot-whisker-cap" x1="${(cx - boxWidth*0.3).toFixed(1)}" y1="${yWLo.toFixed(1)}" x2="${(cx + boxWidth*0.3).toFixed(1)}" y2="${yWLo.toFixed(1)}"/>`;
+
+    // IQR kutusu
+    let boxH = Math.abs(yQ1 - yQ3);
+    boxes += `<rect class="boxplot-box" style="fill:${color}22;stroke:${color};" x="${bx.toFixed(1)}" y="${Math.min(yQ1,yQ3).toFixed(1)}" width="${boxWidth.toFixed(1)}" height="${Math.max(boxH,1).toFixed(1)}" rx="2"/>`;
+
+    // Medyan çizgisi
+    boxes += `<line class="boxplot-median" x1="${bx.toFixed(1)}" y1="${yMed.toFixed(1)}" x2="${(bx+boxWidth).toFixed(1)}" y2="${yMed.toFixed(1)}"/>`;
+
+    // Ortalama noktası
+    boxes += `<circle class="boxplot-mean" cx="${cx.toFixed(1)}" cy="${yMean.toFixed(1)}" r="4" fill="#fd7e14"/>`;
+
+    // Aykırı değerler
+    (bp.outliers||[]).forEach(ov => {
+      boxes += `<circle class="boxplot-outlier" cx="${cx.toFixed(1)}" cy="${toY(ov).toFixed(1)}" r="3"/>`;
+    });
+
+    // Öğrenci noktası (sadece ilgili grupta veya tek grupsa)
+    if(studentVal !== null && studentVal !== undefined && !isNaN(studentVal)) {
+      // Her grupta göster
+      let sy = toY(studentVal);
+      boxes += `<circle class="boxplot-student" cx="${cx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6"/>`;
+      boxes += `<line stroke="#dc3545" stroke-width="1" stroke-dasharray="3,2" x1="${(cx + boxWidth/2 + 4).toFixed(1)}" y1="${sy.toFixed(1)}" x2="${(cx + boxWidth/2 + 20).toFixed(1)}" y2="${sy.toFixed(1)}"/>`;
+    }
+
+    // Etiket
+    boxes += `<text class="boxplot-label" x="${cx.toFixed(1)}" y="${(H - marginBottom + 14).toFixed(1)}">${g.label}</text>`;
+    // İstatistik özeti (küçük metin)
+    boxes += `<text class="boxplot-legend" x="${cx.toFixed(1)}" y="${(H - marginBottom + 25).toFixed(1)}" text-anchor="middle">Med:${bp.median.toFixed(1)}</text>`;
+  });
+
+  // Açıklama (legend)
+  let legendY = marginTop - 12;
+  let legend = `<circle cx="${(W - marginRight - 110).toFixed(1)}" cy="${legendY}" r="4" fill="#dc3545"/>
+    <text class="boxplot-legend" x="${(W - marginRight - 103).toFixed(1)}" y="${legendY + 4}">Öğrenci</text>
+    <line x1="${(W - marginRight - 68).toFixed(1)}" y1="${legendY}" x2="${(W - marginRight - 56).toFixed(1)}" y2="${legendY}" stroke="#dc3545" stroke-width="2.5"/>
+    <text class="boxplot-legend" x="${(W - marginRight - 52).toFixed(1)}" y="${legendY + 4}">Medyan</text>
+    <circle cx="${(W - marginRight - 12).toFixed(1)}" cy="${legendY}" r="4" fill="#fd7e14"/>
+    <text class="boxplot-legend" x="${(W - marginRight - 6).toFixed(1)}" y="${legendY + 4}">Ort.</text>`;
+  if(studentVal === null || studentVal === undefined) {
+    legend = `<line x1="${(W - marginRight - 68).toFixed(1)}" y1="${legendY}" x2="${(W - marginRight - 56).toFixed(1)}" y2="${legendY}" stroke="#dc3545" stroke-width="2.5"/>
+    <text class="boxplot-legend" x="${(W - marginRight - 52).toFixed(1)}" y="${legendY + 4}">Medyan</text>
+    <circle cx="${(W - marginRight - 12).toFixed(1)}" cy="${legendY}" r="4" fill="#fd7e14"/>
+    <text class="boxplot-legend" x="${(W - marginRight - 6).toFixed(1)}" y="${legendY + 4}">Ort.</text>`;
+  }
+
+  let titleText = options.title ? `<text style="font-size:11px;font-weight:bold;fill:#4a6fa5;" x="${marginLeft}" y="${marginTop - 8}">${options.title}</text>` : '';
+
+  return `<div class="boxplot-wrap"><svg class="boxplot-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${titleText}${legend}
+    <line class="boxplot-axis" x1="${marginLeft}" y1="${marginTop}" x2="${marginLeft}" y2="${marginTop + plotH}"/>
+    <line class="boxplot-axis" x1="${marginLeft}" y1="${marginTop + plotH}" x2="${W - marginRight}" y2="${marginTop + plotH}"/>
+    ${gridLines}${gridLabels}${boxes}
+  </svg></div>`;
+}
+
+/* Birden fazla sınıfı karşılaştıran kutu grafiği — her sınıf ayrı kutu */
+function mkMultiClassBoxPlot(classDataMap, highlightClass, options) {
+  options = options || {};
+  let entries = Object.entries(classDataMap).sort((a,b)=>a[0].localeCompare(b[0],'tr'));
+  if(entries.length === 0) return '';
+  let baseColors = ['#0d6efd','#28a745','#fd7e14','#6f42c1','#17a2b8','#dc3545','#20c997','#e83e8c'];
+  let groups = entries.map(([cls, vals], i) => ({
+    label: cls,
+    values: vals,
+    color: highlightClass && cls === highlightClass ? '#dc3545' : baseColors[i % baseColors.length]
+  }));
+  let W = Math.max(560, groups.length * 90 + 80);
+  return mkBoxPlotSVG(groups, null, { ...options, width: W });
+}
+
 function getGrade(cls){ let m=String(cls||'').match(/^(\d+)/); return m?m[1]:''; }
 function getBrVal(){ let el=getEl('aBr'); if(!el) return ''; let v=el.value; return (v==='__ALL__'||!v)?'':v; }
 
@@ -1503,6 +1666,55 @@ function rH(){
   },150);
 }
 
+function buildStuBoxPlots(stuNo, examType, stuClass, stuGrade, sb) {
+  // Öğrencinin kendi değeri (tüm sınavlardaki net ortalaması)
+  let getVal = (e) => {
+    if(e.abs) return null;
+    if(sb === 'score') return e.score;
+    if(sb === 'totalNet' || !sb) return e.totalNet;
+    let _sn = e.subs[toTitleCase(sb.replace('s_',''))];
+    return (_sn !== undefined && _sn !== null) ? _sn.net : null;
+  };
+
+  let stuExams = DB.e.filter(x => x.studentNo === stuNo && x.examType === examType && !x.abs);
+  let stuVals = stuExams.map(getVal).filter(v => v !== null);
+  if(stuVals.length === 0) return '';
+  let stuAvg = stuVals.reduce((a,b)=>a+b,0) / stuVals.length;
+
+  // Sınıf içindeki tüm öğrencilerin ortalamaları
+  let clsStudentAvgs = {};
+  DB.e.filter(x => x.examType === examType && !x.abs && x.studentClass === stuClass).forEach(e => {
+    let v = getVal(e); if(v === null) return;
+    if(!clsStudentAvgs[e.studentNo]) clsStudentAvgs[e.studentNo] = [];
+    clsStudentAvgs[e.studentNo].push(v);
+  });
+  let clsAvgArr = Object.values(clsStudentAvgs).map(arr => arr.reduce((a,b)=>a+b,0)/arr.length);
+
+  // Okul (aynı sınıf seviyesi) içindeki tüm öğrencilerin ortalamaları
+  let insStudentAvgs = {};
+  DB.e.filter(x => x.examType === examType && !x.abs && getGrade(x.studentClass) === stuGrade).forEach(e => {
+    let v = getVal(e); if(v === null) return;
+    if(!insStudentAvgs[e.studentNo]) insStudentAvgs[e.studentNo] = [];
+    insStudentAvgs[e.studentNo].push(v);
+  });
+  let insAvgArr = Object.values(insStudentAvgs).map(arr => arr.reduce((a,b)=>a+b,0)/arr.length);
+
+  if(clsAvgArr.length < 3 && insAvgArr.length < 3) return '';
+
+  let label = sb === 'score' ? 'Puan' : (sb === 'totalNet' || !sb ? 'Toplam Net' : toTitleCase(sb.replace('s_','')) + ' Neti');
+
+  let clsBP = clsAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuClass, values: clsAvgArr, color:'#28a745'}], stuAvg, {title: `Sınıf İçi Dağılım — ${label} (Öğrenci Ort. Bazlı)`, height: 200}) : '';
+  let insBP = insAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuGrade+'. Sınıflar', values: insAvgArr, color:'#0d6efd'}], stuAvg, {title: `Okul İçi Dağılım — ${label} (Öğrenci Ort. Bazlı)`, height: 200}) : '';
+
+  if(!clsBP && !insBP) return '';
+
+  let cols2 = (clsBP && insBP) ? 'col-md-6' : 'col-12';
+  return `<div class="row mt-2">
+    ${clsBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıf İçi Dağılım — Kırmızı nokta = Bu öğrenci</div>${clsBP}</div></div>` : ''}
+    ${insBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-primary"></i>Okul İçi Dağılım — Kırmızı nokta = Bu öğrenci</div>${insBP}</div></div>` : ''}
+  </div>`;
+}
+
 function rAnl(){
   let aT=getEl('aType').value,eT=getEl('aEx').value, sb=getEl('aSub')?getEl('aSub').value:'', r=getEl('anlRes');
   if(c.a){ c.a.destroy(); c.a=null; } clearTimeout(chartTimer); 
@@ -1606,6 +1818,7 @@ function rAnl(){
         ${perfHtml}${trendHtml}
         <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div>
         <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+        <div id="stuBoxPlotArea"></div>
       </div>
     </div>`;
     r.innerHTML=h;
@@ -1614,7 +1827,12 @@ function rAnl(){
       let chartLabels = ex.map(e => e.publisher ? `${e.date} (${toTitleCase(e.publisher)})` : e.date);
       let datasets = [{label:`Öğrenci ${ls}`,data:dD,backgroundColor:cols[0]+'cc',borderColor:cols[0],borderWidth:1.5}];
       if(!isRank){ datasets.push({label:'Sınıf Ort.',data:clsArr,backgroundColor:cols[2]+'99',borderColor:cols[2],borderWidth:1.5}); datasets.push({label:'Kurum Ort. ('+stGrade+'.Sınıf)',data:instArr,backgroundColor:cols[3]+'99',borderColor:cols[3],borderWidth:1.5}); }
-      c.a=mkChart('cA',chartLabels,datasets,isRank); 
+      c.a=mkChart('cA',chartLabels,datasets,isRank);
+      // Kutu grafikleri
+      if(!isRank && dDValid.length >= 3) {
+        let bpArea = getEl('stuBoxPlotArea');
+        if(bpArea) bpArea.innerHTML = buildStuBoxPlots(no, eT, st.class, stGrade, sb);
+      }
     },100);
 
   }else if(aT==='class'){
@@ -1813,6 +2031,7 @@ function rAnl(){
         <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div>
         ${top5Bottom5Html}
         <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+        <div id="clsBoxPlotArea"></div>
       </div>
     </div>`;
     r.innerHTML=h;
@@ -1824,7 +2043,24 @@ function rAnl(){
         label:cl, backgroundColor:cols[i%cols.length]+'cc', borderColor:cols[i%cols.length], borderWidth:1.5,
         data:sd.map(dt=>{ let o=(d[dt]||[]).filter(x=>x.studentClass===cl); let n=o.map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net || 0; }); return n.length?n.reduce((x,y)=>x+y,0)/n.length:null; })
       })); 
-      c.a=mkChart('cA',sdLabels,ds); 
+      c.a=mkChart('cA',sdLabels,ds);
+      // Kutu grafikleri — sınıflar arası bireysel dağılım
+      let clsBPArea = getEl('clsBoxPlotArea');
+      if(clsBPArea) {
+        let classDataMap = {};
+        [...cs].sort().forEach(clsName => {
+          let vals = ex.filter(x => x.studentClass === clsName).map(x => {
+            if(sb==='score') return x.score;
+            if(sb==='totalNet'||!sb) return x.totalNet;
+            return x.subs[toTitleCase(sb.replace('s_',''))]?.net ?? null;
+          }).filter(v => v !== null);
+          if(vals.length >= 3) classDataMap[clsName] = vals;
+        });
+        if(Object.keys(classDataMap).length >= 2) {
+          let lbl = sb === 'score' ? 'Puan' : (sb === 'totalNet' || !sb ? 'Toplam Net' : toTitleCase(sb.replace('s_','')) + ' Neti');
+          clsBPArea.innerHTML = `<div class="boxplot-card mt-2"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım — ${lbl} (Bireysel Sonuçlar)</div>${mkMultiClassBoxPlot(classDataMap, null, {height:220, title:''})}</div>`;
+        }
+      }
     },100);
 
   }else if(aT==='subject'){
@@ -1973,6 +2209,7 @@ function rAnl(){
           <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-info text-white"><h3 class="card-title m-0"><i class="fas fa-school mr-1"></i> Sınıf Ortalamaları</h3></div><div class="card-body p-0 table-responsive" style="max-height:200px;"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Sınıf</th><th>Ort.Net</th><th>Kayıt</th></tr></thead><tbody>${clsArr.map((c,i) => `<tr><td>${i+1}</td><td>${c.cls}</td><td><strong>${c.avg.toFixed(2)}</strong></td><td>${c.count}</td></tr>`).join('')}</tbody></table></div></div></div>
         </div>
         <div class="chart-box mt-3 avoid-break" style="height:260px;"><canvas id="cA"></canvas></div>
+        <div id="subjBoxPlotArea"></div>
       </div>
     </div>`;
     r.innerHTML = h;
@@ -1983,6 +2220,24 @@ function rAnl(){
       let clsList = [...new Set(ex.map(e=>e.studentClass))].sort();
       let datasets = clsList.map((cls, i) => ({ label: cls, backgroundColor: cols[i % cols.length] + 'cc', borderColor: cols[i % cols.length], borderWidth: 1.5, data: dates.map(dt => { let clsExams = dateGroups[dt].filter(e => e.studentClass === cls); if(clsExams.length === 0) return null; return clsExams.reduce((a,e) => a + e.subs[toTitleCase(subj)].net, 0) / clsExams.length; }) }));
       c.a = mkChart('cA', dateLabels, datasets);
+      // Ders kutu grafiği — sınıflar arası bireysel net dağılımı
+      let subjBPArea = getEl('subjBoxPlotArea');
+      if(subjBPArea) {
+        let subjectClassMap = {};
+        clsList.forEach(cls => {
+          let vals = ex.filter(e => e.studentClass === cls).map(e => e.subs[toTitleCase(subj)].net);
+          if(vals.length >= 3) subjectClassMap[cls] = vals;
+        });
+        if(Object.keys(subjectClassMap).length >= 1) {
+          let allSubjVals = ex.map(e => e.subs[toTitleCase(subj)].net);
+          let overallSVG = mkBoxPlotSVG([{label:'Tümü', values: allSubjVals, color:'#17a2b8'}], null, {title:'Genel Dağılım', height:180});
+          let multiSVG = Object.keys(subjectClassMap).length >= 2 ? mkMultiClassBoxPlot(subjectClassMap, null, {height:220}) : '';
+          subjBPArea.innerHTML = `<div class="row mt-2">
+            <div class="col-md-4"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-info"></i>Genel Dağılım — ${toTitleCase(subj)}</div>${overallSVG}</div></div>
+            ${multiSVG ? `<div class="col-md-8"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım — ${toTitleCase(subj)}</div>${multiSVG}</div></div>` : ''}
+          </div>`;
+        }
+      }
     }, 100);
 
   }else if(aT==='examdetail'){
@@ -2103,8 +2358,32 @@ function rAnl(){
                   <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
                   <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> En Çok Son 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
               </div>
+              <div id="genSummaryBPArea"></div>
             </div>
         </div>`; r.innerHTML = h;
+        // Genel özet kutu grafiği — sınav bazlı net dağılımı
+        setTimeout(() => {
+          let bpArea = getEl('genSummaryBPArea');
+          if(!bpArea) return;
+          // Her öğrencinin tüm sınavlardaki ortalama neti
+          let stuAvgVals = Object.values(stuStats).filter(s => s.exList && s.exList.length > 0).map(s => s.avgNet);
+          // Sınıf bazlı dağılım
+          let genClassMap = {};
+          Object.values(stuStats).forEach(s => {
+            if(!s.exList || !s.exList.length) return;
+            let cls = s.cls;
+            if(!genClassMap[cls]) genClassMap[cls] = [];
+            genClassMap[cls].push(s.avgNet);
+          });
+          if(stuAvgVals.length >= 3) {
+            let overallGSBP = mkBoxPlotSVG([{label:'Tümü', values:stuAvgVals, color:'#0d6efd'}], null, {height:180, title:'Genel Net Dağılımı (Öğrenci Ort. Bazlı)'});
+            let multiGSBP = Object.keys(genClassMap).filter(c=>genClassMap[c].length>=3).length >= 2 ? mkMultiClassBoxPlot(Object.fromEntries(Object.entries(genClassMap).filter(([c,v])=>v.length>=3)), null, {height:220}) : '';
+            bpArea.innerHTML = `<div class="row mt-2">
+              <div class="${multiGSBP ? 'col-md-4' : 'col-12'}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-primary"></i>Genel Net Dağılımı — Tüm Öğrenciler</div>${overallGSBP}</div></div>
+              ${multiGSBP ? `<div class="col-md-8"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım</div>${multiGSBP}</div></div>` : ''}
+            </div>`;
+          }
+        }, 50);
 
     } else if (subSel === 'summary') {
       let batch = baseExams.filter(x => x.date === dt), currentExams = batch.filter(x => !x.abs);
@@ -2176,8 +2455,28 @@ function rAnl(){
                 <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> İlk 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
                 <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
             </div>
+            <div id="examSummaryBPArea"></div>
           </div>
       </div>`; r.innerHTML = h;
+      // Tek sınav kutu grafiği — sınıflar arası net dağılımı
+      setTimeout(() => {
+        let bpArea = getEl('examSummaryBPArea');
+        if(!bpArea) return;
+        let examClassMap = {};
+        currentExams.forEach(e => {
+          if(!examClassMap[e.studentClass]) examClassMap[e.studentClass] = [];
+          examClassMap[e.studentClass].push(e.totalNet);
+        });
+        let allNets = currentExams.map(e => e.totalNet);
+        if(allNets.length >= 3) {
+          let overallBP = mkBoxPlotSVG([{label:'Tümü', values:allNets, color:'#17a2b8'}], null, {height:180, title:'Genel Net Dağılımı'});
+          let multiClsBP = Object.keys(examClassMap).filter(c=>examClassMap[c].length>=3).length >= 2 ? mkMultiClassBoxPlot(Object.fromEntries(Object.entries(examClassMap).filter(([c,v])=>v.length>=3)), null, {height:220}) : '';
+          bpArea.innerHTML = `<div class="row mt-2">
+            <div class="${multiClsBP ? 'col-md-4' : 'col-12'}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-info"></i>Net Dağılımı — Tüm Katılımcılar</div>${overallBP}</div></div>
+            ${multiClsBP ? `<div class="col-md-8"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Net Dağılımı</div>${multiClsBP}</div></div>` : ''}
+          </div>`;
+        }
+      }, 50);
 
     } else if (subSel === 'list_single') {
       let batch = baseExams.filter(x => x.date === dt);
@@ -2397,12 +2696,14 @@ async function generateRapor() {
       }
       
       let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
+      let bpId = 'rBP_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
       html += `<div class="card shadow-sm mb-4 avoid-break exam-type-block" data-stu-name="${stu.name.replace(/"/g,'&quot;')}" data-stu-class="${stu.class}" style="border-top:3px solid #0d6efd;">
         <div class="card-header bg-light"><h3 class="card-title m-0" style="font-size:15px; font-weight:bold; color:#4a6fa5;"><i class="fas fa-book mr-2"></i>${t} Sınavları</h3></div>
         <div class="card-body p-2">
           ${cardsHtml}
           <div class="scroll"><table class="table table-sm table-bordered table-striped"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrev(x)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th><th>İlçe(S/K)</th><th>İl(S/K)</th><th>Gen(S/K)</th></tr></thead><tbody>${karneRows}${avgRow}</tbody></table></div>
           <div class="chart-box avoid-break" style="height:220px;margin-top:8px;"><canvas id="${chartId}"></canvas></div>
+          <div id="${bpId}"></div>
         </div></div>`;
     });
     html += `</div>`;
@@ -2428,6 +2729,13 @@ async function generateRapor() {
         let insNets = el.map(e => { if(e.abs) return null; let v=DB.e.filter(x=>x.date===e.date&&x.examType===t&&!x.abs&&getGrade(x.studentClass)===stGrade).map(x=>x.totalNet); return v.length?(v.reduce((a,b)=>a+b,0)/v.length):null; });
         let ch = mkChart(chartId, chartLabels, [ {label:'Öğrenci', data:stuNets, backgroundColor:cols[0]+'cc', borderColor:cols[0], borderWidth:1.5}, {label:'Sınıf Ort.', data:clsNets, backgroundColor:cols[2]+'99', borderColor:cols[2], borderWidth:1.5}, {label:'Kurum Ort.', data:insNets, backgroundColor:cols[3]+'99', borderColor:cols[3], borderWidth:1.5} ]);
         window._raporCharts.push(ch);
+        // Kutu grafikleri — toplu raporda her öğrenci için
+        let bpId = 'rBP_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
+        let bpEl = getEl(bpId);
+        if(bpEl) {
+          let bpHtml = buildStuBoxPlots(stu.no, t, stu.class, stGrade, 'totalNet');
+          if(bpHtml) bpEl.innerHTML = bpHtml;
+        }
       });
     });
   }, 200);
