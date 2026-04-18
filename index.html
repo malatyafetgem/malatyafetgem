@@ -173,19 +173,30 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 /* ===== KUTU GRAFİĞİ ===== */
 .boxplot-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .boxplot-svg { display: block; width: 100%; min-width: 280px; }
-.boxplot-box { fill: rgba(13,110,253,0.15); stroke: #0d6efd; stroke-width: 1.5; }
-.boxplot-median { stroke: #dc3545; stroke-width: 2.5; stroke-linecap: round; }
-.boxplot-whisker { stroke: #495057; stroke-width: 1.5; stroke-dasharray: 4,3; }
-.boxplot-whisker-cap { stroke: #495057; stroke-width: 1.5; }
-.boxplot-mean { fill: #fd7e14; }
-.boxplot-student { fill: #dc3545; stroke: #fff; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(220,53,69,0.6)); }
+.boxplot-box { fill: rgba(13,110,253,0.12); stroke: #0d6efd; stroke-width: 2; }
+.boxplot-median { stroke: #dc3545; stroke-width: 3; stroke-linecap: round; }
+.boxplot-whisker { stroke: #6c757d; stroke-width: 1.5; stroke-dasharray: 5,3; }
+.boxplot-whisker-cap { stroke: #6c757d; stroke-width: 2; }
+.boxplot-mean { fill: #fd7e14; stroke: #fff; stroke-width: 1.5; }
+.boxplot-student { fill: #dc3545; stroke: #fff; stroke-width: 2; filter: drop-shadow(0 0 4px rgba(220,53,69,0.7)); }
 .boxplot-outlier { fill: none; stroke: #6f42c1; stroke-width: 1.5; }
-.boxplot-label { font-family: inherit; font-size: 11px; fill: #495057; text-anchor: middle; }
-.boxplot-axis { stroke: #dee2e6; stroke-width: 1; }
-.boxplot-gridline { stroke: #f0f0f0; stroke-width: 1; }
+.boxplot-label { font-family: inherit; font-size: 12px; fill: #343a40; text-anchor: middle; font-weight: 600; }
+.boxplot-axis { stroke: #ced4da; stroke-width: 1.5; }
+.boxplot-gridline { stroke: #f1f3f5; stroke-width: 1; }
 .boxplot-legend { font-size: 11px; fill: #6c757d; }
-.boxplot-card { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-top: 14px; }
-.boxplot-title { font-size: 11px; font-weight: bold; color: #4a6fa5; margin-bottom: 8px; }
+.boxplot-card {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border: 1px solid #d0d9f0;
+  border-radius: 10px;
+  padding: 14px 14px 10px;
+  margin-top: 10px;
+  box-shadow: 0 1px 6px rgba(13,110,253,0.07);
+}
+.boxplot-title {
+  font-size: 12px; font-weight: 700; color: #3a5a9a;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
 
 /* ===== TREND ANALİZİ ===== */
 .trend-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
@@ -1383,101 +1394,124 @@ function calcBoxPlot(values) {
 */
 function mkBoxPlotSVG(groups, studentVal, options) {
   options = options || {};
-  let W = options.width || 560, H = options.height || 220;
-  let marginLeft = 46, marginRight = 16, marginTop = 28, marginBottom = 38;
+  let W = options.width || 520, H = options.height || 210;
+  let marginLeft = 44, marginRight = 14, marginTop = 32, marginBottom = 44;
   let plotW = W - marginLeft - marginRight, plotH = H - marginTop - marginBottom;
 
-  // İstatistikleri hesapla
   let stats = groups.map(g => ({ ...g, bp: calcBoxPlot(g.values) })).filter(g => g.bp);
   if(stats.length === 0) return '<div class="text-muted small text-center py-2">Kutu grafiği için yeterli veri yok.</div>';
 
-  // Y ekseni min/max
   let allVals = stats.flatMap(g => g.bp ? [g.bp.min, g.bp.max, ...(g.bp.outliers||[])] : []);
   if(studentVal !== null && studentVal !== undefined) allVals.push(studentVal);
   let yMin = Math.min(...allVals), yMax = Math.max(...allVals);
-  let pad = (yMax - yMin) * 0.12 || 2;
+  let pad = (yMax - yMin) * 0.15 || 3;
   yMin = yMin - pad; yMax = yMax + pad;
 
   let toY = v => marginTop + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
 
-  // Izgara çizgileri
+  // Arka plan bantları
+  let bgBands = '';
+  for(let i = 0; i < 5; i++) {
+    let y1 = marginTop + (plotH / 5) * i;
+    if(i % 2 === 1) bgBands += `<rect x="${marginLeft}" y="${y1.toFixed(1)}" width="${plotW}" height="${(plotH/5).toFixed(1)}" fill="rgba(0,0,0,0.018)"/>`;
+  }
+
+  // Grid + Y ekseni etiketleri
   let gridLines = '', gridLabels = '';
   let tickCount = 5;
   for(let i = 0; i <= tickCount; i++) {
     let v = yMin + (yMax - yMin) * (i / tickCount);
     let y = toY(v);
-    gridLines += `<line class="boxplot-gridline" x1="${marginLeft}" y1="${y.toFixed(1)}" x2="${W - marginRight}" y2="${y.toFixed(1)}"/>`;
-    gridLabels += `<text class="boxplot-label" x="${(marginLeft-4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" text-anchor="end">${v.toFixed(1)}</text>`;
+    gridLines += `<line x1="${marginLeft}" y1="${y.toFixed(1)}" x2="${W - marginRight}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    gridLabels += `<text x="${(marginLeft - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#8898aa">${v.toFixed(1)}</text>`;
   }
 
-  // Kutuları çiz
-  let boxWidth = Math.min(60, plotW / (stats.length * 2.2));
+  // Kutular
+  let boxWidth = Math.min(56, plotW / (stats.length * 2.0));
   let spacing = plotW / (stats.length + 1);
   let boxes = '';
+
   stats.forEach((g, i) => {
     let bp = g.bp;
     let cx = marginLeft + spacing * (i + 1);
     let color = g.color || '#0d6efd';
     let yQ1 = toY(bp.q1), yQ3 = toY(bp.q3), yMed = toY(bp.median);
     let yWLo = toY(bp.whiskerLo), yWHi = toY(bp.whiskerHi), yMean = toY(bp.mean);
-    let bx = cx - boxWidth/2;
-
-    // Bıyıklar
-    boxes += `<line class="boxplot-whisker" x1="${cx.toFixed(1)}" y1="${yQ3.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWHi.toFixed(1)}"/>`;
-    boxes += `<line class="boxplot-whisker" x1="${cx.toFixed(1)}" y1="${yQ1.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWLo.toFixed(1)}"/>`;
-    boxes += `<line class="boxplot-whisker-cap" x1="${(cx - boxWidth*0.3).toFixed(1)}" y1="${yWHi.toFixed(1)}" x2="${(cx + boxWidth*0.3).toFixed(1)}" y2="${yWHi.toFixed(1)}"/>`;
-    boxes += `<line class="boxplot-whisker-cap" x1="${(cx - boxWidth*0.3).toFixed(1)}" y1="${yWLo.toFixed(1)}" x2="${(cx + boxWidth*0.3).toFixed(1)}" y2="${yWLo.toFixed(1)}"/>`;
-
-    // IQR kutusu
+    let bx = cx - boxWidth / 2;
     let boxH = Math.abs(yQ1 - yQ3);
-    boxes += `<rect class="boxplot-box" style="fill:${color}22;stroke:${color};" x="${bx.toFixed(1)}" y="${Math.min(yQ1,yQ3).toFixed(1)}" width="${boxWidth.toFixed(1)}" height="${Math.max(boxH,1).toFixed(1)}" rx="2"/>`;
+
+    // Bıyık gövdesi
+    boxes += `<line x1="${cx.toFixed(1)}" y1="${yQ3.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWHi.toFixed(1)}" stroke="${color}" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>`;
+    boxes += `<line x1="${cx.toFixed(1)}" y1="${yQ1.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yWLo.toFixed(1)}" stroke="${color}" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>`;
+    // Bıyık uçları
+    let capW = boxWidth * 0.35;
+    boxes += `<line x1="${(cx-capW).toFixed(1)}" y1="${yWHi.toFixed(1)}" x2="${(cx+capW).toFixed(1)}" y2="${yWHi.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`;
+    boxes += `<line x1="${(cx-capW).toFixed(1)}" y1="${yWLo.toFixed(1)}" x2="${(cx+capW).toFixed(1)}" y2="${yWLo.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`;
+
+    // IQR kutusu — dolgu + dışarı kenarlık
+    boxes += `<rect x="${bx.toFixed(1)}" y="${Math.min(yQ1,yQ3).toFixed(1)}" width="${boxWidth.toFixed(1)}" height="${Math.max(boxH,2).toFixed(1)}" rx="3" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-width="2"/>`;
 
     // Medyan çizgisi
-    boxes += `<line class="boxplot-median" x1="${bx.toFixed(1)}" y1="${yMed.toFixed(1)}" x2="${(bx+boxWidth).toFixed(1)}" y2="${yMed.toFixed(1)}"/>`;
+    boxes += `<line x1="${bx.toFixed(1)}" y1="${yMed.toFixed(1)}" x2="${(bx+boxWidth).toFixed(1)}" y2="${yMed.toFixed(1)}" stroke="#dc3545" stroke-width="2.5" stroke-linecap="round"/>`;
 
-    // Ortalama noktası
-    boxes += `<circle class="boxplot-mean" cx="${cx.toFixed(1)}" cy="${yMean.toFixed(1)}" r="4" fill="#fd7e14"/>`;
+    // Ortalama nokta
+    boxes += `<circle cx="${cx.toFixed(1)}" cy="${yMean.toFixed(1)}" r="4.5" fill="#fd7e14" stroke="#fff" stroke-width="1.5"/>`;
 
     // Aykırı değerler
     (bp.outliers||[]).forEach(ov => {
-      boxes += `<circle class="boxplot-outlier" cx="${cx.toFixed(1)}" cy="${toY(ov).toFixed(1)}" r="3"/>`;
+      boxes += `<circle cx="${cx.toFixed(1)}" cy="${toY(ov).toFixed(1)}" r="3" fill="none" stroke="#6f42c1" stroke-width="1.5"/>`;
     });
 
-    // Öğrenci noktası (sadece ilgili grupta veya tek grupsa)
+    // Öğrenci nokta (vurgulu)
     if(studentVal !== null && studentVal !== undefined && !isNaN(studentVal)) {
-      // Her grupta göster
       let sy = toY(studentVal);
-      boxes += `<circle class="boxplot-student" cx="${cx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6"/>`;
-      boxes += `<line stroke="#dc3545" stroke-width="1" stroke-dasharray="3,2" x1="${(cx + boxWidth/2 + 4).toFixed(1)}" y1="${sy.toFixed(1)}" x2="${(cx + boxWidth/2 + 20).toFixed(1)}" y2="${sy.toFixed(1)}"/>`;
+      boxes += `<circle cx="${cx.toFixed(1)}" cy="${sy.toFixed(1)}" r="7" fill="#dc3545" stroke="#fff" stroke-width="2" filter="url(#stuGlow)"/>`;
     }
 
-    // Etiket
-    boxes += `<text class="boxplot-label" x="${cx.toFixed(1)}" y="${(H - marginBottom + 14).toFixed(1)}">${g.label}</text>`;
-    // İstatistik özeti (küçük metin)
-    boxes += `<text class="boxplot-legend" x="${cx.toFixed(1)}" y="${(H - marginBottom + 25).toFixed(1)}" text-anchor="middle">Med:${bp.median.toFixed(1)}</text>`;
+    // X ekseni etiketi
+    boxes += `<text x="${cx.toFixed(1)}" y="${(H - marginBottom + 15).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#343a40">${g.label}</text>`;
+    // Medyan değeri
+    boxes += `<text x="${cx.toFixed(1)}" y="${(H - marginBottom + 27).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#6c757d">Md:${bp.median.toFixed(1)}</text>`;
   });
 
-  // Açıklama (legend)
-  let legendY = marginTop - 12;
-  let legend = `<circle cx="${(W - marginRight - 110).toFixed(1)}" cy="${legendY}" r="4" fill="#dc3545"/>
-    <text class="boxplot-legend" x="${(W - marginRight - 103).toFixed(1)}" y="${legendY + 4}">Öğrenci</text>
-    <line x1="${(W - marginRight - 68).toFixed(1)}" y1="${legendY}" x2="${(W - marginRight - 56).toFixed(1)}" y2="${legendY}" stroke="#dc3545" stroke-width="2.5"/>
-    <text class="boxplot-legend" x="${(W - marginRight - 52).toFixed(1)}" y="${legendY + 4}">Medyan</text>
-    <circle cx="${(W - marginRight - 12).toFixed(1)}" cy="${legendY}" r="4" fill="#fd7e14"/>
-    <text class="boxplot-legend" x="${(W - marginRight - 6).toFixed(1)}" y="${legendY + 4}">Ort.</text>`;
-  if(studentVal === null || studentVal === undefined) {
-    legend = `<line x1="${(W - marginRight - 68).toFixed(1)}" y1="${legendY}" x2="${(W - marginRight - 56).toFixed(1)}" y2="${legendY}" stroke="#dc3545" stroke-width="2.5"/>
-    <text class="boxplot-legend" x="${(W - marginRight - 52).toFixed(1)}" y="${legendY + 4}">Medyan</text>
-    <circle cx="${(W - marginRight - 12).toFixed(1)}" cy="${legendY}" r="4" fill="#fd7e14"/>
-    <text class="boxplot-legend" x="${(W - marginRight - 6).toFixed(1)}" y="${legendY + 4}">Ort.</text>`;
+  // Legend
+  let lx = W - marginRight - 6;
+  let hasStudent = studentVal !== null && studentVal !== undefined && !isNaN(studentVal);
+  let legendItems = [];
+  if(hasStudent) legendItems.push(`<circle cx="-10" cy="0" r="5" fill="#dc3545" stroke="#fff" stroke-width="1.5"/><text x="-2" y="4" font-size="9.5" fill="#555">Öğrenci</text>`);
+  legendItems.push(`<line x1="-10" y1="0" x2="-2" y2="0" stroke="#dc3545" stroke-width="2.5" stroke-linecap="round"/><text x="-2" y="4" font-size="9.5" fill="#555">Medyan</text>`);
+  legendItems.push(`<circle cx="-10" cy="0" r="4" fill="#fd7e14" stroke="#fff" stroke-width="1"/><text x="-2" y="4" font-size="9.5" fill="#555">Ort.</text>`);
+
+  // Legend - sağdan sola yerleştir
+  let legendParts = '';
+  let lxCur = lx;
+  // Ort.
+  legendParts += `<circle cx="${(lxCur - 5).toFixed(1)}" cy="${(marginTop - 10).toFixed(1)}" r="4" fill="#fd7e14" stroke="#fff" stroke-width="1.5"/>`;
+  legendParts += `<text x="${(lxCur + 1).toFixed(1)}" y="${(marginTop - 6).toFixed(1)}" font-size="9" fill="#6c757d">Ort.</text>`;
+  lxCur -= 46;
+  // Medyan
+  legendParts += `<line x1="${(lxCur - 10).toFixed(1)}" y1="${(marginTop - 10).toFixed(1)}" x2="${(lxCur - 2).toFixed(1)}" y2="${(marginTop - 10).toFixed(1)}" stroke="#dc3545" stroke-width="2.5" stroke-linecap="round"/>`;
+  legendParts += `<text x="${(lxCur + 1).toFixed(1)}" y="${(marginTop - 6).toFixed(1)}" font-size="9" fill="#6c757d">Medyan</text>`;
+  lxCur -= 62;
+  if(hasStudent) {
+    legendParts += `<circle cx="${(lxCur - 5).toFixed(1)}" cy="${(marginTop - 10).toFixed(1)}" r="5" fill="#dc3545" stroke="#fff" stroke-width="1.5"/>`;
+    legendParts += `<text x="${(lxCur + 2).toFixed(1)}" y="${(marginTop - 6).toFixed(1)}" font-size="9" fill="#6c757d">Öğrenci</text>`;
   }
 
-  let titleText = options.title ? `<text style="font-size:11px;font-weight:bold;fill:#4a6fa5;" x="${marginLeft}" y="${marginTop - 8}">${options.title}</text>` : '';
+  let titleText = options.title ? `<text x="${marginLeft}" y="${marginTop - 10}" font-size="10" font-weight="700" fill="#3a5a9a">${options.title}</text>` : '';
 
   return `<div class="boxplot-wrap"><svg class="boxplot-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    ${titleText}${legend}
-    <line class="boxplot-axis" x1="${marginLeft}" y1="${marginTop}" x2="${marginLeft}" y2="${marginTop + plotH}"/>
-    <line class="boxplot-axis" x1="${marginLeft}" y1="${marginTop + plotH}" x2="${W - marginRight}" y2="${marginTop + plotH}"/>
+    <defs>
+      <filter id="stuGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <rect x="${marginLeft}" y="${marginTop}" width="${plotW}" height="${plotH}" fill="#fafbff" rx="2"/>
+    ${bgBands}
+    ${titleText}${legendParts}
+    <line x1="${marginLeft}" y1="${marginTop}" x2="${marginLeft}" y2="${(marginTop+plotH).toFixed(1)}" stroke="#ced4da" stroke-width="1.5"/>
+    <line x1="${marginLeft}" y1="${(marginTop+plotH).toFixed(1)}" x2="${(W-marginRight).toFixed(1)}" y2="${(marginTop+plotH).toFixed(1)}" stroke="#ced4da" stroke-width="1.5"/>
     ${gridLines}${gridLabels}${boxes}
   </svg></div>`;
 }
@@ -1540,51 +1574,74 @@ function xPR(sourceId, title, btn, orientation) {
   if(window._raporCharts) window._raporCharts.forEach(ch => { try { ch.tooltip.setActiveElements([]); ch.update('none'); } catch(e){} });
   if(c.a) { try { c.a.tooltip.setActiveElements([]); c.a.update('none'); } catch(e){} }
   if(c.h) { try { c.h.tooltip.setActiveElements([]); c.h.update('none'); } catch(e){} }
-  
+
   let portraitSources = ['pS','pC','pSubj','pSummary','pGenSummary'];
   let isPortrait = orientation === 'portrait' || portraitSources.includes(sourceId);
   let orig = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-1'></i>"; btn.disabled = true;
 
   let sourceEl = getEl(sourceId); if (!sourceEl) { btn.innerHTML = orig; btn.disabled = false; return; }
 
+  // Canvas → img dönüşümü
   let canvasMap = [];
   sourceEl.querySelectorAll('canvas').forEach(cv => { try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e) {} });
   let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
 
   let clone = sourceEl.cloneNode(true);
   clone.querySelectorAll('canvas').forEach((cv, idx) => {
-    let mapEntry = canvasMap.find(m => m.id && m.id === cv.id) || canvasMap[idx]; if (!mapEntry) { cv.remove(); return; }
-    let img = document.createElement('img'); img.src = mapEntry.url; img.className = 'print-chart-img'; cv.parentElement.replaceChild(img, cv);
+    let mapEntry = canvasMap.find(m => m.id && m.id === cv.id) || canvasMap[idx];
+    if (!mapEntry) { cv.remove(); return; }
+    let img = document.createElement('img');
+    img.src = mapEntry.url;
+    img.className = 'print-chart-img';
+    cv.parentElement.replaceChild(img, cv);
   });
 
-  clone.querySelectorAll('.no-print, .d-flex.justify-content-end').forEach(el => el.remove());
+  // Gizlenecek elemanlar
+  clone.querySelectorAll('.no-print, .d-flex.justify-content-end, .scroll-hint').forEach(el => el.remove());
   clone.querySelectorAll('.report-header').forEach(el => el.style.display = 'flex');
 
-  let bolumler = clone.querySelectorAll('.karne-bolum, .student-rapor-wrapper');
-  bolumler.forEach((b, i) => { if (i < bolumler.length - 1) b.style.pageBreakAfter = 'always'; });
-  // Her sınav türü sayfasının üstüne öğrenci başlığını ekle (ilk sayfa hariç — onun zaten başlığı var)
+  // ── SAYFA KIRMA MANTIĞI ──────────────────────────────────────────
+  // Kural: Her .exam-type-block (TYT bloğu, AYT bloğu vs.) kendi sayfasında başlar.
+  // Toplu raporda: her yeni öğrenci de yeni sayfada başlar.
+  // Ek olarak: Öğrenci isim başlığı (report-header) her exam-type-block'un önüne eklenir (ilk hariç).
+
   let examBlocks = clone.querySelectorAll('.exam-type-block');
   examBlocks.forEach((blk, idx) => {
-    let stuName = blk.getAttribute('data-stu-name') || '';
+    // Tüm exam-type-block'lar için page-break-inside: avoid + break-inside: avoid
+    blk.style.cssText += '; page-break-inside: avoid; break-inside: avoid;';
+
+    let stuName  = blk.getAttribute('data-stu-name')  || '';
     let stuClass = blk.getAttribute('data-stu-class') || '';
-    if(!stuName) return;
-    // Tek öğrenci karnesi (kCont) içindeyse: ilk blok hariç başlık ekle
-    // Toplu rapor içindeyse: her student-rapor-wrapper'in ilk bloğu hariç başlık ekle
+
+    // İlk block mı?
     let wrapper = blk.closest('.student-rapor-wrapper');
     let isFirstInScope = false;
     if(wrapper) {
       let siblings = wrapper.querySelectorAll('.exam-type-block');
       isFirstInScope = (siblings[0] === blk);
     } else {
-      // kCont scope
       isFirstInScope = (idx === 0);
     }
-    if(isFirstInScope) return;
-    let hdr = document.createElement('div');
-    hdr.className = 'report-header';
-    hdr.style.cssText = 'margin-bottom:10px;page-break-before:always;';
-    hdr.innerHTML = `<span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stuName}</strong></span><span style="font-size:13px;">Sınıf: ${stuClass}</span>`;
-    blk.parentNode.insertBefore(hdr, blk);
+
+    if(isFirstInScope) return; // İlk bloğun önüne başlık ekleme (zaten report-header var)
+
+    // Diğer blokların önüne: sayfa kırma + tekrar öğrenci başlığı
+    if(stuName) {
+      let hdr = document.createElement('div');
+      hdr.className = 'report-header print-page-hdr';
+      hdr.style.cssText = 'margin-bottom:10px; margin-top:0; page-break-before:always; break-before:page;';
+      hdr.innerHTML = `<span style="font-size:15px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stuName}</strong></span><span style="font-size:12px;">Sınıf: ${stuClass} | ${new Date().toLocaleDateString('tr-TR')}</span>`;
+      blk.parentNode.insertBefore(hdr, blk);
+    } else {
+      blk.style.cssText += '; page-break-before: always; break-before: page;';
+    }
+  });
+
+  // Toplu rapor: öğrenciler arası zorunlu sayfa kırma (student-rapor-wrapper'lar arası)
+  let wrappers = clone.querySelectorAll('.student-rapor-wrapper');
+  wrappers.forEach((w, i) => {
+    if(i > 0) w.style.cssText += '; page-break-before: always; break-before: page;';
+    w.style.cssText += '; page-break-inside: auto; break-inside: auto;';
   });
 
   let printHtml = `<!DOCTYPE html>
@@ -1594,40 +1651,180 @@ function xPR(sourceId, title, btn, orientation) {
   <title>${title}</title>
   ${cssLinks}
   <style>
-    * { box-sizing: border-box; } body { background: #fff !important; color: #000 !important; font-family: 'Source Sans Pro', Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; min-width: 1024px !important; zoom: 0.85; }
-    .report-header { display: flex !important; align-items: center; justify-content: space-between; background: #4a6fa5 !important; color: #fff !important; padding: 12px 20px; border-radius: 6px; margin-bottom: 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .report-header span, .report-header strong, .report-header i { color: #fff !important; }
-    .table { width: 100% !important; border-collapse: collapse !important; font-size: 8.5px !important; margin-bottom: 6px; } .table th, .table td { border: 1px solid #aaa !important; padding: 2px 3px !important; color: #000 !important; } .table thead th { background: #0d6efd !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8px !important; }
-    thead { display: table-header-group; } 
-    table, tbody, .card, .card-body, .scroll { page-break-inside: auto !important; break-inside: auto !important; }
-    tr, td, th { page-break-inside: avoid !important; break-inside: avoid !important; }
-    .chart-box, .info-box, .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      background: #fff !important; color: #212529 !important;
+      font-family: 'Source Sans Pro', Arial, sans-serif;
+      font-size: 10px; margin: 0; padding: 0;
+      min-width: 900px !important;
+    }
+    @page { margin: 7mm 6mm; size: ${isPortrait ? 'A4 portrait' : 'A4 landscape'}; }
 
-    tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr.avg-row td { background: #edf2f7 !important; color: #4a6fa5 !important; font-weight: bold !important; border-top: 2px solid #b0c4de !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .card { border: 1px solid #dee2e6 !important; border-radius: 4px; margin-bottom: 10px; display: block; } .card-header { background: #f8f9fa !important; padding: 8px 12px; border-bottom: 1px solid #dee2e6; } .card-body { padding: 10px 12px; } .card-outline.card-primary { border-top: 3px solid #0d6efd !important; } .card-outline.card-info { border-top: 3px solid #17a2b8 !important; } .card-outline.card-success { border-top: 3px solid #28a745 !important; } .card-outline.card-warning { border-top: 3px solid #ffc107 !important; }
-    .info-box { display: flex !important; align-items: stretch; border-radius: 4px; margin-bottom: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-icon { display: flex !important; align-items: center; justify-content: center; width: 60px !important; min-width: 60px; font-size: 1.4em; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .info-box-content { padding: 8px 10px; flex: 1; } .info-box-text { display: block; font-size: 0.78em; font-weight: 600; } .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 2px 0; } .progress-description { display: block; font-size: 0.78em; }
-    .bg-primary { background: #0d6efd !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-success { background: #28a745 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-danger { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-warning { background: #ffc107 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-info { background: #17a2b8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .bg-teal { background: #20c997 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .print-chart-img { max-width: 100%; width: 100%; max-height: ${isPortrait ? "260px" : "180px"}; height: auto; object-fit: contain; display: block; margin: 4px auto 10px; } .chart-box { height: auto !important; margin-bottom: 10px; }
-    
-    /* Desktop Format Sizing override explicitly */
-    .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -8px !important; }
-    .col-md-3 { flex: 0 0 25% !important; max-width: 25% !important; padding: 0 8px !important; }
-    .col-md-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
-    .col-md-6, .col-lg-6, .col-sm-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 8px !important; }
-    .col-lg-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
-    .col-12, .col-sm-12, .col-lg-12 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 8px !important; }
-    
-    .trend-card { background: #f8f9fa !important; border-radius: 8px; padding: 12px; margin-bottom: 10px; } .trend-indicator { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 0.82em; font-weight: bold; } .trend-up { background: rgba(40,167,69,0.15); color: #28a745; } .trend-down { background: rgba(220,53,69,0.15); color: #dc3545; } .trend-stable { background: rgba(108,117,125,0.15); color: #6c757d; } .border-left { border-left: 1px solid #dee2e6; }
-    .karne-bolum { padding-bottom: 8px; } .text-primary { color: #4a6fa5 !important; } .text-success { color: #28a745 !important; } .text-danger { color: #dc3545 !important; } .text-muted { color: #6c757d !important; } .text-center { text-align: center; } .font-weight-bold { font-weight: bold; }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.75em; } .badge-info { background: #17a2b8; color: #fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .shadow-sm { box-shadow: none !important; } h4 { font-size: 14px !important; margin: 8px 0; } h5 { font-size: 12px !important; margin: 6px 0; }
-    .no-print, .d-flex.justify-content-end, .scroll-hint, button, .btn { display: none !important; } .scroll { overflow: visible !important; } .table-responsive { overflow-x: visible !important; }
-    [style*="background:#6c757d"] { background: #6c757d !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .info-box[style*="background:#6c757d"] * { color: #fff !important; }
-    .info-box[style*="background:linear-gradient"] { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .info-box[style*="background:linear-gradient"] * { color: #fff !important; }
-    @page { margin: 8mm 6mm; size: ${isPortrait ? "A4 portrait" : "A4 landscape"}; } @page :first { margin-top: 6mm; } body { font-size: ${isPortrait ? "10px" : "10px"}; }
+    /* ── TEMEL LAYOUT ── */
+    .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -5px !important; }
+    .col-6, .col-sm-6, .col-md-6, .col-lg-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 5px !important; }
+    .col-md-3, .col-sm-3 { flex: 0 0 25% !important; max-width: 25% !important; padding: 0 5px !important; }
+    .col-md-4, .col-lg-4 { flex: 0 0 33.333% !important; max-width: 33.333% !important; padding: 0 5px !important; }
+    .col-12, .col-sm-12, .col-lg-12 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 5px !important; }
+    .col-md-2 { flex: 0 0 16.666% !important; max-width: 16.666% !important; padding: 0 5px !important; }
+    .mb-1 { margin-bottom: 3px !important; } .mb-2 { margin-bottom: 6px !important; } .mb-3 { margin-bottom: 10px !important; } .mb-4 { margin-bottom: 14px !important; }
+    .mt-2 { margin-top: 6px !important; } .mt-3 { margin-top: 10px !important; }
+    .p-2 { padding: 6px !important; } .p-0 { padding: 0 !important; }
+
+    /* ── BAŞLIK ── */
+    .report-header {
+      display: flex !important; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, #1a5fa8, #0d47a1) !important;
+      color: #fff !important; padding: 9px 14px; border-radius: 5px;
+      margin-bottom: 10px;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .report-header span, .report-header strong, .report-header i { color: #fff !important; }
+
+    /* ── TABLOLAR ── */
+    .table {
+      width: 100% !important; border-collapse: collapse !important;
+      font-size: 7.5px !important; margin-bottom: 5px;
+    }
+    .table th, .table td {
+      border: 1px solid #bbb !important;
+      padding: 1.5px 2.5px !important; color: #212529 !important;
+      vertical-align: middle !important;
+    }
+    .table thead th {
+      background: #1a5fa8 !important; color: #fff !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      font-size: 7px !important; font-weight: 700;
+    }
+    thead { display: table-header-group; }
+    tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+    .scroll, .table-responsive { overflow: visible !important; }
+
+    tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    tr.avg-row td { background: #e8eef7 !important; color: #1a5fa8 !important; font-weight: bold !important; border-top: 2px solid #9cb3d8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+    /* ── KARTLAR ── */
+    .card { border: 1px solid #ccc !important; border-radius: 4px; margin-bottom: 8px; display: block; box-shadow: none !important; }
+    .card-header { background: #f5f5f5 !important; padding: 5px 10px; border-bottom: 1px solid #ccc; font-size: 10px; }
+    .card-body { padding: 8px 10px; }
+    .card[style*="border-top:3px solid #0d6efd"], .card[style*="border-top: 3px solid #0d6efd"] { border-top: 3px solid #1a5fa8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+    /* ── INFO BOX ── */
+    .info-box {
+      display: flex !important; align-items: stretch;
+      border-radius: 5px; margin-bottom: 5px;
+      page-break-inside: avoid !important; break-inside: avoid !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .info-box-icon {
+      display: flex !important; align-items: center; justify-content: center;
+      width: 48px !important; min-width: 48px; font-size: 1.2em;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .info-box-content { padding: 5px 8px; flex: 1; }
+    .info-box-text { display: block; font-size: 0.72em; font-weight: 700; }
+    .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 1px 0; }
+    .progress-description { display: block; font-size: 0.68em; }
+    .info-box[style*="background:linear-gradient"] { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .info-box[style*="background:linear-gradient"] * { color: #fff !important; }
+    .info-box[style*="background:#6c757d"] { background: #6c757d !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .info-box[style*="background:#6c757d"] * { color: #fff !important; }
+    .bg-primary { background: #1a5fa8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bg-success  { background: #198754 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bg-danger   { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bg-warning  { background: #e6a800 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bg-info     { background: #0dcaf0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+    /* ── TREND KARTI ── */
+    .trend-card {
+      background: #f5f7fa !important; border-radius: 6px;
+      padding: 8px 10px; margin-bottom: 8px;
+      page-break-inside: avoid !important; break-inside: avoid !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .trend-indicator { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 0.78em; font-weight: bold; }
+    .trend-up    { background: rgba(40,167,69,0.15); color: #1e7e34; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .trend-down  { background: rgba(220,53,69,0.15);  color: #b02a37; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .trend-stable{ background: rgba(108,117,125,0.15); color: #495057; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .border-left { border-left: 1px solid #ccc; }
+
+    /* ── GRAFİK IMG ── */
+    .print-chart-img {
+      max-width: 100%; width: 100%;
+      max-height: ${isPortrait ? '200px' : '160px'};
+      height: auto; object-fit: contain;
+      display: block; margin: 3px auto 8px;
+    }
+    .chart-box { height: auto !important; margin-bottom: 8px; page-break-inside: avoid !important; break-inside: avoid !important; }
+
+    /* ── KUTU GRAFİĞİ ── */
+    .boxplot-card {
+      background: #f8f9ff !important; border: 1px solid #c8d4ee !important;
+      border-radius: 6px; padding: 8px 10px; margin-top: 6px;
+      page-break-inside: avoid !important; break-inside: avoid !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .boxplot-title { font-size: 10px; font-weight: 700; color: #1a5fa8; margin-bottom: 4px; }
+    .boxplot-wrap { overflow: visible !important; }
+    .boxplot-svg { max-height: 160px; width: 100%; }
+
+    /* ── RİSK KARTLARI ── */
+    [style*="border:1px solid #dc3545"], [style*="border:1px solid #fd7e14"], [style*="border:1px solid #ffc107"] {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .risk-badge {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 1px 6px; border-radius: 20px; font-size: 0.68em;
+      font-weight: 600; white-space: nowrap;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .rb-abs    { background: rgba(255,193,7,0.2);   color: #664d03; }
+    .rb-trend  { background: rgba(220,53,69,0.12);  color: #842029; }
+    .rb-rank   { background: rgba(108,117,125,0.12); color: #495057; }
+    .rb-subj   { background: rgba(111,66,193,0.12);  color: #4a1d8a; }
+
+    /* ── SAYFA KIRMA ── */
+    /* Her exam-type-block kendi sayfasında */
+    .exam-type-block {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .print-page-hdr {
+      page-break-before: always !important;
+      break-before: page !important;
+    }
+    .student-rapor-wrapper {
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+    }
+    .karne-bolum {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* ── GİZLE ── */
+    .no-print, button, .btn, .scroll-hint,
+    .d-flex.justify-content-end, #riskPanel,
+    .main-sidebar, .main-header, .content-wrapper > .overlay { display: none !important; }
+
+    /* ── TİPOGRAFİ ── */
+    h4 { font-size: 12px !important; margin: 6px 0; }
+    h5 { font-size: 11px !important; margin: 5px 0; }
+    h3.card-title { font-size: 11px !important; }
+    .text-primary  { color: #1a5fa8 !important; }
+    .text-success  { color: #198754 !important; }
+    .text-danger   { color: #dc3545 !important; }
+    .text-muted    { color: #6c757d !important; }
+    .font-weight-bold { font-weight: bold; }
+    .small, small  { font-size: 0.8em; }
+    .badge { display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 0.72em; }
+    .badge-info { background: #0dcaf0 !important; color: #055160 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .shadow-sm { box-shadow: none !important; }
   </style>
 </head>
 <body>
-  <div style="padding: 0 4px;">${clone.outerHTML}</div>
-  <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 400); });<\/script>
+  <div style="padding:0 3px;">${clone.outerHTML}</div>
+  <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},450);});<\/script>
 </body>
 </html>`;
 
@@ -2220,15 +2417,15 @@ function buildStuBoxPlots(stuNo, examType, stuClass, stuGrade, sb) {
 
   let label = sb === 'score' ? 'Puan' : (sb === 'totalNet' || !sb ? 'Toplam Net' : toTitleCase(sb.replace('s_','')) + ' Neti');
 
-  let clsBP = clsAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuClass, values: clsAvgArr, color:'#28a745'}], stuAvg, {title: `Sınıf İçi Dağılım — ${label} (Öğrenci Ort. Bazlı)`, height: 200}) : '';
-  let insBP = insAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuGrade+'. Sınıflar', values: insAvgArr, color:'#0d6efd'}], stuAvg, {title: `Okul İçi Dağılım — ${label} (Öğrenci Ort. Bazlı)`, height: 200}) : '';
+  let clsBP = clsAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuClass, values: clsAvgArr, color:'#28a745'}], stuAvg, {title: `Sınıf İçi Dağılım — ${label}`, height: 195}) : '';
+  let insBP = insAvgArr.length >= 3 ? mkBoxPlotSVG([{label: stuGrade+'. Sınıf', values: insAvgArr, color:'#0d6efd'}], stuAvg, {title: `Okul İçi Dağılım — ${label}`, height: 195}) : '';
 
   if(!clsBP && !insBP) return '';
 
   let cols2 = (clsBP && insBP) ? 'col-md-6' : 'col-12';
-  return `<div class="row mt-2">
-    ${clsBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıf İçi Dağılım — Kırmızı nokta = Bu öğrenci</div>${clsBP}</div></div>` : ''}
-    ${insBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-primary"></i>Okul İçi Dağılım — Kırmızı nokta = Bu öğrenci</div>${insBP}</div></div>` : ''}
+  return `<div class="row mt-2 avoid-break" style="page-break-inside:avoid;">
+    ${clsBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar mr-1" style="color:#28a745;"></i>Sınıf İçi Dağılım <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— kırmızı = bu öğrenci</span></div>${clsBP}</div></div>` : ''}
+    ${insBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar mr-1" style="color:#0d6efd;"></i>Okul İçi Dağılım <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— kırmızı = bu öğrenci</span></div>${insBP}</div></div>` : ''}
   </div>`;
 }
 
