@@ -296,11 +296,11 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .sys-mgmt-danger .btn-danger-modern:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(220,53,69,0.4); }
 
 /* ===== RİSK UYARI SİSTEMİ ===== */
-#riskPanel { margin-top: 14px; }
+#riskPanel { margin-top: 0; margin-bottom: 14px; }
 .risk-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .risk-panel-header h6 { margin: 0; font-weight: 700; color: #842029; font-size: 0.95rem; display: flex; align-items: center; gap: 7px; }
 .risk-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.risk-filter-bar select { font-size: 0.8rem; padding: 3px 8px; border: 1px solid #ced4da; border-radius: 6px; background: #fff; color: #212529; }
+.risk-filter-bar select { font-size: 0.8rem; padding: 3px 8px; border: 1px solid rgba(220,53,69,0.25); border-radius: 6px; background: rgba(255,255,255,0.9); color: #212529; }
 .risk-card { border-radius: 10px; border: 1px solid #f5c2c7; background: linear-gradient(135deg, #fff5f5 0%, #ffe9ec 100%); padding: 11px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: box-shadow 0.18s, transform 0.15s; }
 .risk-card:hover { box-shadow: 0 4px 14px rgba(220,53,69,0.18); transform: translateY(-1px); }
 .risk-card.risk-high { border-color: #dc3545; background: linear-gradient(135deg, #fff0f0, #ffd6d8); }
@@ -455,13 +455,11 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
             <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-info" onclick="sTab('rapor', document.getElementById('nav-rapor'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-file-alt"></i></span><div class="info-box-content"><span class="info-box-text">Toplu Rapor</span><span class="progress-description" style="font-size:0.8em;">Sınıf karneleri yazdır</span></div></div></div>
             <div class="col-md-3 col-sm-6 col-12 admin-only"><div class="info-box bg-warning" onclick="sTab('ayarlar', document.getElementById('nav-ayarlar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-cog text-white"></i></span><div class="info-box-content text-white"><span class="info-box-text">Ayarlar & Yükleme</span><span class="progress-description" style="font-size:0.8em;">Excel ile veri aktarımı</span></div></div></div>
           </div>
-          <div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div><div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div></div>
-
           <!-- RİSK UYARI PANELİ -->
-          <div id="riskPanel" class="card" style="border-top:3px solid #dc3545; display:none;">
-            <div class="card-header" style="background:linear-gradient(135deg,#dc3545,#b02a37);border:none;">
+          <div id="riskPanel" class="card" style="border-top:3px solid #e05260; display:none; box-shadow:0 2px 12px rgba(220,53,69,0.10);">
+            <div class="card-header" style="background:linear-gradient(135deg,#fff0f2 0%,#fde8eb 100%);border-bottom:1px solid rgba(220,53,69,0.15);padding:10px 14px;">
               <div class="risk-panel-header">
-                <h6 style="color:#fff;"><i class="fas fa-exclamation-triangle"></i>Risk Altındaki Öğrenciler <span id="riskTotalBadge" style="background:rgba(255,255,255,0.2);padding:1px 8px;border-radius:12px;font-size:0.82em;font-weight:600;margin-left:4px;"></span></h6>
+                <h6 style="color:#842029;"><i class="fas fa-shield-alt" style="color:#dc3545;"></i>Risk Altındaki Öğrenciler <span id="riskTotalBadge" style="background:rgba(220,53,69,0.12);color:#842029;padding:1px 8px;border-radius:12px;font-size:0.82em;font-weight:700;margin-left:4px;border:1px solid rgba(220,53,69,0.2);"></span></h6>
                 <div class="risk-filter-bar">
                   <select id="riskExTypeFilter" onchange="renderRiskPanel()" style="border-radius:6px;"><option value="">Tüm Sınav Türleri</option></select>
                   <select id="riskClassFilter" onchange="renderRiskPanel()" style="border-radius:6px;"><option value="">Tüm Sınıflar</option></select>
@@ -474,6 +472,8 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
               <div class="risk-list-wrap" id="riskList"></div>
             </div>
           </div>
+
+          <div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div><div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div></div>
         </div>
 
         <div id="anasayfa" class="pane">
