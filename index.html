@@ -1645,7 +1645,8 @@ function rH(){
     }
 
     let canvasId='cKarne_'+t.replace(/[^a-zA-Z0-9]/g,'_');
-    h+=`</tbody></table></div><div class="chart-box avoid-break" style="margin:10px 0 18px 0; height:220px;"><div style="font-size:11px;font-weight:bold;color:#4a6fa5;margin-bottom:4px;text-align:left;">${t} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div>`;
+    let bpKarneId='bpKarne_'+t.replace(/[^a-zA-Z0-9]/g,'_');
+    h+=`</tbody></table></div><div class="chart-box avoid-break" style="margin:10px 0 18px 0; height:220px;"><div style="font-size:11px;font-weight:bold;color:#4a6fa5;margin-bottom:4px;text-align:left;">${t} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div><div id="${bpKarneId}"></div></div>`;
   });
 
   h+=`</div></div>`;
@@ -1662,6 +1663,13 @@ function rH(){
       let insD=exT.map(e=>{if(e.abs)return null;let v=DB.e.filter(x=>x.date===e.date&&x.examType===t&&!x.abs&&getGrade(x.studentClass)===stGrade).map(x=>x.totalNet);return v.length?(v.reduce((a,b)=>a+b,0)/v.length):null;});
       let ch=mkChart(canvasId,chartLabels,[{label:'Toplam Net',data:stuD,backgroundColor:cols[0]+'cc',borderColor:cols[0],borderWidth:1.5},{label:'Sınıf Ort.',data:clsD,backgroundColor:cols[2]+'99',borderColor:cols[2],borderWidth:1.5},{label:'Kurum Ort.',data:insD,backgroundColor:cols[3]+'99',borderColor:cols[3],borderWidth:1.5}]);
       window._karneCharts.push(ch);
+      // Kutu grafiği — her sınav türü için ayrı ayrı
+      let bpKarneId='bpKarne_'+t.replace(/[^a-zA-Z0-9]/g,'_');
+      let bpKarneEl=getEl(bpKarneId);
+      if(bpKarneEl){
+        let bpHtml=buildStuBoxPlots(aNo, t, s.class, stGrade, 'totalNet');
+        if(bpHtml) bpKarneEl.innerHTML=bpHtml;
+      }
     });
   },150);
 }
