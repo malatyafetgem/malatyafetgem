@@ -153,6 +153,7 @@ function xPR(sourceId, title, btn, orientation) {
   let canvasMap = [];
   sourceEl.querySelectorAll('canvas').forEach(cv => { try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e) {} });
   let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+  .filter(l => !l.href.includes('style.css'))
   .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
 
   let clone = sourceEl.cloneNode(true);
@@ -322,6 +323,8 @@ function xPR(sourceId, title, btn, orientation) {
     }
     thead { display: table-header-group; }
     tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+    /* landscape toplu liste: çok satırlı tablolarda avoid satırı şişirmesin */
+    #tEDAll tbody tr, #tED tbody tr { page-break-inside: auto !important; break-inside: auto !important; }
     .scroll, .table-responsive { overflow: visible !important; }
 
     tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -445,6 +448,11 @@ function xPR(sourceId, title, btn, orientation) {
     .badge { display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 0.72em; }
     .badge-info { background: #0dcaf0 !important; color: #055160 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .shadow-sm { box-shadow: none !important; }
+    /* ── LANDSCAPE FULL WIDTH ── */
+    .wrapper, .content-wrapper, .container-fluid { 
+      margin-left: 0 !important; padding-left: 0 !important; 
+      width: 100% !important; max-width: 100% !important; 
+    }
   </style>
 </head>
 <body>
