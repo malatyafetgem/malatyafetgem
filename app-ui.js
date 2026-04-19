@@ -236,6 +236,13 @@ function xPR(sourceId, title, btn, orientation) {
     blk.style.cssText += '; page-break-inside: auto; break-inside: auto;';
   });
 
+  // Toplu liste tablolarında satır page-break'i JS ile override et (CSS specificity sorununu bypass eder)
+  if(sourceId === 'pED' || sourceId === 'pEDAll') {
+    clone.querySelectorAll('tbody tr').forEach(tr => {
+      tr.style.cssText += '; page-break-inside: auto !important; break-inside: auto !important;';
+    });
+  }
+
   let printHtml = `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -323,8 +330,6 @@ function xPR(sourceId, title, btn, orientation) {
     }
     thead { display: table-header-group; }
     tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-    /* landscape toplu liste: çok satırlı tablolarda avoid satırı şişirmesin */
-    #tEDAll tbody tr, #tED tbody tr { page-break-inside: auto !important; break-inside: auto !important; }
     .scroll, .table-responsive { overflow: visible !important; }
 
     tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
