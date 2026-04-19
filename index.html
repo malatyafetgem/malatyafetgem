@@ -1084,15 +1084,14 @@ function calcRiskScores() {
   if(!DB.e.length || !DB.s.length) return [];
 
   let gradeOf = (no) => { let st = DB.s.find(x=>x.no===no); return st ? (String(st.class||'').match(/^(\d+)/)?.[1] || '') : ''; };
-  let studentRisks = {};
 
-  // 1. Popülasyon Ortalamalarını (Sınav+SınıfSeviyesi+Tarih bazlı) önceden hesapla
+  // 1. Popülasyon Ortalamalarını (SınavTürü + SınıfSeviyesi + Tarih bazlı) önceden hesapla
   let popStats = {};
   DB.e.forEach(x => {
     if(x.abs) return;
     let gr = gradeOf(x.studentNo);
     if(!gr) return;
-    let key = x.examType + '||' + gr + '||' + x.date;
+    let key = x.examType + '||' + gr + '||' + x.date; // Sınıf seviyesi ve Sınav Türü kesin ayrımı
     if(!popStats[key]) popStats[key] = { totalNets: [], subjs: {}, stus: 0 };
     popStats[key].totalNets.push(x.totalNet);
     popStats[key].stus++;
@@ -1114,7 +1113,7 @@ function calcRiskScores() {
     };
   });
 
-  // 2. Devamsızlık hesabı için kurumda yapılan sınav tarihlerini bul
+  // 2. Devamsızlık hesabı için (SınavTürü + SınıfSeviyesi bazlı) yapılan sınav tarihlerini bul
   let examDatesByGroup = {};
   DB.e.forEach(x => {
     let gr = gradeOf(x.studentNo);
@@ -1132,15 +1131,18 @@ function calcRiskScores() {
     stuGroups[x.studentNo][x.examType].push(x);
   });
 
-  // 4. Rubrik Bazlı Hesaplama (100 Üzerinden Ağırlıklı Puanlama)
+  let riskEntries = [];
+
+  // 4. Rubrik Bazlı Hesaplama (Her Öğrencinin Her Sınav Türü İçin Ayrı Ayrı)
   Object.entries(stuGroups).forEach(([no, types]) => {
+    let stu = DB.s.find(x=>x.no===no);
+    if(!stu) return;
     let gr = gradeOf(no);
     if(!gr) return;
-    if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set(), maxScore: 0 };
     
     Object.entries(types).forEach(([eType, exams]) => {
-      studentRisks[no].examTypes.add(eType);
       let typeScore = 0; 
+      let flags = [];
       
       exams.sort((a,b) => srt(a.date, b.date));
       let attended = exams.filter(x => !x.abs);
@@ -1148,17 +1150,16 @@ function calcRiskScores() {
       let totalHeld = allDatesForGroup.length;
       
       // A) KATILIM / DEVAMSIZLIK RİSKİ KURALI (Maks 30 Puan)
-      // En az 2 sınav yapılmış olmalı.
       if(totalHeld >= 2) {
         let attRate = attended.length / totalHeld;
         let last2Dates = allDatesForGroup.slice(-2);
         let attendedLast2 = attended.filter(x => last2Dates.includes(x.date)).length;
         
         if(attRate < 0.50 || attendedLast2 === 0) {
-          studentRisks[no].flags.push({ type:'abs', severity:'high', examType:eType, detail:`${eType}: Katılım çok düşük (%${Math.round(attRate*100)}) veya son 2 sınava girmedi.`, z: 30 });
+          flags.push({ type:'abs', severity:'high', examType:eType, detail:`${eType}: Katılım çok düşük (%${Math.round(attRate*100)}) veya son 2 sınava girmedi.`, z: 30 });
           typeScore += 30;
         } else if (attRate <= 0.75) {
-          studentRisks[no].flags.push({ type:'abs', severity:'med', examType:eType, detail:`${eType}: Katılım oranı düşük (%${Math.round(attRate*100)}).`, z: 15 });
+          flags.push({ type:'abs', severity:'med', examType:eType, detail:`${eType}: Katılım oranı düşük (%${Math.round(attRate*100)}).`, z: 15 });
           typeScore += 15;
         }
       }
@@ -1168,17 +1169,17 @@ function calcRiskScores() {
         let lastEx = attended[attended.length - 1];
         let prevEx = attended[attended.length - 2];
         
-        // B) SIRALAMA GERİLEMESİ (DELTA YÜZDELİK) (Maks 40 Puan)
+        // B) SIRALAMA GERİLEMESİ (Maks 40 Puan)
         let lastPct = (parseFloat(lastEx.iR) / parseFloat(lastEx.iP)) || null;
         let prevPct = (parseFloat(prevEx.iR) / parseFloat(prevEx.iP)) || null;
         
         if(lastPct !== null && prevPct !== null) {
-          let delta = lastPct - prevPct; // Pozitif = sıralama kötüleşti
+          let delta = lastPct - prevPct; 
           if(delta >= 0.15) {
-            studentRisks[no].flags.push({ type:'rank', severity:'high', examType:eType, detail:`${eType}: Kurum sıralamasında sert gerileme (%${Math.round(delta*100)} kayıp).`, z: 40 });
+            flags.push({ type:'rank', severity:'high', examType:eType, detail:`${eType}: Kurum sıralamasında sert gerileme (%${Math.round(delta*100)} kayıp).`, z: 40 });
             typeScore += 40;
           } else if(delta >= 0.08) {
-            studentRisks[no].flags.push({ type:'rank', severity:'med', examType:eType, detail:`${eType}: Kurum sıralamasında gerileme (%${Math.round(delta*100)} kayıp).`, z: 20 });
+            flags.push({ type:'rank', severity:'med', examType:eType, detail:`${eType}: Kurum sıralamasında gerileme (%${Math.round(delta*100)} kayıp).`, z: 20 });
             typeScore += 20;
           }
         }
@@ -1191,24 +1192,20 @@ function calcRiskScores() {
         
         if(aLast && aPrev) {
           let dropScore = 0;
-          
           let checkDrop = (valL, avgL, valP, avgP) => {
             if(!avgL || !avgP) return 0;
-            let rL = valL / avgL; let rP = valP / avgP;
-            return rP - rL; // Pozitif ise ortalamaya göre gerilemiş demektir.
+            return (valP / avgP) - (valL / avgL);
           };
 
-          // C1: Toplam Net Düşüşü
           let totalDrop = checkDrop(lastEx.totalNet, aLast.totalNet, prevEx.totalNet, aPrev.totalNet);
           if(totalDrop >= 0.20) {
-            studentRisks[no].flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre ciddi düşüş.`, z: 30 });
+            flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre ciddi düşüş.`, z: 30 });
             dropScore += 30;
           } else if(totalDrop >= 0.10) {
-            studentRisks[no].flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre düşüş.`, z: 15 });
+            flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre düşüş.`, z: 15 });
             dropScore += 15;
           }
 
-          // C2: Ders Bazlı Düşüş
           if(dropScore < 30 && lastEx.subs && prevEx.subs) {
             let droppedSubjs = [];
             let maxSubjSeverity = null;
@@ -1221,7 +1218,7 @@ function calcRiskScores() {
             });
             if(droppedSubjs.length > 0) {
               let sPts = maxSubjSeverity === 'high' ? 30 : 15;
-              studentRisks[no].flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} Ders Düşüşü: ${droppedSubjs.join(', ')}`, z: sPts });
+              flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} Ders Düşüşü: ${droppedSubjs.join(', ')}`, z: sPts });
               dropScore += sPts;
             }
           }
@@ -1229,42 +1226,33 @@ function calcRiskScores() {
         }
       }
       
-      if(typeScore > studentRisks[no].maxScore) {
-        studentRisks[no].maxScore = typeScore;
+      // Eğer bu sınav türü için öğrenci risk taşıyorsa listeye ekle
+      if(typeScore > 0) {
+        let topLevel = typeScore >= 70 ? 'high' : (typeScore >= 40 ? 'med' : 'low');
+        
+        let seenTypes = new Set();
+        let uniqueFlags = [];
+        flags.forEach(f => {
+            let k = f.type + '|' + f.examType;
+            if(!seenTypes.has(k)) { seenTypes.add(k); uniqueFlags.push(f); }
+        });
+
+        riskEntries.push({ 
+          no: no, 
+          name: stu.name, 
+          cls: stu.class, 
+          score: typeScore, 
+          level: topLevel, 
+          flags: uniqueFlags, 
+          examTypes: [eType] // <-- Sadece filtrelenen Sınav Türü!
+        });
       }
     });
   });
 
-  // 5. Sonuçları formatla
-  let results = [];
-  Object.entries(studentRisks).forEach(([no, data]) => {
-    let stu = DB.s.find(x=>x.no===no); if(!stu) return;
-    if(data.maxScore === 0) return; 
-
-    let topLevel = data.maxScore >= 70 ? 'high' : (data.maxScore >= 40 ? 'med' : 'low');
-    
-    // Mükerrer rozetleri filtrele
-    let seenTypes = new Set();
-    let uniqueFlags = [];
-    data.flags.forEach(f => {
-        let k = f.type + '|' + f.examType;
-        if(!seenTypes.has(k)) { seenTypes.add(k); uniqueFlags.push(f); }
-    });
-
-    results.push({ 
-      no, 
-      name: stu.name, 
-      cls: stu.class, 
-      score: data.maxScore, 
-      level: topLevel, 
-      flags: uniqueFlags, 
-      examTypes: [...data.examTypes].sort() 
-    });
-  });
-
-  results.sort((a,b) => b.score - a.score);
-  _riskCache = { ts: Date.now(), results };
-  return results;
+  riskEntries.sort((a,b) => b.score - a.score);
+  _riskCache = { ts: Date.now(), results: riskEntries };
+  return riskEntries;
 }
 
 function renderRiskPanel() {
