@@ -1083,177 +1083,183 @@ const RISK_SEV_W = { high: 3, med: 2, low: 1 };
 function calcRiskScores() {
   if(!DB.e.length || !DB.s.length) return [];
 
-  // --- Yardımcı: popülasyon ort. ve std ---
-  function popStats(arr) {
-    let a = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
-    if(a.length < 1) return { mean: 0, std: 1 };
-    let mean = a.reduce((s,v)=>s+v,0)/a.length;
-    let variance = a.length > 1 ? a.reduce((s,v)=>s+(v-mean)**2,0)/a.length : 0;
-    return { mean, std: Math.sqrt(variance) || 1 };
-  }
-
-  // Sınıf adından grade seviyesini al (örn. "10-A" → "10")
-  function gradeOf(no) {
-    let st = DB.s.find(x=>x.no===no);
-    if(!st) return '';
-    let m = String(st.class||'').match(/^(\d+)/);
-    return m ? m[1] : '';
-  }
-
-  // examType + grade kombinasyonlarını bul (tüm kayıtlar, abs dahil)
-  let combos = new Set();
-  DB.e.forEach(x => {
-    let gr = gradeOf(x.studentNo);
-    if(gr) combos.add(x.examType + '||' + gr);
-  });
-
+  let gradeOf = (no) => { let st = DB.s.find(x=>x.no===no); return st ? (String(st.class||'').match(/^(\d+)/)?.[1] || '') : ''; };
   let studentRisks = {};
 
-  combos.forEach(combo => {
-    let [eType, grade] = combo.split('||');
-
-    // Bu kombinasyona ait katılmış sınavlar (metrik hesabı için)
-    let allExams = DB.e.filter(x => x.examType === eType && !x.abs && gradeOf(x.studentNo) === grade);
-    if(allExams.length < 2) return;
-
-    // Bu kombinasyon için kaç farklı sınav tarihi var?
-    let uniqueExamDates = new Set(allExams.map(x => x.date));
-    let hasMultipleExams = uniqueExamDates.size >= 2; // Trend/rank için en az 2 farklı sınav gerekli
-
-    // Bu kombinasyona ait TÜM öğrenciler (abs dahil) — katılım metrigi için
-    let allStuNosInCombo = [...new Set(
-      DB.e.filter(x => x.examType === eType && gradeOf(x.studentNo) === grade).map(x => x.studentNo)
-    )];
-
-    let stuNos = [...new Set(allExams.map(x=>x.studentNo))];
-
-    // ---- METRİK 1: TOPLAM NET TRENDİ (sadece birden fazla sınav varsa) ----
-    if(hasMultipleExams) {
-    let trendMap = {};
-    stuNos.forEach(no => {
-      let nets = DB.e.filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs)
-                     .sort((a,b)=>srt(a.date,b.date)).map(x=>x.totalNet);
-      if(nets.length >= 2) trendMap[no] = linRegSlope(nets);
-    });
-    let trendVals = Object.values(trendMap);
-    if(trendVals.length >= 3) {
-      let ts = popStats(trendVals);
-      Object.entries(trendMap).forEach(([no, slope]) => {
-        let z = (slope - ts.mean) / ts.std;
-        let severity = z < -2.0 ? 'high' : z < -1.5 ? 'med' : z < -1.0 ? 'low' : null;
-        if(!severity && slope < 0 && ts.std < 0.5) severity = 'low';
-        if(severity) {
-          if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set() };
-          studentRisks[no].examTypes.add(eType);
-          let sp = (slope>=0?'+':'')+slope.toFixed(2);
-          studentRisks[no].flags.push({ type:'trend', severity, examType:eType, detail:`${eType} (${grade}. Sınıf): Net eğimi ${sp}/sınav`, z });
-        }
-      });
-    }
-
-    // ---- METRİK 2: SIRALAMA GERİLEME ----
-    let rankMap = {};
-    stuNos.forEach(no => {
-      let exams = DB.e.filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs)
-                      .sort((a,b)=>srt(a.date,b.date));
-      if(!exams.length) return;
-      let last = exams[exams.length-1];
-      let iR = parseFloat(last.iR), iP = parseFloat(last.iP);
-      if(iR > 0 && iP > 0) rankMap[no] = iR / iP;
-    });
-    let rankVals = Object.values(rankMap);
-    if(rankVals.length >= 3) {
-      let rs = popStats(rankVals);
-      Object.entries(rankMap).forEach(([no, ratio]) => {
-        let z = (ratio - rs.mean) / rs.std;
-        let severity = z > 2.0 ? 'high' : z > 1.5 ? 'med' : z > 1.0 ? 'low' : null;
-        if(severity) {
-          if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set() };
-          studentRisks[no].examTypes.add(eType);
-          let last2 = DB.e.filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs).sort((a,b)=>srt(a.date,b.date)).pop();
-          let rankStr = last2 ? `${last2.iR}/${last2.iP}` : '—';
-          studentRisks[no].flags.push({ type:'rank', severity, examType:eType, detail:`${eType} (${grade}. Sınıf): Kurum sırası ${rankStr}`, z });
-        }
-      });
-    }
-
-    // ---- METRİK 3: DERS DÜŞÜŞÜ (eğim bazlı, zaman trendi) ----
-    // Her öğrencinin her dersteki netlerinin zaman eğimini hesapla
-    // Eğimleri aynı havuzdaki diğer öğrencilerle karşılaştır
-    let allSubjs = [...new Set(allExams.flatMap(x=>Object.keys(x.subs||{})))];
-    allSubjs.forEach(subj => {
-      let subjTrendMap = {};
-      stuNos.forEach(no => {
-        let subjNets = DB.e
-          .filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs&&x.subs&&x.subs[subj]!==undefined)
-          .sort((a,b)=>srt(a.date,b.date))
-          .map(x=>x.subs[subj].net);
-        if(subjNets.length >= 2) subjTrendMap[no] = linRegSlope(subjNets);
-      });
-      let stVals = Object.values(subjTrendMap);
-      if(stVals.length < 3) return;
-      let ss = popStats(stVals);
-      Object.entries(subjTrendMap).forEach(([no, slope]) => {
-        let z = (slope - ss.mean) / ss.std;
-        let severity = z < -2.0 ? 'high' : z < -1.5 ? 'med' : z < -1.0 ? 'low' : null;
-        if(!severity && slope < 0 && ss.std < 0.3) severity = 'low';
-        if(severity) {
-          if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set() };
-          studentRisks[no].examTypes.add(eType);
-          let sp = (slope>=0?'+':'')+slope.toFixed(2);
-          studentRisks[no].flags.push({ type:'subj', severity, examType:eType, detail:`${eType} (${grade}. Sınıf) / ${toTitleCase(subj)}: Eğim ${sp}/sınav`, z });
-        }
-      });
-    });
-    } // end if(hasMultipleExams)
-
-    // ---- METRİK 4: KATILIM ORANI (tek sınav olsa da değerlendirilen tek metrik) ----
-    // Tüm unique sınav anahtarları (katılmamış öğrenciler dahil tüm kayıtlardan)
-    let totalExamKeys = new Set(
-      DB.e.filter(x => x.examType === eType && gradeOf(x.studentNo) === grade)
-          .map(x => x.date + '||' + (x.publisher || ''))
-    );
-    let totalCount = totalExamKeys.size;
-    if(totalCount < 1) return; // En az 1 sınav olmalı
-    let absMap = {};
-    // Katılım hesabı: katılmış (abs=false) ve hiç katılmamış (abs=true) tüm öğrenciler dahil
-    allStuNosInCombo.forEach(no => {
-      let attended = DB.e.filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs).length;
-      absMap[no] = attended / totalCount;
-    });
-    let absVals = Object.values(absMap);
-    // Tek sınav durumunda: hiç katılmayanları (rate=0) doğrudan yüksek risk olarak işaretle
-    if(totalCount === 1) {
-      Object.entries(absMap).forEach(([no, rate]) => {
-        if(rate === 0) {
-          if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set() };
-          studentRisks[no].examTypes.add(eType);
-          studentRisks[no].flags.push({ type:'abs', severity:'high', examType:eType, detail:`${eType} (${grade}. Sınıf): Sınava katılmadı`, z: 3.0 });
-        }
-      });
-    } else if(absVals.length >= 3) {
-      let as = popStats(absVals);
-      Object.entries(absMap).forEach(([no, rate]) => {
-        let z = (rate - as.mean) / as.std;
-        let severity = z < -2.0 ? 'high' : z < -1.5 ? 'med' : z < -1.0 ? 'low' : null;
-        if(severity) {
-          if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set() };
-          studentRisks[no].examTypes.add(eType);
-          let attended = DB.e.filter(x=>x.studentNo===no&&x.examType===eType&&!x.abs).length;
-          studentRisks[no].flags.push({ type:'abs', severity, examType:eType, detail:`${eType} (${grade}. Sınıf): Katılım %${Math.round(rate*100)} (${attended}/${totalCount} sınav)`, z });
-        }
+  // 1. Popülasyon Ortalamalarını (Sınav+SınıfSeviyesi+Tarih bazlı) önceden hesapla
+  let popStats = {};
+  DB.e.forEach(x => {
+    if(x.abs) return;
+    let gr = gradeOf(x.studentNo);
+    if(!gr) return;
+    let key = x.examType + '||' + gr + '||' + x.date;
+    if(!popStats[key]) popStats[key] = { totalNets: [], subjs: {}, stus: 0 };
+    popStats[key].totalNets.push(x.totalNet);
+    popStats[key].stus++;
+    if(x.subs) {
+      Object.keys(x.subs).forEach(s => {
+        if(!popStats[key].subjs[s]) popStats[key].subjs[s] = [];
+        popStats[key].subjs[s].push(x.subs[s].net);
       });
     }
   });
 
+  let getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  let popAvgs = {};
+  Object.keys(popStats).forEach(k => {
+    let p = popStats[k];
+    popAvgs[k] = { 
+      totalNet: getAvg(p.totalNets), 
+      subjs: Object.fromEntries(Object.entries(p.subjs).map(([s, arr]) => [s, getAvg(arr)]))
+    };
+  });
+
+  // 2. Devamsızlık hesabı için kurumda yapılan sınav tarihlerini bul
+  let examDatesByGroup = {};
+  DB.e.forEach(x => {
+    let gr = gradeOf(x.studentNo);
+    if(!gr) return;
+    let key = x.examType + '||' + gr;
+    if(!examDatesByGroup[key]) examDatesByGroup[key] = new Set();
+    examDatesByGroup[key].add(x.date);
+  });
+
+  // 3. Öğrencilerin sınavlarını grupla
+  let stuGroups = {};
+  DB.e.forEach(x => {
+    if(!stuGroups[x.studentNo]) stuGroups[x.studentNo] = {};
+    if(!stuGroups[x.studentNo][x.examType]) stuGroups[x.studentNo][x.examType] = [];
+    stuGroups[x.studentNo][x.examType].push(x);
+  });
+
+  // 4. Rubrik Bazlı Hesaplama (100 Üzerinden Ağırlıklı Puanlama)
+  Object.entries(stuGroups).forEach(([no, types]) => {
+    let gr = gradeOf(no);
+    if(!gr) return;
+    if(!studentRisks[no]) studentRisks[no] = { flags:[], examTypes: new Set(), maxScore: 0 };
+    
+    Object.entries(types).forEach(([eType, exams]) => {
+      studentRisks[no].examTypes.add(eType);
+      let typeScore = 0; 
+      
+      exams.sort((a,b) => srt(a.date, b.date));
+      let attended = exams.filter(x => !x.abs);
+      let allDatesForGroup = [...(examDatesByGroup[eType + '||' + gr] || [])].sort(srt);
+      let totalHeld = allDatesForGroup.length;
+      
+      // A) KATILIM / DEVAMSIZLIK RİSKİ KURALI (Maks 30 Puan)
+      // En az 2 sınav yapılmış olmalı.
+      if(totalHeld >= 2) {
+        let attRate = attended.length / totalHeld;
+        let last2Dates = allDatesForGroup.slice(-2);
+        let attendedLast2 = attended.filter(x => last2Dates.includes(x.date)).length;
+        
+        if(attRate < 0.50 || attendedLast2 === 0) {
+          studentRisks[no].flags.push({ type:'abs', severity:'high', examType:eType, detail:`${eType}: Katılım çok düşük (%${Math.round(attRate*100)}) veya son 2 sınava girmedi.`, z: 30 });
+          typeScore += 30;
+        } else if (attRate <= 0.75) {
+          studentRisks[no].flags.push({ type:'abs', severity:'med', examType:eType, detail:`${eType}: Katılım oranı düşük (%${Math.round(attRate*100)}).`, z: 15 });
+          typeScore += 15;
+        }
+      }
+      
+      // B ve C Kriterleri için öğrencinin en az 2 sınava girmiş olması zorunludur
+      if(attended.length >= 2) {
+        let lastEx = attended[attended.length - 1];
+        let prevEx = attended[attended.length - 2];
+        
+        // B) SIRALAMA GERİLEMESİ (DELTA YÜZDELİK) (Maks 40 Puan)
+        let lastPct = (parseFloat(lastEx.iR) / parseFloat(lastEx.iP)) || null;
+        let prevPct = (parseFloat(prevEx.iR) / parseFloat(prevEx.iP)) || null;
+        
+        if(lastPct !== null && prevPct !== null) {
+          let delta = lastPct - prevPct; // Pozitif = sıralama kötüleşti
+          if(delta >= 0.15) {
+            studentRisks[no].flags.push({ type:'rank', severity:'high', examType:eType, detail:`${eType}: Kurum sıralamasında sert gerileme (%${Math.round(delta*100)} kayıp).`, z: 40 });
+            typeScore += 40;
+          } else if(delta >= 0.08) {
+            studentRisks[no].flags.push({ type:'rank', severity:'med', examType:eType, detail:`${eType}: Kurum sıralamasında gerileme (%${Math.round(delta*100)} kayıp).`, z: 20 });
+            typeScore += 20;
+          }
+        }
+        
+        // C) NORMALİZE EDİLMİŞ NET DÜŞÜŞÜ (Maks 30 Puan)
+        let pKeyLast = eType + '||' + gr + '||' + lastEx.date;
+        let pKeyPrev = eType + '||' + gr + '||' + prevEx.date;
+        let aLast = popAvgs[pKeyLast];
+        let aPrev = popAvgs[pKeyPrev];
+        
+        if(aLast && aPrev) {
+          let dropScore = 0;
+          
+          let checkDrop = (valL, avgL, valP, avgP) => {
+            if(!avgL || !avgP) return 0;
+            let rL = valL / avgL; let rP = valP / avgP;
+            return rP - rL; // Pozitif ise ortalamaya göre gerilemiş demektir.
+          };
+
+          // C1: Toplam Net Düşüşü
+          let totalDrop = checkDrop(lastEx.totalNet, aLast.totalNet, prevEx.totalNet, aPrev.totalNet);
+          if(totalDrop >= 0.20) {
+            studentRisks[no].flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre ciddi düşüş.`, z: 30 });
+            dropScore += 30;
+          } else if(totalDrop >= 0.10) {
+            studentRisks[no].flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre düşüş.`, z: 15 });
+            dropScore += 15;
+          }
+
+          // C2: Ders Bazlı Düşüş
+          if(dropScore < 30 && lastEx.subs && prevEx.subs) {
+            let droppedSubjs = [];
+            let maxSubjSeverity = null;
+            Object.keys(lastEx.subs).forEach(s => {
+              if(prevEx.subs[s]) {
+                let d = checkDrop(lastEx.subs[s].net, aLast.subjs[s], prevEx.subs[s].net, aPrev.subjs[s]);
+                if(d >= 0.20) { droppedSubjs.push(toTitleCase(s)); maxSubjSeverity = 'high'; }
+                else if(d >= 0.10 && maxSubjSeverity !== 'high') { droppedSubjs.push(toTitleCase(s)); maxSubjSeverity = maxSubjSeverity || 'med'; }
+              }
+            });
+            if(droppedSubjs.length > 0) {
+              let sPts = maxSubjSeverity === 'high' ? 30 : 15;
+              studentRisks[no].flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} Ders Düşüşü: ${droppedSubjs.join(', ')}`, z: sPts });
+              dropScore += sPts;
+            }
+          }
+          typeScore += Math.min(dropScore, 30);
+        }
+      }
+      
+      if(typeScore > studentRisks[no].maxScore) {
+        studentRisks[no].maxScore = typeScore;
+      }
+    });
+  });
+
+  // 5. Sonuçları formatla
   let results = [];
   Object.entries(studentRisks).forEach(([no, data]) => {
     let stu = DB.s.find(x=>x.no===no); if(!stu) return;
-    let score = data.flags.reduce((s,f) => s + RISK_SEV_W[f.severity] * Math.abs(f.z), 0);
-    let topLevel = data.flags.some(f=>f.severity==='high') ? 'high'
-                 : data.flags.some(f=>f.severity==='med')  ? 'med'  : 'low';
-    let examTypesArr = [...(data.examTypes||[])].sort();
-    results.push({ no, name: stu.name, cls: stu.class, score, level: topLevel, flags: data.flags, examTypes: examTypesArr });
+    if(data.maxScore === 0) return; 
+
+    let topLevel = data.maxScore >= 70 ? 'high' : (data.maxScore >= 40 ? 'med' : 'low');
+    
+    // Mükerrer rozetleri filtrele
+    let seenTypes = new Set();
+    let uniqueFlags = [];
+    data.flags.forEach(f => {
+        let k = f.type + '|' + f.examType;
+        if(!seenTypes.has(k)) { seenTypes.add(k); uniqueFlags.push(f); }
+    });
+
+    results.push({ 
+      no, 
+      name: stu.name, 
+      cls: stu.class, 
+      score: data.maxScore, 
+      level: topLevel, 
+      flags: uniqueFlags, 
+      examTypes: [...data.examTypes].sort() 
+    });
   });
 
   results.sort((a,b) => b.score - a.score);
