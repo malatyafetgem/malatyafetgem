@@ -1322,7 +1322,7 @@ function renderRiskPanel() {
     let badgesHtml = topFlags.map(f =>
       `<span class="risk-badge rb-${f.type}" title="${f.detail}"><i class="fas ${typeIcon[f.type]}" style="font-size:0.8em;"></i>${typeLabel[f.type]}</span>`
     ).join('');
-    return `<div class="risk-card risk-${r.level}" onclick="goToStudent('${r.no}')">
+    return `<div class="risk-card risk-${r.level}">
       <div class="risk-avatar"><i class="fas ${levelIcon[r.level]}"></i></div>
       <div class="risk-body">
         <div class="risk-name">${r.name}</div>
