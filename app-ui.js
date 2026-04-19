@@ -153,8 +153,6 @@ function xPR(sourceId, title, btn, orientation) {
   let canvasMap = [];
   sourceEl.querySelectorAll('canvas').forEach(cv => { try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e) {} });
   let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-  .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n'); 
   .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
 
   let clone = sourceEl.cloneNode(true);
