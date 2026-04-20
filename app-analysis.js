@@ -945,6 +945,8 @@ function rAnl(){
     if(sortedClasses.length > 0 && allVals.length > 0) {
       let topCls = sortedClasses.map(clsName => { let cv = ex.filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }); return {cls: clsName, avg: cv.length?(cv.reduce((a,b)=>a+b,0)/cv.length):0, count: cv.length}; }).sort((a,b)=>b.avg-a.avg);
       let best = topCls[0], worst = topCls[topCls.length-1], genAvgPerf = allVals.reduce((a,b)=>a+b,0)/allVals.length, aboveAvg = topCls.filter(x=>x.avg >= genAvgPerf).length;
+      // Tek şube seçiliyse (topCls.length === 1) karşılaştırma kartları anlamsız — gizle
+      let showCompCards = topCls.length > 1;
       
       // === Sınıf Katılım Oranı ===
       // Mantık: Seçilen sınıf seviyesi (+ varsa şube) içindeki uygun her öğrenci için,
@@ -983,10 +985,14 @@ function rAnl(){
       let partRate = baseCount > 0 ? Math.max(0, Math.min(100, Math.round((attendedCount / baseCount) * 100))) : 0;
 
       clsPerfHtml = `<div class="row mb-3">
+        ${showCompCards ? `
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-success h-100"><span class="info-box-icon"><i class="fas fa-trophy"></i></span><div class="info-box-content"><span class="info-box-text">En İyi Sınıf</span><span class="info-box-number">${best.cls}</span><span class="progress-description">Ort: ${best.avg.toFixed(2)}</span></div></div></div>
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-danger h-100"><span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">En Düşük Sınıf</span><span class="info-box-number">${worst.cls}</span><span class="progress-description">Ort: ${worst.avg.toFixed(2)}</span></div></div></div>
+        ` : ''}
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="info-box bg-primary h-100"><span class="info-box-icon"><i class="fas fa-calculator"></i></span><div class="info-box-content"><span class="info-box-text">Kurum Ort. (${lvlLabel})</span><span class="info-box-number">${genAvgPerf.toFixed(2)}</span></div></div></div>
+        ${showCompCards ? `
         <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box bg-info h-100"><span class="info-box-icon"><i class="fas fa-star"></i></span><div class="info-box-content"><span class="info-box-text">Ort. Üstü Sınıf</span><span class="info-box-number">${aboveAvg} / ${topCls.length}</span></div></div></div>
+        ` : ''}
         <div class="col-md-6 col-lg flex-fill mb-2"><div class="info-box h-100" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Katılım Oranı</span><span class="info-box-number">%${partRate}</span><span class="progress-description" style="color:#e0e0e0;">${attendedCount} / ${baseCount} Katılım</span></div></div></div>
       </div>`;
     }
@@ -1522,6 +1528,7 @@ function rAnl(){
       if (!currentExams.length) { r.innerHTML='<div class="alert alert-default-warning">Bu sınavda geçerli sonuç bulunmuyor.</div>'; return; }
 
       let filteredDates = [...new Set(baseExams.map(x=>x.date))].sort(srt), currentIndex = filteredDates.indexOf(dt), prevDate = currentIndex > 0 ? filteredDates[currentIndex - 1] : null;
+      let isFirstExam = (currentIndex === 0 || prevDate === null);
       let prevBatch = prevDate ? DB.e.filter(x => x.examType === eT && x.date === prevDate) : [];
       if(targetLvl) prevBatch = prevBatch.filter(x => getGrade(x.studentClass) === targetLvl);
       // === FIX: summary sıralama her zaman PUAN'a (score) göre, eşitlikte totalNet ===
@@ -1575,12 +1582,16 @@ function rAnl(){
           <div class="card-body" style="padding-top:5px;">
             <div class="row">
                 <div class="col-md-4 col-sm-12"><div class="info-box bg-warning" style="color:#fff !important;"><span class="info-box-icon"><i class="fas fa-trophy text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Birincisi</span><span class="info-box-number" style="font-size:1.1em;">${getName(winner.studentNo)} <small>(${winner.studentClass})</small></span><span class="progress-description" style="font-size:0.9em;">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</span></div></div></div>
+                ${!isFirstExam ? `
                 <div class="col-md-4 col-sm-12"><div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Çıkış</span><span class="info-box-number" style="font-size:1.1em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} ➔ ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
                 <div class="col-md-4 col-sm-12"><div class="info-box bg-danger"><span class="info-box-icon"><i class="fas fa-level-down-alt"></i></span><div class="info-box-content"><span class="info-box-text">Önceki Sınava Göre En Büyük Düşüş</span><span class="info-box-number" style="font-size:1.1em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+                ` : ''}
             </div>
             <div class="row mt-2">
+                ${!isFirstExam ? `
                 <div class="col-md-4 col-sm-12"><div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-arrow-up"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Artan Ders</span><span class="info-box-number" style="font-size:1.1em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
                 <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#dc3545; color:#fff;"><span class="info-box-icon"><i class="fas fa-arrow-down"></i></span><div class="info-box-content"><span class="info-box-text">Ortalaması En Çok Düşen Ders</span><span class="info-box-number" style="font-size:1.1em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</span><span class="progress-description" style="font-size:0.9em;">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} ➔ ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</span></div></div></div>
+                ` : ''}
                 <div class="col-md-4 col-sm-12"><div class="info-box" style="background:#6c757d; color:#fff;"><span class="info-box-icon"><i class="fas fa-users text-white"></i></span><div class="info-box-content"><span class="info-box-text">Sınav Katılım Oranı</span><span class="info-box-number" style="font-size:1.1em;">%${partRateE}</span><span class="progress-description" style="font-size:0.9em; color:#e0e0e0;">${currentExams.length} / ${eligibleStusE.length} Öğrenci</span></div></div></div>
             </div>
             
