@@ -121,6 +121,8 @@ function mkChart(canvasId,labels,datasets,rev=false){
 // ---- xXL (orig lines 1553-1557) ----
 function xXL(id,fn){
   let tbl=getEl(id),wb=XLSX.utils.book_new(),ws=XLSX.utils.table_to_sheet(tbl),range=XLSX.utils.decode_range(ws['!ref']||'A1:A1'),wscols=[];
+  // Tarih olarak yorumlanan "12/98" gibi sıra değerlerini string'e zorla
+  for(let R=range.s.r;R<=range.e.r;R++){for(let C=range.s.c;C<=range.e.c;C++){let ref=XLSX.utils.encode_cell({r:R,c:C});let cell=ws[ref];if(cell&&cell.t!=='s'&&typeof cell.v==='string'&&/^\d+\/\d+$/.test(cell.v)){cell.t='s';}else if(cell&&cell.t==='n'&&/^\d+\/\d+$/.test(String(cell.w||''))){cell.t='s';cell.v=String(cell.w);}}}
   for(let C=range.s.c;C<=range.e.c;C++){let maxW=6;for(let R=range.s.r;R<=range.e.r;R++){let cell=ws[XLSX.utils.encode_cell({r:R,c:C})];if(cell&&cell.v)maxW=Math.max(maxW,String(cell.v).length+2);}wscols.push({wch:Math.min(maxW,32)});}
   ws['!cols']=wscols; XLSX.utils.book_append_sheet(wb,ws,'Rapor'); XLSX.writeFile(wb,fn+'.xlsx');
 }
@@ -130,6 +132,8 @@ function xXLMul(cId,fn){
   let wb=XLSX.utils.book_new(),ts=getEl(cId).getElementsByTagName('table');
   for(let i=0;i<ts.length;i++){
     let ws=XLSX.utils.table_to_sheet(ts[i]),range=XLSX.utils.decode_range(ws['!ref']||'A1:A1'),wscols=[];
+    // Tarih olarak yorumlanan "12/98" gibi sıra değerlerini string'e zorla
+    for(let R=range.s.r;R<=range.e.r;R++){for(let C=range.s.c;C<=range.e.c;C++){let ref=XLSX.utils.encode_cell({r:R,c:C});let cell=ws[ref];if(cell&&cell.t!=='s'&&typeof cell.v==='string'&&/^\d+\/\d+$/.test(cell.v)){cell.t='s';}else if(cell&&cell.t==='n'&&/^\d+\/\d+$/.test(String(cell.w||''))){cell.t='s';cell.v=String(cell.w);}}}
     for(let C=range.s.c;C<=range.e.c;C++){let maxW=6;for(let R=range.s.r;R<=range.e.r;R++){let cell=ws[XLSX.utils.encode_cell({r:R,c:C})];if(cell&&cell.v)maxW=Math.max(maxW,String(cell.v).length+2);}wscols.push({wch:Math.min(maxW,32)});}
     ws['!cols']=wscols; XLSX.utils.book_append_sheet(wb,ws,ts[i].getAttribute('data-sh')||('Sayfa'+i));
   }
