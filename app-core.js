@@ -38,9 +38,6 @@ const ADMIN_UID="YLozrXC5w4OmD4HRzjlgF80qPCp1";
 
 // ---- checkAuth (orig lines 698-721) ----
 function checkAuth(){
-  // Hide both screens until Firebase responds
-  getEl('loginScreen').style.display='none';
-  getEl('mainApp').style.display='none';
   auth.onAuthStateChanged(user=>{
     if(user){
       getEl('loginScreen').style.display='none';
@@ -51,16 +48,10 @@ function checkAuth(){
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
       init(); showPwaPopupIfReady();
       
-      // Restore pane from URL hash on page reload
-      setTimeout(() => {
-        let hash = window.location.hash ? window.location.hash.replace('#', '') : '';
-        let validPanes = ['anasayfa_genel', 'anasayfa', 'sonuclar', 'rapor', 'ayarlar'];
-        if(hash && validPanes.includes(hash)) {
-          window.history.replaceState({ pane: hash }, '', '#' + hash);
-          executeTabSwitch(hash, true);
-        } else {
-          window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
-        }
+      // İlk girişte History API State başlat
+      setTimeout(() => { 
+        // Ana sayfa için replaceState (back = uygulamadan çık)
+        window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
       }, 100);
 
     }else{
