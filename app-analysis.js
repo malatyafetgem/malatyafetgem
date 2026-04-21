@@ -1760,6 +1760,31 @@ function rAnl(){
         return String(a.name||'').localeCompare(String(b.name||''),'tr',{sensitivity:'base'});
       });
 
+      // Sınıf sırası: aynı cls içinde avgScore'a göre sıralama
+      let clsRankMap = {};
+      stuArr.forEach(s => {
+        if(!clsRankMap[s.cls]) clsRankMap[s.cls] = [];
+        clsRankMap[s.cls].push(s);
+      });
+      let clsSizeMap = {};
+      Object.keys(clsRankMap).forEach(cls => {
+        let sorted = [...clsRankMap[cls]].sort((a,b) => { let dp=(b.avgScore||0)-(a.avgScore||0); return dp!==0?dp:(b.avgNet||0)-(a.avgNet||0); });
+        sorted.forEach((s, i) => { clsSizeMap[s.no] = { rank: i+1, total: sorted.length }; });
+      });
+
+      // Okul sırası: aynı sınıf seviyesi (grade) içinde avgScore'a göre sıralama
+      let gradeRankMap = {};
+      stuArr.forEach(s => {
+        let gr = String(s.cls||'').match(/^(\d+)/)?.[1] || '';
+        if(!gradeRankMap[gr]) gradeRankMap[gr] = [];
+        gradeRankMap[gr].push(s);
+      });
+      let gradeSizeMap = {};
+      Object.keys(gradeRankMap).forEach(gr => {
+        let sorted = [...gradeRankMap[gr]].sort((a,b) => { let dp=(b.avgScore||0)-(a.avgScore||0); return dp!==0?dp:(b.avgNet||0)-(a.avgNet||0); });
+        sorted.forEach((s, i) => { gradeSizeMap[s.no] = { rank: i+1, total: sorted.length }; });
+      });
+
       let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
       let examDatesAll = [...new Set(allEx.map(x => x.date))].sort(srt);
       let metaStrAll = `Hesaplanan Sınav: ${examDatesAll.length} | Listelenen Öğrenci: ${stuArr.length} | Sıralama: Ortalama Puan`;
@@ -1768,7 +1793,10 @@ function rAnl(){
       let bodyRowsAll = stuArr.map((s, idx) => {
         let isSel = aNo && s.no === aNo, rCls = isSel ? 'highlight-row' : '';
         let subCells = allSubKeys.map(k => `<td>${s.subAvgs[k] !== null ? s.subAvgs[k].toFixed(2) : '—'}</td>`).join('');
-        return `<tr class="${rCls}"><td>${idx+1}</td><td>${s.name}</td><td>${s.cls}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${s.examCount}</td></tr>`;
+        let cR = clsSizeMap[s.no]; let gR = gradeSizeMap[s.no];
+        let clsRankCell = cR ? `${cR.rank}/${cR.total}` : '—';
+        let schoolRankCell = gR ? `${gR.rank}/${gR.total}` : '—';
+        return `<tr class="${rCls}"><td>${idx+1}</td><td>${s.name}</td><td>${s.cls}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${clsRankCell}</td><td>${schoolRankCell}</td><td>${s.examCount}</td></tr>`;
       }).join('');
 
       let allAvgRow = '';
@@ -1780,7 +1808,7 @@ function rAnl(){
         let genAvgNet = (stuArr.reduce((a,s)=>a+s.avgNet,0)/stuArr.length).toFixed(2);
         let genAvgScore = (stuArr.reduce((a,s)=>a+s.avgScore,0)/stuArr.length).toFixed(2);
         let genAvgExam = (stuArr.reduce((a,s)=>a+s.examCount,0)/stuArr.length).toFixed(1);
-        allAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">GENEL ORTALAMA (${stuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td>${genAvgExam}</td></tr>`;
+        allAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">GENEL ORTALAMA (${stuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td><td>${genAvgExam}</td></tr>`;
       }
 
       let safeNameAll = `${eT}_TumSinavlar_Toplu`;
@@ -1794,7 +1822,7 @@ function rAnl(){
           <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
           <div class="scroll">
             <table class="table table-sm table-hover table-bordered" id="tEDAll">
-              <thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headColsAll}<th>Top.Net Ort.</th><th>Puan Ort.</th><th>Sınav Say.</th></tr></thead>
+              <thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headColsAll}<th>Top.Net Ort.</th><th>Puan Ort.</th><th>Sıra/Sınıf</th><th>Sıra/Okul</th><th>Sınav Say.</th></tr></thead>
               <tbody>${bodyRowsAll}${allAvgRow}</tbody>
             </table>
           </div>
