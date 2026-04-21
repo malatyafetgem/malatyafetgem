@@ -48,10 +48,15 @@ function checkAuth(){
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
       init(); showPwaPopupIfReady();
       
-      // İlk girişte History API State başlat
+      // Yenileme sonrası mevcut URL hash'ini oku ve o sekmede kal
       setTimeout(() => { 
-        // Ana sayfa için replaceState (back = uygulamadan çık)
-        window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
+        let hash = window.location.hash.replace('#', '');
+        let validPanes = ['anasayfa_genel', 'anasayfa', 'sonuclar', 'rapor', 'ayarlar'];
+        let targetPane = validPanes.includes(hash) ? hash : 'anasayfa_genel';
+        
+        // History'yi güncelle ve sekmeyi aktif et
+        window.history.replaceState({ pane: targetPane }, '', '#' + targetPane);
+        executeTabSwitch(targetPane, true); // UI'ı bu sekmeye geçir
       }, 100);
 
     }else{
@@ -169,7 +174,7 @@ function toTitleCase(str) {
 // ---- init (orig lines 801-851) ----
 async function init(){
   applyTheme(false);
-  ld(1,'Sistem altyapısı hazırlanıyor...');
+  // ld(1,'Sistem altyapısı hazırlanıyor...'); // Bu satırı sildik/kapattık
 
   let v2Snap = await database.ref('db_v2/students').once('value');
   if (!v2Snap.exists()) {
