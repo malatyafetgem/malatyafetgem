@@ -6,16 +6,16 @@ let currentPane = 'anasayfa_genel';
 // ---- top-level (orig lines 945-970) ----
 window.addEventListener('popstate', function(e) {
   let isMobile = window.innerWidth < 768;
-  // Giriş ekranı görünüyorsa: tarayıcıya bırak
+  // Giriş ekranı görünüyorsa: tarayıcıyı kapat / bir önceki sayfaya git (zaten doğal davranış)
   let loginVisible = getEl('loginScreen') && getEl('loginScreen').style.display !== 'none';
-  if(loginVisible) return;
+  if(loginVisible) return; // Giriş ekranındaysa doğal davranışa bırak
 
   if(isMobile) {
     if(currentPane === 'anasayfa_genel') {
+      // Ana sayfadayken geri → uygulamadan çık (tarayıcıya bırak)
+      // history.back() sonsuz döngüye girmemek için kontrol
       if(e.state && e.state.pane === 'anasayfa_genel') {
-        // Ana sayfadayken geri tuşu → çıkış onayı (uygulama içi modal)
-        window.history.pushState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
-        _showExitConfirm();
+        // Gerçekten çıkmak istiyoruz; window.history.go(-1) yerine Android'in doğal back'i zaten çalışacak
         return;
       }
       executeTabSwitch('anasayfa_genel', true);
@@ -30,28 +30,6 @@ window.addEventListener('popstate', function(e) {
   let targetPane = (e.state && e.state.pane) ? e.state.pane : 'anasayfa_genel';
   executeTabSwitch(targetPane, true);
 });
-
-// ---- _showExitConfirm (uygulama içi çıkış onayı — Android confirm() desteği yok) ----
-function _showExitConfirm() {
-  // Zaten açıksa tekrar açma
-  if(getEl('exitConfirmOverlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'exitConfirmOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99998;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px 0;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px 16px 16px 16px;padding:22px 24px 18px;width:calc(100% - 32px);max-width:380px;box-shadow:0 -4px 24px rgba(0,0,0,0.18);text-align:center;">
-      <div style="font-size:2em;margin-bottom:8px;">👋</div>
-      <div style="font-weight:700;font-size:1em;color:#212529;margin-bottom:6px;">Uygulamadan çıkmak istiyor musunuz?</div>
-      <div style="font-size:0.82em;color:#6c757d;margin-bottom:18px;">Tüm verileriniz bulutta güvende.</div>
-      <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('exitConfirmOverlay').remove();" style="flex:1;padding:11px;border:1.5px solid #dee2e6;border-radius:10px;background:#fff;font-size:0.92em;font-weight:600;color:#495057;cursor:pointer;">İptal</button>
-        <button onclick="window.history.go(-2);" style="flex:1;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc3545,#b02a37);color:#fff;font-size:0.92em;font-weight:600;cursor:pointer;">Çıkış Yap</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  // Overlay'e tıklayınca kapat
-  overlay.addEventListener('click', function(ev){ if(ev.target === overlay) overlay.remove(); });
-}
 
 // ---- sTab (orig lines 972-977) ----
 function sTab(id, el) {
@@ -583,57 +561,66 @@ function anlStuClear(){ getEl('anlStuInp').value=''; getEl('anlStuRes').style.di
 // ---- top-level (orig lines 1913-1913) ----
 document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anlStuInp'); if(res&&inp&&!res.contains(e.target)&&e.target!==inp)res.style.display='none'; let res2=getEl('sRes'),inp2=getEl('sInp'); if(res2&&inp2&&!res2.contains(e.target)&&e.target!==inp2)res2.style.display='none'; });
 
+// ---- examColorIdx: sınav türü adından deterministik renk index'i (0-7) üretir ----
+function examColorIdx(name){
+  let s = String(name||''); let h = 0;
+  for(let i=0;i<s.length;i++){ h = ((h<<5) - h) + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h) % 8;
+}
+// ---- toExamLabel: "tyt deneme" -> "TYT Denemesi" gibi Türkçe-uyumlu Title Case + ek ----
+function toExamLabel(t){
+  let s = String(t||'').trim();
+  if(!s) return '';
+  // Kelime bazlı Title Case (Türkçe karakter güvenli)
+  return s.split(/\s+/).map(w => {
+    if(!w) return w;
+    // Kısaltma gibi tamamı büyük harfse aynen bırak (TYT, AYT, KTT, LGS vb.)
+    if(w.length <= 4 && w === w.toLocaleUpperCase('tr')) return w;
+    let first = w.charAt(0).toLocaleUpperCase('tr');
+    let rest  = w.slice(1).toLocaleLowerCase('tr');
+    return first + rest;
+  }).join(' ');
+}
+
 // ---- uStat (orig lines 1915-1921) ----
 function uStat(){
-  const g = getEl('dynamicStatsGrid');
-  if(!g) return;
-
-  // Sınav türü → toplam batch + sınıf seviyesi bazlı sayım
-  const typeData = {};
+  const g=getEl('dynamicStatsGrid'); if(!g) return;
+  // Sınav türü -> { total, grades:{9:n,10:n,...} }
+  const u = {};
   Object.values(EXAM_META).forEach(m => {
-    if(!m.examType) return;
-    if(!typeData[m.examType]) typeData[m.examType] = { total: 0, grades: {} };
-    typeData[m.examType].total++;
-    (m.grades || []).forEach(gr => {
-      typeData[m.examType].grades[gr] = (typeData[m.examType].grades[gr] || 0) + 1;
+    const t = m.examType; if(!t) return;
+    if(!u[t]) u[t] = { total:0, grades:{} };
+    u[t].total += 1;
+    // Sınıf seviyelerini m.grades veya m.grade'dan al
+    let gs = [];
+    if(Array.isArray(m.grades) && m.grades.length) gs = m.grades.map(String);
+    else if(m.grade) gs = [String(m.grade)];
+    gs.forEach(gr => {
+      if(!gr) return;
+      u[t].grades[gr] = (u[t].grades[gr]||0) + 1;
     });
   });
 
-  // İkon ve arka plan rengi — üstteki link kartlarıyla tutarlı
-  const cl = ['primary','success','info','warning','danger'];
-  const ic = ['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark'];
-
-  // Sınıf pill renkleri: ikonu ve kutunun rengini geçmeyecek, hafif arka planlar
-  const gradePillColors = {
-    '9':  { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
-    '10': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
-    '11': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
-    '12': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
-  };
-  const defaultPill = { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' };
-
-  let h = '', i = 0;
-  for(const [t, data] of Object.entries(typeData)){
-    const clr = cl[i % cl.length];
-    const sortedGrades = Object.keys(data.grades).sort((a,b) => parseInt(a)-parseInt(b));
-    const pc = gradePillColors;
-    const pillsHtml = sortedGrades.map(gr => {
-      const p = pc[gr] || defaultPill;
-      return `<span class="stat-grade-pill" style="background:${p.bg};border:1px solid ${p.border};color:${p.text};">${gr}.Snf&nbsp;<strong>${data.grades[gr]}</strong></span>`;
-    }).join('');
-
-    h += `<div class="col-md-3 col-sm-6 col-12">
-      <div class="info-box bg-${clr} mb-3" style="flex-wrap:wrap;align-items:flex-start;">
-        <span class="info-box-icon" style="align-self:flex-start;"><i class="${ic[i % ic.length]}"></i></span>
-        <div class="info-box-content" style="min-width:0;">
-          <span class="info-box-text" style="color:#fff;">${t} Sınavı</span>
-          <span class="info-box-number" style="color:#fff;">${data.total} <small style="font-size:0.6em;opacity:0.9;">Deneme</small></span>
-          ${pillsHtml ? `<div class="stat-grade-pills">${pillsHtml}</div>` : ''}
+  const ic = ['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark','fas fa-graduation-cap','fas fa-clipboard-list','fas fa-chart-line'];
+  const entries = Object.entries(u).sort((a,b)=> a[0].localeCompare(b[0],'tr'));
+  let h = '';
+  entries.forEach(([t, info]) => {
+    const colorIdx = examColorIdx(t);
+    const label = toExamLabel(t) + ' Denemesi';
+    const gradeKeys = Object.keys(info.grades).sort((a,b)=> Number(a)-Number(b));
+    const gradesHtml = gradeKeys.length
+      ? gradeKeys.map(gr => `<span class="hsc-grade"><strong>${gr}</strong><small>:</small>${info.grades[gr]} <small>deneme</small></span>`).join('')
+      : '<span class="hsc-empty">Sınıf bilgisi yok</span>';
+    h += `<div class="col-md-4 col-sm-6 col-12 mb-3">
+      <div class="home-stat-card exam-color-${colorIdx}">
+        <div class="hsc-head">
+          <span class="hsc-title"><i class="${ic[colorIdx % ic.length]}"></i>${label}</span>
+          <span class="hsc-count">${info.total} <small>deneme</small></span>
         </div>
+        <div class="hsc-grades">${gradesHtml}</div>
       </div>
     </div>`;
-    i++;
-  }
+  });
   g.innerHTML = h;
 }
 
