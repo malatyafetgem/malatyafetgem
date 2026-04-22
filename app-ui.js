@@ -6,21 +6,16 @@ let currentPane = 'anasayfa_genel';
 // ---- top-level (orig lines 945-970) ----
 window.addEventListener('popstate', function(e) {
   let isMobile = window.innerWidth < 768;
-  // Giriş ekranı görünüyorsa: tarayıcıyı kapat / bir önceki sayfaya git (zaten doğal davranış)
+  // Giriş ekranı görünüyorsa: tarayıcıya bırak
   let loginVisible = getEl('loginScreen') && getEl('loginScreen').style.display !== 'none';
-  if(loginVisible) return; // Giriş ekranındaysa doğal davranışa bırak
+  if(loginVisible) return;
 
   if(isMobile) {
     if(currentPane === 'anasayfa_genel') {
-      // Ana sayfadayken geri → çıkış onayı sor
       if(e.state && e.state.pane === 'anasayfa_genel') {
-        if(confirm('Uygulamadan çıkmak istiyor musunuz?')) {
-          // Kullanıcı onayladı — tarayıcıya bırak, bir önceki sayfaya git
-          window.history.go(-1);
-        } else {
-          // İptal — history'yi geri ekliyoruz ki bir sonraki geri tuşu yine bu soruyu sorsun
-          window.history.pushState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
-        }
+        // Ana sayfadayken geri tuşu → çıkış onayı (uygulama içi modal)
+        window.history.pushState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
+        _showExitConfirm();
         return;
       }
       executeTabSwitch('anasayfa_genel', true);
@@ -35,6 +30,28 @@ window.addEventListener('popstate', function(e) {
   let targetPane = (e.state && e.state.pane) ? e.state.pane : 'anasayfa_genel';
   executeTabSwitch(targetPane, true);
 });
+
+// ---- _showExitConfirm (uygulama içi çıkış onayı — Android confirm() desteği yok) ----
+function _showExitConfirm() {
+  // Zaten açıksa tekrar açma
+  if(getEl('exitConfirmOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'exitConfirmOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99998;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px 0;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px 16px 16px 16px;padding:22px 24px 18px;width:calc(100% - 32px);max-width:380px;box-shadow:0 -4px 24px rgba(0,0,0,0.18);text-align:center;">
+      <div style="font-size:2em;margin-bottom:8px;">👋</div>
+      <div style="font-weight:700;font-size:1em;color:#212529;margin-bottom:6px;">Uygulamadan çıkmak istiyor musunuz?</div>
+      <div style="font-size:0.82em;color:#6c757d;margin-bottom:18px;">Tüm verileriniz bulutta güvende.</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('exitConfirmOverlay').remove();" style="flex:1;padding:11px;border:1.5px solid #dee2e6;border-radius:10px;background:#fff;font-size:0.92em;font-weight:600;color:#495057;cursor:pointer;">İptal</button>
+        <button onclick="window.history.go(-2);" style="flex:1;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc3545,#b02a37);color:#fff;font-size:0.92em;font-weight:600;cursor:pointer;">Çıkış Yap</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Overlay'e tıklayınca kapat
+  overlay.addEventListener('click', function(ev){ if(ev.target === overlay) overlay.remove(); });
+}
 
 // ---- sTab (orig lines 972-977) ----
 function sTab(id, el) {
@@ -568,10 +585,10 @@ document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anl
 
 // ---- uStat (orig lines 1915-1921) ----
 function uStat(){
-  const g=getEl('dynamicStatsGrid');
+  const g = getEl('dynamicStatsGrid');
   if(!g) return;
 
-  // Sınav türü bazlı: toplam batch sayısı + sınıf seviyesi dökümü
+  // Sınav türü → toplam batch + sınıf seviyesi bazlı sayım
   const typeData = {};
   Object.values(EXAM_META).forEach(m => {
     if(!m.examType) return;
@@ -582,26 +599,35 @@ function uStat(){
     });
   });
 
-  const cl  = ['primary','success','warning','danger','info'];
-  const ic  = ['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark'];
-  // Sınıf seviyesi pill renkleri (9→mavi, 10→yeşil, 11→turuncu, 12→mor, diğer→gri)
-  const gradeColors = { '9':'#0d6efd','10':'#198754','11':'#fd7e14','12':'#6f42c1' };
-  const gradeDefault = '#6c757d';
+  // İkon ve arka plan rengi — üstteki link kartlarıyla tutarlı
+  const cl = ['primary','success','info','warning','danger'];
+  const ic = ['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark'];
+
+  // Sınıf pill renkleri: ikonu ve kutunun rengini geçmeyecek, hafif arka planlar
+  const gradePillColors = {
+    '9':  { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
+    '10': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
+    '11': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
+    '12': { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' },
+  };
+  const defaultPill = { bg:'rgba(255,255,255,0.25)', border:'rgba(255,255,255,0.5)', text:'#fff' };
 
   let h = '', i = 0;
   for(const [t, data] of Object.entries(typeData)){
+    const clr = cl[i % cl.length];
     const sortedGrades = Object.keys(data.grades).sort((a,b) => parseInt(a)-parseInt(b));
+    const pc = gradePillColors;
     const pillsHtml = sortedGrades.map(gr => {
-      const col = gradeColors[gr] || gradeDefault;
-      return `<span class="stat-grade-pill" style="background:${col}18;color:${col};border:1px solid ${col}44;">${gr}.Snf <strong>${data.grades[gr]}</strong></span>`;
+      const p = pc[gr] || defaultPill;
+      return `<span class="stat-grade-pill" style="background:${p.bg};border:1px solid ${p.border};color:${p.text};">${gr}.Snf&nbsp;<strong>${data.grades[gr]}</strong></span>`;
     }).join('');
 
     h += `<div class="col-md-3 col-sm-6 col-12">
-      <div class="info-box mb-3">
-        <span class="info-box-icon bg-${cl[i%cl.length]} elevation-1"><i class="${ic[i%ic.length]}"></i></span>
-        <div class="info-box-content">
-          <span class="info-box-text">${t} Sınavı</span>
-          <span class="info-box-number">${data.total} <small>deneme</small></span>
+      <div class="info-box bg-${clr} mb-3" style="flex-wrap:wrap;align-items:flex-start;">
+        <span class="info-box-icon" style="align-self:flex-start;"><i class="${ic[i % ic.length]}"></i></span>
+        <div class="info-box-content" style="min-width:0;">
+          <span class="info-box-text" style="color:#fff;">${t} Sınavı</span>
+          <span class="info-box-number" style="color:#fff;">${data.total} <small style="font-size:0.6em;opacity:0.9;">Deneme</small></span>
           ${pillsHtml ? `<div class="stat-grade-pills">${pillsHtml}</div>` : ''}
         </div>
       </div>
