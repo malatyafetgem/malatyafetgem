@@ -287,6 +287,53 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .sys-mgmt-danger .btn-danger-modern { background: linear-gradient(135deg, #dc3545, #b02a37); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; flex-shrink: 0; box-shadow: 0 2px 6px rgba(220,53,69,0.3); }
 .sys-mgmt-danger .btn-danger-modern:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(220,53,69,0.4); }
 
+/* ===== ANA SAYFA STAT KARTLARI — SINIF PILL ===== */
+.stat-grade-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.stat-grade-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.72em;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.stat-grade-pill strong {
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+/* ===== ÖĞRENCİ SAYFASI — SINAV TÜRÜ BAŞLIK ŞERİDİ ===== */
+.karne-type-header {
+  /* Temel stiller inline'da; burada sadece print uyumu */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* Birinci blok dışındaki bloklarda üstte ince ayırıcı çizgi — ekranda görünür, baskıda page-break */
+.karne-bolum + .karne-bolum {
+  border-top: 1px solid #e9ecef;
+  padding-top: 4px;
+}
+@media print {
+  .stat-grade-pills { display: none !important; } /* Baskıda pill gereksiz, kart sığmazlık riski */
+  .karne-type-header {
+    background: #f0f4ff !important;
+    border-left: 4px solid #0d6efd !important;
+    padding: 7px 12px !important;
+    margin-bottom: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  .karne-bolum + .karne-bolum { border-top: none; }
+}
+
 /* ===== RİSK UYARI SİSTEMİ ===== */
 #riskPanel { margin-top: 0; margin-bottom: 14px; }
 .risk-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
