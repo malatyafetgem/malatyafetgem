@@ -606,16 +606,16 @@ function uStat(){
   let h = '';
   entries.forEach(([t, info]) => {
     const colorIdx = examColorIdx(t);
-    const label = toExamLabel(t) + ' Denemesi';
+    const label = toExamLabel(t);
     const gradeKeys = Object.keys(info.grades).sort((a,b)=> Number(a)-Number(b));
     const gradesHtml = gradeKeys.length
-      ? gradeKeys.map(gr => `<span class="hsc-grade"><strong>${gr}</strong><small>:</small>${info.grades[gr]} <small>deneme</small></span>`).join('')
+      ? gradeKeys.map(gr => `<span class="hsc-grade"><strong>${gr}. Sınıf</strong><small>:</small> ${info.grades[gr]} <small>Deneme</small></span>`).join('')
       : '<span class="hsc-empty">Sınıf bilgisi yok</span>';
     h += `<div class="col-md-4 col-sm-6 col-12 mb-3">
       <div class="home-stat-card exam-color-${colorIdx}">
         <div class="hsc-head">
           <span class="hsc-title"><i class="${ic[colorIdx % ic.length]}"></i>${label}</span>
-          <span class="hsc-count">${info.total} <small>deneme</small></span>
+          <span class="hsc-count">${info.total} <small>Deneme</small></span>
         </div>
         <div class="hsc-grades">${gradesHtml}</div>
       </div>
