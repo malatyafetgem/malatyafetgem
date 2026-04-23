@@ -186,8 +186,40 @@ function xPR(sourceId, title, btn, orientation) {
   let sourceEl = getEl(sourceId); if (!sourceEl) { btn.innerHTML = orig; btn.disabled = false; return; }
 
   // Canvas → img dönüşümü
+  // Bazı grafikler (özellikle Öğrenci Analiz sayfasındaki ders gelişim grafiği)
+  // print anında 0×0 boyutta olup boş dataURL üretebiliyor. Boş çıkan canvas'lar
+  // için Chart.resize() ile yeniden çiz, hâlâ boşsa fallback olarak orijinal
+  // canvas boyutunu sabitle ve tekrar dene.
   let canvasMap = [];
-  sourceEl.querySelectorAll('canvas').forEach(cv => { try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e) {} });
+  sourceEl.querySelectorAll('canvas').forEach(cv => {
+    try {
+      // 1. Önce mevcut haliyle dene
+      let url = '';
+      if (cv.width > 0 && cv.height > 0) {
+        url = cv.toDataURL('image/png', 1.0);
+      }
+      // 2. Boyut 0 ise: ChartJS instance'ını bul, resize et, tekrar dene
+      if (!url || url === 'data:,' || url.length < 100) {
+        let chInst = (window.Chart && Chart.getChart) ? Chart.getChart(cv) : null;
+        if (chInst) {
+          // Geçici görünür konteyner — clone ederek body'ye ekle, ölç, tekrar çiz
+          let parentRect = cv.parentElement ? cv.parentElement.getBoundingClientRect() : { width: 0, height: 0 };
+          let w = parentRect.width  > 50 ? parentRect.width  : 720;
+          let h = parentRect.height > 50 ? parentRect.height : 320;
+          let oldStyle = cv.getAttribute('style') || '';
+          cv.style.width  = w + 'px';
+          cv.style.height = h + 'px';
+          try { chInst.resize(w, h); chInst.update('none'); } catch(e) {}
+          url = cv.toDataURL('image/png', 1.0);
+          cv.setAttribute('style', oldStyle);
+          try { chInst.resize(); } catch(e) {}
+        }
+      }
+      if (url && url !== 'data:,' && url.length > 100) {
+        canvasMap.push({ id: cv.id, url: url });
+      }
+    } catch(e) {}
+  });
   let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
   .filter(l => !l.href.includes('style.css'))
   .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
@@ -195,7 +227,7 @@ function xPR(sourceId, title, btn, orientation) {
   let clone = sourceEl.cloneNode(true);
   clone.querySelectorAll('canvas').forEach((cv, idx) => {
     let mapEntry = canvasMap.find(m => m.id && m.id === cv.id) || canvasMap[idx];
-    if (!mapEntry) { cv.remove(); return; }
+    if (!mapEntry || !mapEntry.url) { cv.remove(); return; }
     let img = document.createElement('img');
     img.src = mapEntry.url;
     img.className = 'print-chart-img';
@@ -387,10 +419,95 @@ function xPR(sourceId, title, btn, orientation) {
     tr.avg-row td { background: #e8eef7 !important; color: #1a5fa8 !important; font-weight: bold !important; border-top: 2px solid #9cb3d8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
     /* ── KARTLAR ── */
-    .card { border: 1px solid #ccc !important; border-radius: 4px; margin-bottom: 8px; display: block; box-shadow: none !important; }
-    .card-header { background: #f5f5f5 !important; padding: 5px 10px; border-bottom: 1px solid #ccc; font-size: 10px; }
-    .card-body { padding: 8px 10px; }
-    .card[style*="border-top:3px solid #0d6efd"], .card[style*="border-top: 3px solid #0d6efd"] { border-top: 3px solid #1a5fa8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    /* Mobil tarayıcılarda da arka plan ve çerçeve görünmesi için zorla renk koruması */
+    *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    .card {
+      background: #fff !important; background-color: #fff !important;
+      border: 1px solid #ccc !important; border-radius: 4px;
+      margin-bottom: 8px; display: block; box-shadow: none !important;
+      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    }
+    .card-body, .card-footer { background: #fff !important; background-color: #fff !important; }
+    .card-header { background: #f5f5f5 !important; background-color: #f5f5f5 !important; padding: 5px 10px; border-bottom: 1px solid #ccc; font-size: 10px; }
+    .card-header.bg-light   { background: #f8f9fa !important; background-color: #f8f9fa !important; color: #212529 !important; }
+    .card-header.bg-success { background: #d4edda !important; background-color: #d4edda !important; color: #155724 !important; }
+    .card-header.bg-danger  { background: #f8d7da !important; background-color: #f8d7da !important; color: #721c24 !important; }
+    .card-header.bg-warning { background: #fff3cd !important; background-color: #fff3cd !important; color: #856404 !important; }
+    .card-header.bg-info    { background: #d1ecf1 !important; background-color: #d1ecf1 !important; color: #0c5460 !important; }
+    .card-header.bg-primary { background: #cfe2ff !important; background-color: #cfe2ff !important; color: #084298 !important; }
+    .card[style*="border-top:3px solid #0d6efd"], .card[style*="border-top: 3px solid #0d6efd"] { border-top: 3px solid #1a5fa8 !important; }
+
+    /* ── SINAV TÜRÜ RENK SİSTEMİ — KARNE & RAPOR KARTLARI ──
+       Karne (öğrenci sayfası): sol+sağ 3px renkli, üst+alt 1px gri.
+       Rapor (toplu rapor): üst+sol+sağ 3px renkli, alt 1px gri.
+       Mobil yazdırmada var() ve color-mix() güvenilmez olduğu için literal hex. */
+    .exam-color-0 { --exc: #5a7fa8; --exb: #ebeff4; --ext: #4d6b8b; --exbb: #d6dfe9; }
+    .exam-color-1 { --exc: #2a9d8f; --exb: #e5f3f1; --ext: #278377; --exbb: #cae6e3; }
+    .exam-color-2 { --exc: #c97b3b; --exb: #f8efe7; --ext: #a66734; --exbb: #f1dece; }
+    .exam-color-3 { --exc: #b65a7a; --exb: #f6ebef; --ext: #974d67; --exbb: #edd6de; }
+    .exam-color-4 { --exc: #7e6cb0; --exb: #efedf5; --ext: #6a5b92; --exbb: #dfdaeb; }
+    .exam-color-5 { --exc: #4a8a6b; --exb: #e9f1ed; --ext: #40735b; --exbb: #d2e2da; }
+    .exam-color-6 { --exc: #5b6cad; --exb: #ebedf5; --ext: #4e5b8f; --exbb: #d6daea; }
+    .exam-color-7 { --exc: #c97560; --exb: #f8eeec; --ext: #a66352; --exbb: #f1dcd7; }
+
+    /* Karne kartı (sınıf=karne-bolum) — sol+sağ renkli bar */
+    .exam-type-block.karne-bolum.exam-color-0 { border:1px solid #e9ecef !important; border-left:3px solid #5a7fa8 !important; border-right:3px solid #5a7fa8 !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-1 { border:1px solid #e9ecef !important; border-left:3px solid #2a9d8f !important; border-right:3px solid #2a9d8f !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-2 { border:1px solid #e9ecef !important; border-left:3px solid #c97b3b !important; border-right:3px solid #c97b3b !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-3 { border:1px solid #e9ecef !important; border-left:3px solid #b65a7a !important; border-right:3px solid #b65a7a !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-4 { border:1px solid #e9ecef !important; border-left:3px solid #7e6cb0 !important; border-right:3px solid #7e6cb0 !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-5 { border:1px solid #e9ecef !important; border-left:3px solid #4a8a6b !important; border-right:3px solid #4a8a6b !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-6 { border:1px solid #e9ecef !important; border-left:3px solid #5b6cad !important; border-right:3px solid #5b6cad !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+    .exam-type-block.karne-bolum.exam-color-7 { border:1px solid #e9ecef !important; border-left:3px solid #c97560 !important; border-right:3px solid #c97560 !important; background:#fff !important; border-radius:6px !important; padding:6px 10px !important; }
+
+    /* Karne başlığı (h5) — sınav türü renginde başlık + alt çizgi + sayaç rozeti */
+    .exam-type-block.karne-bolum.exam-color-0 > h5 { color:#4d6b8b !important; border-bottom:1px solid #d6dfe9 !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-1 > h5 { color:#278377 !important; border-bottom:1px solid #cae6e3 !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-2 > h5 { color:#a66734 !important; border-bottom:1px solid #f1dece !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-3 > h5 { color:#974d67 !important; border-bottom:1px solid #edd6de !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-4 > h5 { color:#6a5b92 !important; border-bottom:1px solid #dfdaeb !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-5 > h5 { color:#40735b !important; border-bottom:1px solid #d2e2da !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-6 > h5 { color:#4e5b8f !important; border-bottom:1px solid #d6daea !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+    .exam-type-block.karne-bolum.exam-color-7 > h5 { color:#a66352 !important; border-bottom:1px solid #f1dcd7 !important; padding-bottom:4px !important; margin-bottom:6px !important; }
+
+    .etb-count { display:inline-block; padding:1px 7px; border-radius:10px; font-size:0.78em; font-weight:600; }
+    .exam-color-0 .etb-count { background:#ebeff4 !important; color:#5a7fa8 !important; }
+    .exam-color-1 .etb-count { background:#e5f3f1 !important; color:#2a9d8f !important; }
+    .exam-color-2 .etb-count { background:#f8efe7 !important; color:#c97b3b !important; }
+    .exam-color-3 .etb-count { background:#f6ebef !important; color:#b65a7a !important; }
+    .exam-color-4 .etb-count { background:#efedf5 !important; color:#7e6cb0 !important; }
+    .exam-color-5 .etb-count { background:#e9f1ed !important; color:#4a8a6b !important; }
+    .exam-color-6 .etb-count { background:#ebedf5 !important; color:#5b6cad !important; }
+    .exam-color-7 .etb-count { background:#f8eeec !important; color:#c97560 !important; }
+
+    /* Toplu Rapor kartı (sınıf=rapor-exam-block) — üst+sol+sağ renkli */
+    .exam-type-block.rapor-exam-block.exam-color-0 { border:1px solid #e9ecef !important; border-top:3px solid #5a7fa8 !important; border-left:3px solid #5a7fa8 !important; border-right:3px solid #5a7fa8 !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-1 { border:1px solid #e9ecef !important; border-top:3px solid #2a9d8f !important; border-left:3px solid #2a9d8f !important; border-right:3px solid #2a9d8f !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-2 { border:1px solid #e9ecef !important; border-top:3px solid #c97b3b !important; border-left:3px solid #c97b3b !important; border-right:3px solid #c97b3b !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-3 { border:1px solid #e9ecef !important; border-top:3px solid #b65a7a !important; border-left:3px solid #b65a7a !important; border-right:3px solid #b65a7a !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-4 { border:1px solid #e9ecef !important; border-top:3px solid #7e6cb0 !important; border-left:3px solid #7e6cb0 !important; border-right:3px solid #7e6cb0 !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-5 { border:1px solid #e9ecef !important; border-top:3px solid #4a8a6b !important; border-left:3px solid #4a8a6b !important; border-right:3px solid #4a8a6b !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-6 { border:1px solid #e9ecef !important; border-top:3px solid #5b6cad !important; border-left:3px solid #5b6cad !important; border-right:3px solid #5b6cad !important; border-radius:6px !important; background:#fff !important; }
+    .exam-type-block.rapor-exam-block.exam-color-7 { border:1px solid #e9ecef !important; border-top:3px solid #c97560 !important; border-left:3px solid #c97560 !important; border-right:3px solid #c97560 !important; border-radius:6px !important; background:#fff !important; }
+
+    /* Rapor kartı başlığı — sınav türü pastel arka plan + koyu renk metin */
+    .exam-type-block.rapor-exam-block.exam-color-0 > .card-header { background:#ebeff4 !important; background-color:#ebeff4 !important; border-bottom:1px solid #d6dfe9 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-1 > .card-header { background:#e5f3f1 !important; background-color:#e5f3f1 !important; border-bottom:1px solid #cae6e3 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-2 > .card-header { background:#f8efe7 !important; background-color:#f8efe7 !important; border-bottom:1px solid #f1dece !important; }
+    .exam-type-block.rapor-exam-block.exam-color-3 > .card-header { background:#f6ebef !important; background-color:#f6ebef !important; border-bottom:1px solid #edd6de !important; }
+    .exam-type-block.rapor-exam-block.exam-color-4 > .card-header { background:#efedf5 !important; background-color:#efedf5 !important; border-bottom:1px solid #dfdaeb !important; }
+    .exam-type-block.rapor-exam-block.exam-color-5 > .card-header { background:#e9f1ed !important; background-color:#e9f1ed !important; border-bottom:1px solid #d2e2da !important; }
+    .exam-type-block.rapor-exam-block.exam-color-6 > .card-header { background:#ebedf5 !important; background-color:#ebedf5 !important; border-bottom:1px solid #d6daea !important; }
+    .exam-type-block.rapor-exam-block.exam-color-7 > .card-header { background:#f8eeec !important; background-color:#f8eeec !important; border-bottom:1px solid #f1dcd7 !important; }
+
+    .exam-type-block.rapor-exam-block.exam-color-0 > .card-header .card-title { color:#4d6b8b !important; }
+    .exam-type-block.rapor-exam-block.exam-color-1 > .card-header .card-title { color:#278377 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-2 > .card-header .card-title { color:#a66734 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-3 > .card-header .card-title { color:#974d67 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-4 > .card-header .card-title { color:#6a5b92 !important; }
+    .exam-type-block.rapor-exam-block.exam-color-5 > .card-header .card-title { color:#40735b !important; }
+    .exam-type-block.rapor-exam-block.exam-color-6 > .card-header .card-title { color:#4e5b8f !important; }
+    .exam-type-block.rapor-exam-block.exam-color-7 > .card-header .card-title { color:#a66352 !important; }
 
     /* ── INFO BOX ── */
     .info-box {
