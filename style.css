@@ -406,14 +406,19 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .exam-color-7 { --exam-color: #c97560; } /* coral */
 
 /* ===== ÖĞRENCİ SAYFASI — SINAV TÜRÜ BLOK SARMALAYICISI ===== */
-/* Her sınav türünün başlangıcı/bitişi net görünsün diye ince kart + sol renkli bar */
+/* Her sınav türünün başlangıcı/bitişi net görünsün diye çerçeve + iki yanda renkli bar */
+/* Negatif yatay margin ile bloğu .card-body padding'inin dışına taşır,
+   böylece üstteki .report-header ile tam aynı genişlikte hizalanır */
 .exam-type-block.karne-bolum {
   position: relative;
   background: #fff;
   border: 1px solid #e9ecef;
-  border-left: 4px solid var(--exam-color, #0d6efd);
+  border-left: 3px solid var(--exam-color, #0d6efd);
+  border-right: 3px solid var(--exam-color, #0d6efd);
   border-radius: 8px;
   padding: 12px 16px 14px;
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
   margin-bottom: 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
