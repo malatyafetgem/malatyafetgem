@@ -996,7 +996,6 @@ function buildStuBoxPlots(stuNo, examType, stuClass, stuGrade, sb) {
 
   let stuExams = DB.e.filter(x => x.studentNo === stuNo && x.examType === examType && !x.abs);
   let stuVals = stuExams.map(getVal).filter(v => v !== null);
-  if(stuVals.length === 10) return '';
   let stuAvg = stuVals.reduce((a,b)=>a+b,0) / stuVals.length;
 
   // Sınıf içindeki tüm öğrencilerin ortalamaları
@@ -1108,7 +1107,7 @@ function rAnl(){
         let _dTC = (_tnStu!==null&&_tnCls!==null)?(_tnStu-_tnCls):null, _dTI = (_tnStu!==null&&_tnIns!==null)?(_tnStu-_tnIns):null;
         let _fmtT = v => v===null?'—':(v>0?'+':'')+v.toFixed(2);
         let _clsT = v => v===null?'':(v>0?'text-success':(v<0?'text-danger':''));
-        rowsSE += `<tr class="avg-row" style="font-weight:bold;"><td></td><td>Toplam Net</td><td>—</td><td>—</td><td><strong>${_tnStu!==null&&_tnStu!==undefined?_tnStu.toFixed(2):'—'}</strong></td><td>${_tnCls!==null?_tnCls.toFixed(2):'—'}</td><td class="${_clsT(_dTC)} font-weight-bold">${_fmtT(_dTC)}</td><td>${_tnIns!==null?_tnIns.toFixed(2):'—'}</td><td class="${_clsT(_dTI)} font-weight-bold">${_fmtT(_dTI)}</td></tr>`;
+        rowsSE += `<tr class="avg-row" style="font-weight:bold;"><td><strong>Σ</strong></td><td>Toplam Net</td><td>—</td><td>—</td><td><strong>${_tnStu!==null&&_tnStu!==undefined?_tnStu.toFixed(2):'—'}</strong></td><td>${_tnCls!==null?_tnCls.toFixed(2):'—'}</td><td class="${_clsT(_dTC)} font-weight-bold">${_fmtT(_dTC)}</td><td>${_tnIns!==null?_tnIns.toFixed(2):'—'}</td><td class="${_clsT(_dTI)} font-weight-bold">${_fmtT(_dTI)}</td></tr>`;
 
         let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Tek_Sinav',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
         <div id="pS" class="card shadow-sm">
@@ -1256,9 +1255,9 @@ function rAnl(){
             return iv.length ? iv.reduce((a,b)=>a+b,0)/iv.length : null;
           });
           c.a = mkChart('cA', tLabels, [
-            {label:'Öğrenci', data:tStuData, backgroundColor:cols[0]+'cc', borderColor:cols[0], borderWidth:1.5, type:'line', fill:false, tension:0.3},
-            {label:'Sınıf Ort.', data:tClsData, backgroundColor:cols[2]+'99', borderColor:cols[2], borderWidth:1.5, type:'line', fill:false, tension:0.3},
-            {label:'Kurum Ort.', data:tInsData, backgroundColor:cols[3]+'99', borderColor:cols[3], borderWidth:1.5, type:'line', fill:false, tension:0.3}
+            {label:'Öğrenci', data:tStuData, backgroundColor:cols[0]+'cc', borderColor:cols[0], borderWidth:1.5},
+            {label:'Sınıf Ort.', data:tClsData, backgroundColor:cols[2]+'99', borderColor:cols[2], borderWidth:1.5},
+            {label:'Kurum Ort.', data:tInsData, backgroundColor:cols[3]+'99', borderColor:cols[3], borderWidth:1.5}
           ], false);
         }, 100);
         return;
@@ -1347,12 +1346,12 @@ function rAnl(){
         chartTimer = setTimeout(() => {
           let tLabels = ex.map(e => e.publisher ? `${e.date} (${toTitleCase(e.publisher)})` : e.date);
           let tData = ex.map(getValSE);
-          let datasets = [{label:ls, data:tData, backgroundColor:cols[0]+'cc', borderColor:cols[0], borderWidth:1.5, type:'line', fill:false, tension:0.3}];
+          let datasets = [{label:ls, data:tData, backgroundColor:cols[0]+'cc', borderColor:cols[0], borderWidth:1.5}];
           if(!isRank){
             let tCls = ex.map(e => { let cv=DB.e.filter(x=>x.date===e.date&&(x.publisher||'')===(e.publisher||'')&&x.examType===eT&&x.studentClass===st.class&&!x.abs).map(getValSE).filter(v=>v!==null); return cv.length?cv.reduce((a,b)=>a+b,0)/cv.length:null; });
             let tIns = ex.map(e => { let iv=DB.e.filter(x=>x.date===e.date&&(x.publisher||'')===(e.publisher||'')&&x.examType===eT&&getGrade(x.studentClass)===stGrade&&!x.abs).map(getValSE).filter(v=>v!==null); return iv.length?iv.reduce((a,b)=>a+b,0)/iv.length:null; });
-            datasets.push({label:'Sınıf Ort.', data:tCls, backgroundColor:cols[2]+'99', borderColor:cols[2], borderWidth:1.5, type:'line', fill:false, tension:0.3});
-            datasets.push({label:'Kurum Ort.', data:tIns, backgroundColor:cols[3]+'99', borderColor:cols[3], borderWidth:1.5, type:'line', fill:false, tension:0.3});
+            datasets.push({label:'Sınıf Ort.', data:tCls, backgroundColor:cols[2]+'99', borderColor:cols[2], borderWidth:1.5});
+            datasets.push({label:'Kurum Ort.', data:tIns, backgroundColor:cols[3]+'99', borderColor:cols[3], borderWidth:1.5});
           }
           c.a = mkChart('cA', tLabels, datasets, isRank);
         }, 100);
