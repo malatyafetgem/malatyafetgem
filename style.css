@@ -467,6 +467,72 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  /* === MOBİL YAZDIRMA FALLBACK ===
+     iOS Safari ve Android Chrome'un print motoru color-mix() ve
+     var(--exam-color) değerlerini güvenilir çözmediği için her sınav
+     türü rengi için literal hex değerlerle tam border shorthand yazılır.
+     (var başarısız olduğunda border shorthand tamamen iptal edilebileceği
+      için sadece border-color override yetmez.) */
+
+  /* Karne kartı: sol+sağ 3px renkli, üst+alt 1px gri */
+  .exam-type-block.karne-bolum.exam-color-0 { border: 1px solid #e9ecef !important; border-left: 3px solid #5a7fa8 !important; border-right: 3px solid #5a7fa8 !important; }
+  .exam-type-block.karne-bolum.exam-color-1 { border: 1px solid #e9ecef !important; border-left: 3px solid #2a9d8f !important; border-right: 3px solid #2a9d8f !important; }
+  .exam-type-block.karne-bolum.exam-color-2 { border: 1px solid #e9ecef !important; border-left: 3px solid #c97b3b !important; border-right: 3px solid #c97b3b !important; }
+  .exam-type-block.karne-bolum.exam-color-3 { border: 1px solid #e9ecef !important; border-left: 3px solid #b65a7a !important; border-right: 3px solid #b65a7a !important; }
+  .exam-type-block.karne-bolum.exam-color-4 { border: 1px solid #e9ecef !important; border-left: 3px solid #7e6cb0 !important; border-right: 3px solid #7e6cb0 !important; }
+  .exam-type-block.karne-bolum.exam-color-5 { border: 1px solid #e9ecef !important; border-left: 3px solid #4a8a6b !important; border-right: 3px solid #4a8a6b !important; }
+  .exam-type-block.karne-bolum.exam-color-6 { border: 1px solid #e9ecef !important; border-left: 3px solid #5b6cad !important; border-right: 3px solid #5b6cad !important; }
+  .exam-type-block.karne-bolum.exam-color-7 { border: 1px solid #e9ecef !important; border-left: 3px solid #c97560 !important; border-right: 3px solid #c97560 !important; }
+
+  /* Rapor kartı: üst+sol+sağ 3px renkli, alt 1px gri */
+  .exam-type-block.rapor-exam-block.exam-color-0 { border: 1px solid #e9ecef !important; border-top: 3px solid #5a7fa8 !important; border-left: 3px solid #5a7fa8 !important; border-right: 3px solid #5a7fa8 !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-1 { border: 1px solid #e9ecef !important; border-top: 3px solid #2a9d8f !important; border-left: 3px solid #2a9d8f !important; border-right: 3px solid #2a9d8f !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-2 { border: 1px solid #e9ecef !important; border-top: 3px solid #c97b3b !important; border-left: 3px solid #c97b3b !important; border-right: 3px solid #c97b3b !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-3 { border: 1px solid #e9ecef !important; border-top: 3px solid #b65a7a !important; border-left: 3px solid #b65a7a !important; border-right: 3px solid #b65a7a !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-4 { border: 1px solid #e9ecef !important; border-top: 3px solid #7e6cb0 !important; border-left: 3px solid #7e6cb0 !important; border-right: 3px solid #7e6cb0 !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-5 { border: 1px solid #e9ecef !important; border-top: 3px solid #4a8a6b !important; border-left: 3px solid #4a8a6b !important; border-right: 3px solid #4a8a6b !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-6 { border: 1px solid #e9ecef !important; border-top: 3px solid #5b6cad !important; border-left: 3px solid #5b6cad !important; border-right: 3px solid #5b6cad !important; border-radius: 8px !important; }
+  .exam-type-block.rapor-exam-block.exam-color-7 { border: 1px solid #e9ecef !important; border-top: 3px solid #c97560 !important; border-left: 3px solid #c97560 !important; border-right: 3px solid #c97560 !important; border-radius: 8px !important; }
+
+  /* h5 başlık rengi (her renk için) */
+  .exam-type-block.exam-color-0 > h5 { color: #4d6b8b !important; border-bottom: 1px solid #d6dfe9 !important; }
+  .exam-type-block.exam-color-1 > h5 { color: #278377 !important; border-bottom: 1px solid #cae6e3 !important; }
+  .exam-type-block.exam-color-2 > h5 { color: #a66734 !important; border-bottom: 1px solid #f1dece !important; }
+  .exam-type-block.exam-color-3 > h5 { color: #974d67 !important; border-bottom: 1px solid #edd6de !important; }
+  .exam-type-block.exam-color-4 > h5 { color: #6a5b92 !important; border-bottom: 1px solid #dfdaeb !important; }
+  .exam-type-block.exam-color-5 > h5 { color: #40735b !important; border-bottom: 1px solid #d2e2da !important; }
+  .exam-type-block.exam-color-6 > h5 { color: #4e5b8f !important; border-bottom: 1px solid #d6daea !important; }
+  .exam-type-block.exam-color-7 > h5 { color: #a66352 !important; border-bottom: 1px solid #f1dcd7 !important; }
+
+  /* Sayaç rozeti (etb-count) — pastel arka plan + koyu metin */
+  .exam-type-block.exam-color-0 > h5 .etb-count { background: #ebeff4 !important; color: #5a7fa8 !important; }
+  .exam-type-block.exam-color-1 > h5 .etb-count { background: #e5f3f1 !important; color: #2a9d8f !important; }
+  .exam-type-block.exam-color-2 > h5 .etb-count { background: #f8efe7 !important; color: #c97b3b !important; }
+  .exam-type-block.exam-color-3 > h5 .etb-count { background: #f6ebef !important; color: #b65a7a !important; }
+  .exam-type-block.exam-color-4 > h5 .etb-count { background: #efedf5 !important; color: #7e6cb0 !important; }
+  .exam-type-block.exam-color-5 > h5 .etb-count { background: #e9f1ed !important; color: #4a8a6b !important; }
+  .exam-type-block.exam-color-6 > h5 .etb-count { background: #ebedf5 !important; color: #5b6cad !important; }
+  .exam-type-block.exam-color-7 > h5 .etb-count { background: #f8eeec !important; color: #c97560 !important; }
+
+  /* Toplu Rapor kartı (rapor-exam-block) — başlık pastel renk */
+  .exam-type-block.rapor-exam-block.exam-color-0 > .card-header { background: #ebeff4 !important; border-bottom: 1px solid #d6dfe9 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-1 > .card-header { background: #e5f3f1 !important; border-bottom: 1px solid #cae6e3 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-2 > .card-header { background: #f8efe7 !important; border-bottom: 1px solid #f1dece !important; }
+  .exam-type-block.rapor-exam-block.exam-color-3 > .card-header { background: #f6ebef !important; border-bottom: 1px solid #edd6de !important; }
+  .exam-type-block.rapor-exam-block.exam-color-4 > .card-header { background: #efedf5 !important; border-bottom: 1px solid #dfdaeb !important; }
+  .exam-type-block.rapor-exam-block.exam-color-5 > .card-header { background: #e9f1ed !important; border-bottom: 1px solid #d2e2da !important; }
+  .exam-type-block.rapor-exam-block.exam-color-6 > .card-header { background: #ebedf5 !important; border-bottom: 1px solid #d6daea !important; }
+  .exam-type-block.rapor-exam-block.exam-color-7 > .card-header { background: #f8eeec !important; border-bottom: 1px solid #f1dcd7 !important; }
+
+  .exam-type-block.rapor-exam-block.exam-color-0 > .card-header .card-title { color: #4d6b8b !important; }
+  .exam-type-block.rapor-exam-block.exam-color-1 > .card-header .card-title { color: #278377 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-2 > .card-header .card-title { color: #a66734 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-3 > .card-header .card-title { color: #974d67 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-4 > .card-header .card-title { color: #6a5b92 !important; }
+  .exam-type-block.rapor-exam-block.exam-color-5 > .card-header .card-title { color: #40735b !important; }
+  .exam-type-block.rapor-exam-block.exam-color-6 > .card-header .card-title { color: #4e5b8f !important; }
+  .exam-type-block.rapor-exam-block.exam-color-7 > .card-header .card-title { color: #a66352 !important; }
 }
 
 /* =====================================================================
