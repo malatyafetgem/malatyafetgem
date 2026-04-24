@@ -2471,7 +2471,7 @@ async function generateRapor() {
 
       html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${isFirst?' exam-type-first':''}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
         <div class="card-header bg-light">
-          <h3 class="card-title m-0" style="font-size:15px; font-weight:bold;"><i class="fas fa-list-alt mr-2"></i>${_rExLabel} — Toplu Liste</h3>
+          <h3 class="card-title m-0" style="font-size:15px; font-weight:bold;"><i class="fas fa-list-alt mr-2"></i>${_rExLabel} — Toplu Liste | <span style="font-weight:normal;">${lvlStr}</span></h3>
         </div>
         <div class="card-body p-2">
           <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
