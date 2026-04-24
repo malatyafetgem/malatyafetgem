@@ -199,7 +199,9 @@ async function init(){
   }
 
   database.ref('db_v2/students').on('value', snap => { 
-    let sData = snap.val(); DB.s = sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : []; rTabS(); 
+    let sData = snap.val(); DB.s = sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : [];
+    _stuMapCache = null; // Map index'i yenile
+    rTabS(); 
   });
 
   database.ref('db_v2/examMeta').on('value', async snap => {
@@ -239,7 +241,7 @@ async function fetchBatches(batchIds) {
 // ---- reqProfile (orig lines 866-871) ----
 async function reqProfile() {
   if(!aNo) return;
-  let st = DB.s.find(x => x.no === aNo), stGrade = st ? getGrade(st.class) : null, neededBatches = [];
+  let st = getStuMap().get(aNo), stGrade = st ? getGrade(st.class) : null, neededBatches = [];
   Object.keys(EXAM_META).forEach(bId => { let meta = EXAM_META[bId]; if(!meta.grades || (stGrade && meta.grades.includes(stGrade))) neededBatches.push(bId); });
   await fetchBatches(neededBatches); rH();
 }
@@ -260,7 +262,7 @@ async function reqAnl() {
   if(aT === 'student'){
     // Öğrenci analizi: öğrenci seçilmeli
     if(!aNo){ getEl('anlRes').innerHTML=''; return; }
-    let st = DB.s.find(x=>x.no===aNo), stuGrade = st ? getGrade(st.class) : null;
+    let st = getStuMap().get(aNo), stuGrade = st ? getGrade(st.class) : null;
     Object.keys(EXAM_META).forEach(bId => {
       let m = EXAM_META[bId];
       if(m.examType !== eT) return;
@@ -346,4 +348,67 @@ function linRegSlope(values){
   for(let i = 0; i < n; i++){ sumX += i; sumY += arr[i]; sumXY += i*arr[i]; sumXX += i*i; }
   let denom = (n*sumXX - sumX*sumX); if(denom === 0) return 0;
   return (n*sumXY - sumX*sumY) / denom;
+}
+
+// ---- linRegR2: Regresyonun açıklayıcılığı (0=gürültü, 1=mükemmel trend) ----
+function linRegR2(values){
+  let arr = (values||[]).filter(v => v !== null && v !== undefined && !isNaN(v)).map(Number);
+  let n = arr.length; if(n < 2) return 0;
+  let meanY = arr.reduce((a,b)=>a+b,0)/n;
+  let slope = linRegSlope(arr);
+  // intercept
+  let sumX = (n*(n-1))/2;
+  let intercept = meanY - slope*(sumX/n);
+  let ssTot = arr.reduce((a,v)=>a+Math.pow(v-meanY,2),0);
+  if(ssTot===0) return 1;
+  let ssRes = arr.reduce((a,v,i)=>a+Math.pow(v-(intercept+slope*i),2),0);
+  return Math.max(0, Math.min(1, 1 - ssRes/ssTot));
+}
+
+// ---- ewma: Üstel Ağırlıklı Hareketli Ortalama (son windowSize sınav baz alınır) ----
+// alpha: düzeltme faktörü (varsayılan 0.5 — son sınavın ağırlığı daha yüksek)
+function ewma(values, windowSize, alpha){
+  let arr = (values||[]).filter(v => v !== null && v !== undefined && !isNaN(v)).map(Number);
+  if(!arr.length) return null;
+  alpha = alpha || 0.5;
+  windowSize = windowSize || 3;
+  // Son windowSize sınava kısıtla
+  let window_ = arr.slice(-windowSize);
+  let result = window_[0];
+  for(let i = 1; i < window_.length; i++){
+    result = alpha * window_[i] + (1 - alpha) * result;
+  }
+  return result;
+}
+
+// ---- calcZScore: Bir değerin popülasyon içindeki z-skorunu hesapla ----
+function calcZScore(value, population){
+  let arr = (population||[]).filter(v => v !== null && v !== undefined && !isNaN(v)).map(Number);
+  let n = arr.length; if(n < 2) return 0;
+  let mean = arr.reduce((a,b)=>a+b,0)/n;
+  let variance = arr.reduce((a,v)=>a+Math.pow(v-mean,2),0)/n;
+  let std = Math.sqrt(variance);
+  if(std===0) return 0;
+  return (value - mean) / std;
+}
+
+// ---- escapeHtml: XSS koruması için HTML özel karakterleri kaçış ----
+function escapeHtml(str){
+  if(str===null||str===undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;')
+    .replace(/\//g,'&#x2F;');
+}
+
+// ---- buildStuMap: O(1) öğrenci araması için Map index ----
+// DB.s değiştiğinde çağrılır; _stuMap._ts !== DB.s.length ile stale check yapılır
+let _stuMapCache = null;
+function getStuMap(){
+  if(_stuMapCache && _stuMapCache._len === DB.s.length) return _stuMapCache._map;
+  _stuMapCache = { _map: new Map(DB.s.map(s=>[s.no, s])), _len: DB.s.length };
+  return _stuMapCache._map;
 }

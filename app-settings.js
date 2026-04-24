@@ -3,7 +3,13 @@
 // ---- rTabS (orig lines 3629-3632) ----
 function rTabS(){
   let t=getEl('tStu').querySelector('tbody');
-  t.innerHTML=DB.s.map((s,idx)=>`<tr><td>${idx+1}</td><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu('${s.no}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student','${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?','${s.no}')"><i class='fas fa-trash'></i></button></div></td></tr>`).join('');
+  t.innerHTML=DB.s.map((s,idx)=>{
+    let safeNo   = escapeHtml(s.no);
+    let safeName = escapeHtml(s.name);
+    let safeCls  = escapeHtml(s.class);
+    let delMsg   = escapeHtml(`${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?`);
+    return `<tr><td>${idx+1}</td><td>${safeNo}</td><td>${safeName}</td><td>${safeCls}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu('${safeNo}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student','${delMsg}','${safeNo}')"><i class='fas fa-trash'></i></button></div></td></tr>`;
+  }).join('');
 }
 
 // ---- filterSettingsStudents (orig lines 3634-3642) ----
@@ -77,7 +83,7 @@ function cMod(id){jQuery('#'+id).modal('hide');}
 function oModAdd(){getEl('mSTit').textContent='Öğrenci Ekle';getEl('mSNo').value='';getEl('mSNo').disabled=false;getEl('mSNa').value='';getEl('mSCl').value='';oMod('mStu');}
 
 // ---- eStu (orig lines 3694-3694) ----
-function eStu(n){let s=DB.s.find(x=>x.no===n);if(s){getEl('mSTit').textContent='Öğrenci Düzenle';getEl('mSNo').value=s.no;getEl('mSNo').disabled=true;getEl('mSNa').value=s.name;getEl('mSCl').value=s.class;oMod('mStu');}}
+function eStu(n){let s=getStuMap().get(n);if(s){getEl('mSTit').textContent='Öğrenci Düzenle';getEl('mSNo').value=s.no;getEl('mSNo').disabled=true;getEl('mSNa').value=s.name;getEl('mSCl').value=s.class;oMod('mStu');}}
 
 // ---- cDel (orig lines 3695-3695) ----
 function cDel(t,m,id=null){dInf={t,id};getEl('cTxt').textContent=m;oMod('mConf');}
@@ -133,7 +139,7 @@ async function xDel(){
 async function svStu(){
   let n=String(getEl('mSNo').value).trim(),nm=getEl('mSNa').value.trim(),cc=getEl('mSCl').value.trim();
   if(!n||!nm||!cc){showToast('Tüm alanları doldurun!','warning');return;}
-  let s=DB.s.find(x=>x.no===n); 
+  let s=getStuMap().get(n); 
   
   if(s){ 
     let oldClass = s.class; s.name=toTitleCase(nm); s.class=cc; 
@@ -151,7 +157,7 @@ async function svStu(){
   } else{ DB.s.push({no:n,name:toTitleCase(nm),class:cc}); }
   
   await database.ref('db_v2/students').set(DB.s); rTabS(); uStat();
-  if(aNo){ let upd=DB.s.find(x=>x.no===aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; } }
+  if(aNo){ let upd=getStuMap().get(aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; } }
   cMod('mStu'); showToast('Öğrenci bilgileri kaydedildi.', 'success');
 }
 
@@ -325,7 +331,7 @@ function processMappings() {
     d.forEach((r, i) => {
       let n = String(r[cNo]||'').trim(), nm = String(r[cName]||'').trim(), cc = String(r[cCls]||'').trim();
       if(!n || !nm || !cc) { invalidRows.push({ rowNum: i + 2, data: `${n || '—'} - ${nm || '—'}`, reason: 'Eksik Alan' }); return; }
-      if(DB.s.find(x=>x.no===n)) existingNos.push(n); else newStus.push({no:n, name:toTitleCase(nm), class:cc});
+      if(getStuMap().get(n)) existingNos.push(n); else newStus.push({no:n, name:toTitleCase(nm), class:cc});
     });
 
     if(newStus.length === 0 && existingNos.length === 0) { showToast('Geçerli veri bulunamadı.', 'error'); return; }
@@ -359,13 +365,13 @@ function processMappings() {
     let cRank = { cR: '', cP: '', iR: '', iP: '', dR: finalSaved.dR||'', dP: finalSaved.dP||'', pR: finalSaved.pR||'', pP: finalSaved.pP||'', gR: finalSaved.gR||'', gP: finalSaved.gP||'' };
 
     let gradesFound = new Set();
-    d.forEach(r => { let no = String(r[cNo]||'').trim(); if(no) { let st = DB.s.find(x=>x.no===no); if(st) { let gr = getGrade(st.class); if(gr) gradesFound.add(gr); } } });
+    d.forEach(r => { let no = String(r[cNo]||'').trim(); if(no) { let st = getStuMap().get(no); if(st) { let gr = getGrade(st.class); if(gr) gradesFound.add(gr); } } });
     let existsId = Object.keys(EXAM_META).find(id => { let em = EXAM_META[id]; if(em.examType !== eType || em.date !== eDate) return false; if(!gradesFound.size) return true; let existGrades = em.grades || []; if(existGrades.length === 0) return true; return [...gradesFound].some(g => existGrades.includes(g)); });
     let bId = existsId || Date.now().toString();
     let cl=new Set(), sn=new Set(), validResults = [], missingStus = [], invalidRows = [], subjectsFound = new Set(), seenStudentNos = new Set();
 
     d.forEach((r, i) => {
-      let no = String(r[cNo]||'').trim(), st = DB.s.find(x=>x.no===no), net = r[cTnet];
+      let no = String(r[cNo]||'').trim(), st = getStuMap().get(no), net = r[cTnet];
       if(!no) { invalidRows.push({ rowNum: i + 2, no: '—', reason: 'Numara Boş' }); return; }
       if(!st) { missingStus.push(no); return; } 
       if(net === undefined || net === null || net === '') { invalidRows.push({ rowNum: i + 2, no: no, reason: 'Toplam Net Yok' }); return; }

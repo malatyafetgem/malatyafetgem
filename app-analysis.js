@@ -6,19 +6,22 @@ let _riskCache = null;
 // ---- top-level (orig lines 1081-1081) ----
 const RISK_SEV_W = { high: 3, med: 2, low: 1 };
 
-// ---- calcRiskScores (orig lines 1083-1256) ----
+// ---- calcRiskScores (orig lines 1083-1256) — OPTİMİZE EDİLDİ ----
 function calcRiskScores() {
   if(!DB.e.length || !DB.s.length) return [];
 
-  let gradeOf = (no) => { let st = DB.s.find(x=>x.no===no); return st ? (String(st.class||'').match(/^(\d+)/)?.[1] || '') : ''; };
+  // O(1) öğrenci araması — O(N²) find() döngüsü yerine Map kullan
+  const stuMap = getStuMap();
+  let gradeOf = (no) => { let st = stuMap.get(no); return st ? (String(st.class||'').match(/^(\d+)/)?.[1] || '') : ''; };
 
-  // 1. Popülasyon Ortalamalarını (SınavTürü + SınıfSeviyesi + Tarih bazlı) önceden hesapla
+  // 1. Popülasyon İstatistikleri (SınavTürü + SınıfSeviyesi + Tarih bazlı)
+  // Z-skoru hesabı için her gruba ait tüm net dizisini tut
   let popStats = {};
   DB.e.forEach(x => {
     if(x.abs) return;
     let gr = gradeOf(x.studentNo);
     if(!gr) return;
-    let key = x.examType + '||' + gr + '||' + x.date; // Sınıf seviyesi ve Sınav Türü kesin ayrımı
+    let key = x.examType + '||' + gr + '||' + x.date;
     if(!popStats[key]) popStats[key] = { totalNets: [], subjs: {}, stus: 0 };
     popStats[key].totalNets.push(x.totalNet);
     popStats[key].stus++;
@@ -31,16 +34,26 @@ function calcRiskScores() {
   });
 
   let getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  let getStd = (arr, mean) => {
+    if(arr.length < 2) return 0;
+    let v = arr.reduce((a,x)=>a+Math.pow(x-mean,2),0)/arr.length;
+    return Math.sqrt(v);
+  };
+
   let popAvgs = {};
   Object.keys(popStats).forEach(k => {
     let p = popStats[k];
-    popAvgs[k] = { 
-      totalNet: getAvg(p.totalNets), 
-      subjs: Object.fromEntries(Object.entries(p.subjs).map(([s, arr]) => [s, getAvg(arr)]))
+    let mean = getAvg(p.totalNets);
+    let std  = getStd(p.totalNets, mean);
+    popAvgs[k] = {
+      totalNet: mean, totalStd: std, totalNets: p.totalNets,
+      subjs: Object.fromEntries(Object.entries(p.subjs).map(([s, arr]) => {
+        let sm = getAvg(arr); return [s, { avg: sm, std: getStd(arr, sm), vals: arr }];
+      }))
     };
   });
 
-  // 2. Devamsızlık hesabı için (SınavTürü + SınıfSeviyesi bazlı) yapılan sınav tarihlerini bul
+  // 2. Devamsızlık hesabı için (SınavTürü + SınıfSeviyesi) sınav tarihleri
   let examDatesByGroup = {};
   DB.e.forEach(x => {
     let gr = gradeOf(x.studentNo);
@@ -60,118 +73,183 @@ function calcRiskScores() {
 
   let riskEntries = [];
 
-  // 4. Rubrik Bazlı Hesaplama (Her Öğrencinin Her Sınav Türü İçin Ayrı Ayrı)
+  // 4. Rubrik Bazlı Hesaplama
   Object.entries(stuGroups).forEach(([no, types]) => {
-    let stu = DB.s.find(x=>x.no===no);
+    // O(1) Map araması
+    let stu = stuMap.get(no);
     if(!stu) return;
     let gr = gradeOf(no);
     if(!gr) return;
-    
+
+    // enrolledAt: öğrenci sisteme geç eklendiyse önceki sınavlar için devamsızlık sayılmaz
+    let enrolledDate = stu.enrolledAt ? new Date(stu.enrolledAt) : null;
+    let isEnrolledBefore = (dateStr) => {
+      if(!enrolledDate) return true;
+      // dateStr formatı: GG.AA.YYYY
+      let m = String(dateStr).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      if(!m) return true;
+      let examDate = new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+      return examDate >= enrolledDate;
+    };
+
     Object.entries(types).forEach(([eType, exams]) => {
-      let typeScore = 0; 
+      let typeScore = 0;
       let flags = [];
-      
+
       exams.sort((a,b) => srt(a.date, b.date));
-      let attended = exams.filter(x => !x.abs);
-      let allDatesForGroup = [...(examDatesByGroup[eType + '||' + gr] || [])].sort(srt);
+
+      // excused:true olan devamsızlıklar hariç tutulur
+      let attended = exams.filter(x => !x.abs || x.excused);
+      attended = attended.filter(x => !x.abs); // sadece katıldıklarını al
+
+      let allDatesForGroup = [...(examDatesByGroup[eType + '||' + gr] || [])]
+        .filter(isEnrolledBefore) // Geç eklenen öğrenci için erken tarihler hariç
+        .sort(srt);
       let totalHeld = allDatesForGroup.length;
-      
-      // A) KATILIM / DEVAMSIZLIK RİSKİ KURALI (Maks 30 Puan)
+
+      // A) KATILIM / DEVAMSIZLIK RİSKİ (Maks 30 Puan)
       if(totalHeld >= 2) {
-        let attRate = attended.length / totalHeld;
+        let attRate = totalHeld > 0 ? attended.length / totalHeld : 1;
         let last2Dates = allDatesForGroup.slice(-2);
         let attendedLast2 = attended.filter(x => last2Dates.includes(x.date)).length;
-        
+
         if(attRate < 0.50 || attendedLast2 === 0) {
           flags.push({ type:'abs', severity:'high', examType:eType, detail:`${eType}: Katılım çok düşük (%${Math.round(attRate*100)}) veya son 2 sınava girmedi.`, z: 30 });
           typeScore += 30;
-        } else if (attRate <= 0.75) {
+        } else if(attRate <= 0.75) {
           flags.push({ type:'abs', severity:'med', examType:eType, detail:`${eType}: Katılım oranı düşük (%${Math.round(attRate*100)}).`, z: 15 });
           typeScore += 15;
         }
       }
-      
-      // B ve C Kriterleri için öğrencinin en az 2 sınava girmiş olması zorunludur
+
+      // B ve C için en az 2 sınav gerekli
       if(attended.length >= 2) {
+        // EWMA ile son 3 sınav ağırlıklı ortalaması
+        let allNets = attended.map(x => x.totalNet);
+        let ewmaScore = ewma(allNets, 3, 0.5); // Son 3 sınavın EWMA'sı
+
+        // R² ile trend güvenilirliği — düşük R² = "regression to the mean" gürültüsü
+        let r2 = linRegR2(allNets);
+        let trendReliable = r2 >= 0.30; // R²<0.30 ise trend belirsiz
+
         let lastEx = attended[attended.length - 1];
         let prevEx = attended[attended.length - 2];
-        
-        // B) SIRALAMA GERİLEMESİ (Maks 40 Puan)
+
+        // B) SIRALAMA GERİLEMESİ — EWMA bazlı + R² güvenilirlik filtresi (Maks 40 Puan)
         let lastPct = (parseFloat(lastEx.iR) / parseFloat(lastEx.iP)) || null;
         let prevPct = (parseFloat(prevEx.iR) / parseFloat(prevEx.iP)) || null;
-        
+
         if(lastPct !== null && prevPct !== null) {
-          let delta = lastPct - prevPct; 
-          if(delta >= 0.15) {
-            flags.push({ type:'rank', severity:'high', examType:eType, detail:`${eType}: Kurum sıralamasında sert gerileme (%${Math.round(delta*100)} kayıp).`, z: 40 });
+          let delta = lastPct - prevPct;
+          if(!trendReliable && delta >= 0.08 && delta < 0.20) {
+            // Gürültülü trend — düşük R² ile sadece low severity
+            flags.push({ type:'rank', severity:'low', examType:eType, detail:`${eType}: Sıralama geriledi ancak sonuçlar dalgalı — kesin bir düşüş trendi yok.`, z: 10 });
+            typeScore += 10;
+          } else if(delta >= 0.15) {
+            flags.push({ type:'rank', severity:'high', examType:eType, detail:`${eType}: Kurum sıralamasında belirgin düşüş — son iki sınavta %${Math.round(delta*100)} geriledi.`, z: 40 });
             typeScore += 40;
           } else if(delta >= 0.08) {
-            flags.push({ type:'rank', severity:'med', examType:eType, detail:`${eType}: Kurum sıralamasında gerileme (%${Math.round(delta*100)} kayıp).`, z: 20 });
+            flags.push({ type:'rank', severity:'med', examType:eType, detail:`${eType}: Kurum sıralamasında gerileme — son iki sınavta %${Math.round(delta*100)} geriledi.`, z: 20 });
             typeScore += 20;
           }
         }
-        
-        // C) NORMALİZE EDİLMİŞ NET DÜŞÜŞÜ (Maks 30 Puan)
-        let pKeyLast = eType + '||' + gr + '||' + lastEx.date;
-        let pKeyPrev = eType + '||' + gr + '||' + prevEx.date;
-        let aLast = popAvgs[pKeyLast];
-        let aPrev = popAvgs[pKeyPrev];
-        
-        if(aLast && aPrev) {
-          let dropScore = 0;
-          let checkDrop = (valL, avgL, valP, avgP) => {
-            if(!avgL || !avgP) return 0;
-            return (valP / avgP) - (valL / avgL);
-          };
 
-          let totalDrop = checkDrop(lastEx.totalNet, aLast.totalNet, prevEx.totalNet, aPrev.totalNet);
-          if(totalDrop >= 0.20) {
-            flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre ciddi düşüş.`, z: 30 });
-            dropScore += 30;
-          } else if(totalDrop >= 0.10) {
-            flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre düşüş.`, z: 15 });
-            dropScore += 15;
+        // C) NORMALİZE NET DÜŞÜŞÜ — Z-Skoru + EWMA (Maks 30 Puan)
+        let pKeyLast = eType + '||' + gr + '||' + lastEx.date;
+        let aLast = popAvgs[pKeyLast];
+
+        if(aLast && aLast.totalNets.length >= 3) {
+          // Z-skoru: öğrencinin EWMA'sı popülasyon içinde nerede?
+          let stuZ = calcZScore(ewmaScore !== null ? ewmaScore : lastEx.totalNet, aLast.totalNets);
+
+          let dropScore = 0;
+          if(stuZ <= -2.0) {
+            // 2 standart sapma altı = ciddi düşüş
+            flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Son dönem net ortalaması sınıf genelinin çok altında.`, z: 30 });
+            dropScore = 30;
+          } else if(stuZ <= -1.2) {
+            flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Son dönem net ortalaması sınıf genelinin altında.`, z: 15 });
+            dropScore = 15;
+          } else if(stuZ <= -0.7 && trendReliable) {
+            // Sadece güvenilir trend varsa düşük uyarı
+            flags.push({ type:'trend', severity:'low', examType:eType, detail:`${eType}: Hafif düşüş eğilimi — son sınavlarda net ortalaması düşüyor.`, z: 8 });
+            dropScore = 8;
           }
 
-          if(dropScore < 30 && lastEx.subs && prevEx.subs) {
+          // Ders bazlı Z-skoru kontrolü (toplam düşüş yoksa ders bazlı bak)
+          if(dropScore < 30 && lastEx.subs && aLast.subjs) {
             let droppedSubjs = [];
             let maxSubjSeverity = null;
             Object.keys(lastEx.subs).forEach(s => {
-              if(prevEx.subs[s]) {
-                let d = checkDrop(lastEx.subs[s].net, aLast.subjs[s], prevEx.subs[s].net, aPrev.subjs[s]);
-                if(d >= 0.20) { droppedSubjs.push(toTitleCase(s)); maxSubjSeverity = 'high'; }
-                else if(d >= 0.10 && maxSubjSeverity !== 'high') { droppedSubjs.push(toTitleCase(s)); maxSubjSeverity = maxSubjSeverity || 'med'; }
-              }
+              let pSub = aLast.subjs[s];
+              if(!pSub || !pSub.vals || pSub.vals.length < 3) return;
+              let subjZ = calcZScore(lastEx.subs[s].net, pSub.vals);
+              if(subjZ <= -2.0) { droppedSubjs.push(escapeHtml(toTitleCase(s))); maxSubjSeverity = 'high'; }
+              else if(subjZ <= -1.2 && maxSubjSeverity !== 'high') { droppedSubjs.push(escapeHtml(toTitleCase(s))); maxSubjSeverity = maxSubjSeverity || 'med'; }
             });
             if(droppedSubjs.length > 0) {
               let sPts = maxSubjSeverity === 'high' ? 30 : 15;
-              flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} Ders Düşüşü: ${droppedSubjs.join(', ')}`, z: sPts });
+              flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} — Sınıf ortalamasının belirgin altında kalan dersler: ${droppedSubjs.join(', ')}`, z: sPts });
               dropScore += sPts;
             }
           }
           typeScore += Math.min(dropScore, 30);
+
+        } else {
+          // Popülasyon küçükse eski normalize yönteme geri dön (güvenli fallback)
+          let pKeyPrev = eType + '||' + gr + '||' + prevEx.date;
+          let aPrev = popAvgs[pKeyPrev];
+          if(aLast && aPrev) {
+            let dropScore = 0;
+            let checkDrop = (valL, avgL, valP, avgP) => {
+              if(!avgL || !avgP) return 0;
+              return (valP / avgP) - (valL / avgL);
+            };
+            let totalDrop = checkDrop(lastEx.totalNet, aLast.totalNet, prevEx.totalNet, aPrev.totalNet);
+            if(totalDrop >= 0.20) {
+              flags.push({ type:'trend', severity:'high', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre ciddi düşüş.`, z: 30 });
+              dropScore += 30;
+            } else if(totalDrop >= 0.10) {
+              flags.push({ type:'trend', severity:'med', examType:eType, detail:`${eType}: Genel netlerde ortalamaya göre düşüş.`, z: 15 });
+              dropScore += 15;
+            }
+            if(dropScore < 30 && lastEx.subs && prevEx.subs && aPrev.subjs) {
+              let droppedSubjs = [];
+              let maxSubjSeverity = null;
+              Object.keys(lastEx.subs).forEach(s => {
+                let pSubLast = aLast.subjs[s], pSubPrev = aPrev.subjs[s];
+                if(!pSubLast || !pSubPrev) return;
+                let d = checkDrop(lastEx.subs[s].net, pSubLast.avg, prevEx.subs[s]?prevEx.subs[s].net:0, pSubPrev.avg);
+                if(d >= 0.20) { droppedSubjs.push(escapeHtml(toTitleCase(s))); maxSubjSeverity = 'high'; }
+                else if(d >= 0.10 && maxSubjSeverity !== 'high') { droppedSubjs.push(escapeHtml(toTitleCase(s))); maxSubjSeverity = maxSubjSeverity || 'med'; }
+              });
+              if(droppedSubjs.length > 0) {
+                let sPts = maxSubjSeverity === 'high' ? 30 : 15;
+                flags.push({ type:'subj', severity:maxSubjSeverity, examType:eType, detail:`${eType} Ders Düşüşü: ${droppedSubjs.join(', ')}`, z: sPts });
+                dropScore += sPts;
+              }
+            }
+            typeScore += Math.min(dropScore, 30);
+          }
         }
       }
-      
-      // Eğer bu sınav türü için öğrenci risk taşıyorsa listeye ekle
+
       if(typeScore > 0) {
         let topLevel = typeScore >= 70 ? 'high' : (typeScore >= 40 ? 'med' : 'low');
-        
         let seenTypes = new Set();
         let uniqueFlags = [];
         flags.forEach(f => {
-            let k = f.type + '|' + f.examType;
-            if(!seenTypes.has(k)) { seenTypes.add(k); uniqueFlags.push(f); }
+          let k = f.type + '|' + f.examType;
+          if(!seenTypes.has(k)) { seenTypes.add(k); uniqueFlags.push(f); }
         });
-
-        riskEntries.push({ 
-          no: no, 
-          name: stu.name, 
-          cls: stu.class, 
-          score: typeScore, 
-          level: topLevel, 
-          flags: uniqueFlags, 
-          examTypes: [eType] // <-- Sadece filtrelenen Sınav Türü!
+        riskEntries.push({
+          no: no,
+          name: escapeHtml(stu.name),
+          cls: escapeHtml(stu.class),
+          score: typeScore,
+          level: topLevel,
+          flags: uniqueFlags,
+          examTypes: [eType]
         });
       }
     });
@@ -248,9 +326,12 @@ function renderRiskPanel() {
     let topFlags = r.flags.filter(f => { let k=f.type+'|'+f.examType; if(seen.has(k)) return false; seen.add(k); return true; })
                           .sort((a,b) => RISK_SEV_W[b.severity]-RISK_SEV_W[a.severity]).slice(0,4);
     let badgesHtml = topFlags.map(f => {
-      let safeDetail = f.detail.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      return `<span class="risk-badge rb-${f.type}" title="${f.detail}" onclick="showToast('${safeDetail}', 'warning', 4000)" style="cursor:pointer;"><i class="fas ${typeIcon[f.type]}" style="font-size:0.8em;"></i>${typeLabel[f.type]}</span>`;
+      // XSS: escapeHtml zaten calcRiskScores'da uygulandı; title attr için tekrar encode
+      let safeTitle = escapeHtml(f.detail);
+      let safeToast = escapeHtml(f.detail).replace(/'/g,'&#x27;');
+      return `<span class="risk-badge rb-${f.type}" title="${safeTitle}" onclick="showToast('${safeToast}', 'warning', 4000)" style="cursor:pointer;"><i class="fas ${typeIcon[f.type]}" style="font-size:0.8em;"></i>${typeLabel[f.type]}</span>`;
     }).join('');
+    // r.name ve r.cls zaten escapeHtml ile güvende (calcRiskScores)
     return `<div class="risk-card risk-${r.level}">
       <div class="risk-avatar"><i class="fas ${levelIcon[r.level]}"></i></div>
       <div class="risk-body">
@@ -463,31 +544,31 @@ function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
   let allSameGrade = DB.e.filter(x => x.examType===examType && !x.abs && getGrade(x.studentClass)===grade);
   let genAvg = allSameGrade.length ? allSameGrade.reduce((a,e)=>a+e.totalNet,0)/allSameGrade.length : null;
 
-  let stuMap = {};
+  let stuMap_local = {};
   allSameGrade.forEach(e => {
-    if(!stuMap[e.studentNo]) stuMap[e.studentNo] = {scoreSum:0,netSum:0,cnt:0};
-    stuMap[e.studentNo].scoreSum += (e.score||0);
-    stuMap[e.studentNo].netSum  += (e.totalNet||0);
-    stuMap[e.studentNo].cnt++;
+    if(!stuMap_local[e.studentNo]) stuMap_local[e.studentNo] = {scoreSum:0,netSum:0,cnt:0};
+    stuMap_local[e.studentNo].scoreSum += (e.score||0);
+    stuMap_local[e.studentNo].netSum  += (e.totalNet||0);
+    stuMap_local[e.studentNo].cnt++;
   });
   // Sıralama her zaman PUAN'a (score) göre; eşitlikte totalNet
-  let rankings = Object.entries(stuMap).map(([no,v])=>({no,avgScore:v.scoreSum/v.cnt,avgNet:v.netSum/v.cnt})).sort((a,b)=>{
+  let rankings = Object.entries(stuMap_local).map(([no,v])=>({no,avgScore:v.scoreSum/v.cnt,avgNet:v.netSum/v.cnt})).sort((a,b)=>{
     let dp=(b.avgScore||0)-(a.avgScore||0); if(dp!==0) return dp; return (b.avgNet||0)-(a.avgNet||0);
   });
   let rank = rankings.findIndex(x=>x.no===stuNo)+1;
   let totalStudents = rankings.length;
 
-  // Sınıf Derecesi hesapla
-  let stuClass = (DB.s.find(x=>x.no===stuNo)||{}).class || '';
+  // Sınıf Derecesi hesapla — O(1) Map araması
+  let stuClass = (getStuMap().get(stuNo)||{}).class || '';
   let allSameClass = DB.e.filter(x => x.examType===examType && !x.abs && x.studentClass===stuClass);
-  let clsMap = {};
+  let clsMap_local = {};
   allSameClass.forEach(e => {
-    if(!clsMap[e.studentNo]) clsMap[e.studentNo] = {scoreSum:0,netSum:0,cnt:0};
-    clsMap[e.studentNo].scoreSum += (e.score||0);
-    clsMap[e.studentNo].netSum  += (e.totalNet||0);
-    clsMap[e.studentNo].cnt++;
+    if(!clsMap_local[e.studentNo]) clsMap_local[e.studentNo] = {scoreSum:0,netSum:0,cnt:0};
+    clsMap_local[e.studentNo].scoreSum += (e.score||0);
+    clsMap_local[e.studentNo].netSum  += (e.totalNet||0);
+    clsMap_local[e.studentNo].cnt++;
   });
-  let clsRankings = Object.entries(clsMap).map(([no,v])=>({no,avgScore:v.scoreSum/v.cnt,avgNet:v.netSum/v.cnt})).sort((a,b)=>{
+  let clsRankings = Object.entries(clsMap_local).map(([no,v])=>({no,avgScore:v.scoreSum/v.cnt,avgNet:v.netSum/v.cnt})).sort((a,b)=>{
     let dp=(b.avgScore||0)-(a.avgScore||0); if(dp!==0) return dp; return (b.avgNet||0)-(a.avgNet||0);
   });
   let classRank = clsRankings.findIndex(x=>x.no===stuNo)+1;
@@ -502,18 +583,25 @@ function calcKarneSummaryCards(stuNo, examType, grade, examsData) {
   let attendedCount  = attendedKeys.size;
   let partRate = totalExamCount > 0 ? Math.max(0, Math.min(100, Math.round(attendedCount / totalExamCount * 100))) : 0;
 
-  // Trend: katıldığı sınavların toplam net serisi üzerinden lineer regresyon
+  // Trend: EWMA(3) + R² + linRegSlope
   let nets = attended.map(e=>e.totalNet);
   let trend = null;
   if(nets.length >= 2){
     let slope = linRegSlope(nets);
+    let r2    = linRegR2(nets);
+    let ewmaVal = ewma(nets, 3, 0.5);
     let totalChange = slope * (nets.length - 1);
-    trend = {
-      totalChange, slope, count: nets.length,
-      trendClass: slope>0?'trend-up':(slope<0?'trend-down':'trend-stable'),
-      trendIcon:  slope>0?'fa-arrow-up':(slope<0?'fa-arrow-down':'fa-minus'),
-      trendText:  slope>0?'Yükseliş':(slope<0?'Düşüş':'Sabit')
-    };
+    let trendClass, trendIcon, trendText;
+    if(r2 < 0.20) {
+      trendClass = 'trend-stable'; trendIcon = 'fa-question-circle'; trendText = 'Dalgalı';
+    } else if(slope > 0) {
+      trendClass = 'trend-up'; trendIcon = 'fa-arrow-up'; trendText = 'Yükseliş';
+    } else if(slope < 0) {
+      trendClass = 'trend-down'; trendIcon = 'fa-arrow-down'; trendText = 'Düşüş';
+    } else {
+      trendClass = 'trend-stable'; trendIcon = 'fa-minus'; trendText = 'Sabit';
+    }
+    trend = { totalChange, slope, r2, ewmaVal, count: nets.length, trendClass, trendIcon, trendText };
   }
 
   return {stuAvg, genAvg, rank, totalStudents, classRank, classTotalStudents, partRate, attendedCount, totalExamCount, trend};
@@ -537,8 +625,9 @@ function buildRiskInfoCards(stuNo, examType, stuClass) {
   if(!examFlags.length) return '';
 
   let badgesHtml = examFlags.map(f => {
-    let safeDetail = f.detail.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    return `<span class="risk-badge rb-${f.type}" title="${f.detail}" onclick="showToast('${safeDetail}', 'warning', 4000)" style="font-size:0.72rem;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;font-weight:600;margin:2px;cursor:pointer;">
+    let safeTitle = escapeHtml(f.detail);
+    let safeToast = escapeHtml(f.detail).replace(/'/g,'&#x27;');
+    return `<span class="risk-badge rb-${f.type}" title="${safeTitle}" onclick="showToast('${safeToast}', 'warning', 4000)" style="font-size:0.72rem;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;font-weight:600;margin:2px;cursor:pointer;">
        <i class="fas ${typeIcon[f.type]}" style="font-size:0.75em;"></i>${typeLabel[f.type]}
      </span>`;
   }).join('');
@@ -578,22 +667,45 @@ function buildKarneExamCards(summary, examType) {
     let tColor = trend.trendClass==='trend-up' ? '#28a745' : (trend.trendClass==='trend-down' ? '#dc3545' : '#6c757d');
     let tSign  = trend.totalChange > 0 ? '+' : '';
     let sSign  = trend.slope > 0 ? '+' : '';
+
+    // R²: Trendin ne kadar tutarlı olduğunu gösterir (0-1 arası, 1 mükemmel)
+    let r2Pct  = trend.r2 !== undefined ? Math.round(trend.r2 * 100) : null;
+    let r2Color = r2Pct === null ? '#6c757d' : (r2Pct >= 60 ? '#28a745' : (r2Pct >= 30 ? '#fd7e14' : '#dc3545'));
+    let r2Label = r2Pct !== null ? `%${r2Pct}` : '—';
+    let r2Tooltip = r2Pct !== null
+      ? (r2Pct >= 60 ? 'Trend tutarlı ve güvenilir' : (r2Pct >= 30 ? 'Trend kısmen tutarlı' : 'Sonuçlar çok dalgalı, net bir trend yok'))
+      : '';
+
+    // EWMA: Son 3 sınavın ağırlıklı ortalaması — en son sınava daha fazla ağırlık verir
+    let ewmaVal = trend.ewmaVal !== null && trend.ewmaVal !== undefined ? trend.ewmaVal.toFixed(1) : null;
+    let ewmaColor = ewmaVal !== null
+      ? (parseFloat(ewmaVal) >= (trend.totalChange >= 0 ? 0 : 0) ? '#0d6efd' : '#dc3545')
+      : '#6c757d';
+
     trendHtml = `<div class="trend-card mt-2 mb-1"><div class="row align-items-center text-center">
-      <div class="col-6 col-md-3 mb-1">
+      <div class="col-6 col-md-2 mb-1">
         <span class="trend-indicator ${trend.trendClass}" style="font-size:0.8em;"><i class="fas ${trend.trendIcon} mr-1"></i>${trend.trendText}</span>
-        <div class="small text-muted mt-1" style="font-size:0.75em;">Genel Trend</div>
+        <div class="small text-muted mt-1" style="font-size:0.75em;">Genel Yön</div>
       </div>
-      <div class="col-6 col-md-3 border-left mb-1">
-        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${tSign}${trend.totalChange.toFixed(2)}</div>
-        <div class="small text-muted" style="font-size:0.75em;">Toplam Değişim (Regresyon)</div>
+      <div class="col-6 col-md-2 border-left mb-1">
+        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${tSign}${trend.totalChange.toFixed(1)} net</div>
+        <div class="small text-muted" style="font-size:0.75em;">İlk→Son Değişim</div>
       </div>
-      <div class="col-6 col-md-3 border-left mb-1">
-        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${sSign}${trend.slope.toFixed(2)}</div>
-        <div class="small text-muted" style="font-size:0.75em;">Sınav Başı Ort. Eğim</div>
+      <div class="col-6 col-md-2 border-left mb-1">
+        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${sSign}${trend.slope.toFixed(2)} net</div>
+        <div class="small text-muted" style="font-size:0.75em;">Sınav Başına Değişim</div>
       </div>
-      <div class="col-6 col-md-3 border-left mb-1">
+      <div class="col-6 col-md-2 border-left mb-1" title="${r2Tooltip}">
+        <div style="font-size:1.1em;font-weight:bold;color:${r2Color};">${r2Label}</div>
+        <div class="small text-muted" style="font-size:0.75em;">Trendin Tutarlılığı</div>
+      </div>
+      <div class="col-6 col-md-2 border-left mb-1" title="Son 3 sınava daha fazla ağırlık verilerek hesaplanan ortalama">
+        <div style="font-size:1.1em;font-weight:bold;color:#0d6efd;">${ewmaVal !== null ? ewmaVal : '—'} net</div>
+        <div class="small text-muted" style="font-size:0.75em;">Son Dönem Ortalaması</div>
+      </div>
+      <div class="col-6 col-md-2 border-left mb-1">
         <div style="font-size:1.1em;font-weight:bold;">${trend.count}</div>
-        <div class="small text-muted" style="font-size:0.75em;">Toplam Sınav</div>
+        <div class="small text-muted" style="font-size:0.75em;">Katıldığı Sınav</div>
       </div>
     </div></div>`;
   }
@@ -645,7 +757,7 @@ function buildKarneExamCards(summary, examType) {
 
 // ---- rH (orig lines 2419-2501) ----
 function rH(){
-  let s=DB.s.find(x=>x.no===aNo); if(!s)return; let r=getEl('homeArea');
+  let s=getStuMap().get(aNo); if(!s)return; let r=getEl('homeArea');
   let combined=DB.e.filter(x=>x.studentNo===aNo).sort((a,b)=>srt(a.date,b.date));
   if(!combined.length){r.innerHTML='<div class="alert alert-default-info">Bu öğrenciye ait sınav verisi yok.</div>';return;}
 
@@ -908,7 +1020,7 @@ function rAnl(){
 
   if(aT==='student'){
     let no=aNo;if(!no){r.innerHTML='';return;}
-    let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=DB.s.find(x=>x.no===no); if(!st){r.innerHTML='';return;}
+    let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=getStuMap().get(no); if(!st){r.innerHTML='';return;}
     let stGrade=getGrade(st.class);
 
     // === TEK SINAV MODU ===
@@ -1466,7 +1578,7 @@ function rAnl(){
     // (Seçilen veri tipi ne olursa olsun, sıralama puan ortalaması üzerinden — kullanıcı isteği)
     let stuRankMap = {};
     ex.forEach(e => {
-      let stu = DB.s.find(x => x.no === e.studentNo);
+      let stu = getStuMap().get(e.studentNo);
       if(!stu) return; // orphan filtrele
       let m = stu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);
       if(!m) return;
@@ -1630,7 +1742,7 @@ function rAnl(){
       let cls = e.studentClass;
       if(!classStats[cls]) classStats[cls] = { totalNet: 0, count: 0, exams: [] };
       classStats[cls].totalNet += e.subs[toTitleCase(subj)].net; classStats[cls].count++; classStats[cls].exams.push(e);
-      if(!allStudentStats[e.studentNo]) { let stuName = DB.s.find(s=>s.no===e.studentNo)?.name || '—'; allStudentStats[e.studentNo] = { no: e.studentNo, name: stuName, cls: cls, totalNet: 0, count: 0, nets: [] }; }
+      if(!allStudentStats[e.studentNo]) { let stuName = getStuMap().get(e.studentNo)?.name || '—'; allStudentStats[e.studentNo] = { no: e.studentNo, name: stuName, cls: cls, totalNet: 0, count: 0, nets: [] }; }
       allStudentStats[e.studentNo].totalNet += e.subs[toTitleCase(subj)].net; allStudentStats[e.studentNo].count++; allStudentStats[e.studentNo].nets.push(e.subs[toTitleCase(subj)].net);
     });
     
@@ -1796,12 +1908,12 @@ function rAnl(){
     let dt=getEl('aDate').value, subSel = sb || 'summary';
     if(subSel !== 'general_summary' && subSel !== 'list_all' && !dt){r.innerHTML='<div class="alert alert-default-info">Sınav seçiniz.</div>';return;}
     let lvl = getEl('aLvl') ? getEl('aLvl').value : '', baseExams = DB.e.filter(x => x.examType === eT);
-    let targetLvl = lvl; if (!targetLvl && aNo) { let st = DB.s.find(x=>x.no===aNo); if(st) targetLvl = getGrade(st.class); }
+    let targetLvl = lvl; if (!targetLvl && aNo) { let st = getStuMap().get(aNo); if(st) targetLvl = getGrade(st.class); }
     if (targetLvl) { baseExams = baseExams.filter(x => getGrade(x.studentClass) === targetLvl); }
     let brFilterED = getBrVal();
     if (brFilterED) { baseExams = baseExams.filter(x => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; }); }
 
-    let getName = (no) => DB.s.find(s=>s.no===no)?.name || 'Bilinmiyor';
+    let getName = (no) => getStuMap().get(no)?.name || 'Bilinmiyor';
 
     if(subSel === 'general_summary') {
         // === FIX: Orphan öğrencileri filtrele ===
@@ -2148,7 +2260,7 @@ function rAnl(){
       let subKeys=Array.from(new Set(batch.filter(x=>!x.abs).flatMap(e=>Object.keys(e.subs)))).sort();
       // === FIX: Orphan öğrenciler — silinmiş öğrenci verilerini listeden çıkar ===
       let _validNos = new Set(DB.s.map(s=>s.no));
-      let rows2=batch.filter(e => e && _validNos.has(e.studentNo)).map(e=>{ let st=DB.s.find(x=>x.no===e.studentNo); return {...e,studentName:st?st.name:'—',studentCls:st?st.class:e.studentClass}; });
+      let rows2=batch.filter(e => e && _validNos.has(e.studentNo)).map(e=>{ let st=getStuMap().get(e.studentNo); return {...e,studentName:st?st.name:'—',studentCls:st?st.class:e.studentClass}; });
       // === FIX: Sıralama her zaman PUAN'a göre (eşitlikte totalNet, sonra ad — Türkçe duyarlı) ===
       let attended=rows2.filter(x=>!x.abs).sort((a,b)=>{
         let dp = (b.score||0) - (a.score||0); if(dp !== 0) return dp;
@@ -2198,7 +2310,7 @@ function rAnl(){
       allEx.forEach(e => {
         let no = e.studentNo;
         if(!stuMap[no]) {
-          let st = DB.s.find(x => x.no === no);
+          let st = getStuMap().get(no);
           stuMap[no] = { no, name: st ? st.name : '—', cls: e.studentClass, subSums: {}, subCounts: {}, totalNetSum: 0, scoreSum: 0, examCount: 0 };
         }
         stuMap[no].totalNetSum += e.totalNet;

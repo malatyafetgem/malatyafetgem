@@ -84,10 +84,10 @@ function executeTabSwitch(id, isPopState) {
 
 // ---- sAct (orig lines 1021-1028) ----
 async function sAct(no,clr=false){
-  aNo=no; if(clr){let st=DB.s.find(x=>x.no===no); getEl('sInp').value=st?(st.name+' ('+st.class+')'):'';getEl('sRes').innerHTML='';getEl('sRes').style.display='none';}
-  let s=DB.s.find(x=>x.no===aNo);
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>';
-  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'';
+  aNo=no; if(clr){let st=getStuMap().get(no); getEl('sInp').value=st?(st.name+' ('+st.class+')'):'';getEl('sRes').innerHTML='';getEl('sRes').style.display='none';}
+  let s=getStuMap().get(aNo);
+  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>';
+  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
   getEl('homeArea').innerHTML='';
   if(no) await reqProfile(); if(getEl('sonuclar').classList.contains('active-pane')) reqUI(); 
 }
@@ -601,9 +601,9 @@ function execAnlStuSearch(){
 
 // ---- anlStuSelect (orig lines 1907-1911) ----
 function anlStuSelect(no){
-  getEl('anlStuRes').style.display='none'; let s=DB.s.find(x=>x.no===no); if(s) getEl('anlStuInp').value=s.name+' ('+s.class+')'; aNo = no;
-  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'';
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${s.name} (${s.class})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
+  getEl('anlStuRes').style.display='none'; let s=getStuMap().get(no); if(s) getEl('anlStuInp').value=s.name+' ('+s.class+')'; aNo = no;
+  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
+  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
 }
 
 // ---- anlStuClear (orig lines 1912-1912) ----
@@ -678,7 +678,7 @@ function uStat(){
 
 // ---- uDrp (orig lines 1923-1925) ----
 function uDrp(){
-  uExamTypes(); if(aNo){ let s=DB.s.find(x=>x.no===aNo); if(s&&getEl('anlStuInp'))getEl('anlStuInp').value=s.name+' ('+s.class+')'; }
+  uExamTypes(); if(aNo){ let s=getStuMap().get(aNo); if(s&&getEl('anlStuInp'))getEl('anlStuInp').value=s.name+' ('+s.class+')'; }
 }
 
 // ---- uBranches (orig lines 1927-1945) ----
@@ -871,7 +871,7 @@ function uStudentExamDates(){
   }
   // Öğrenci seçiliyse sınıf seviyesine göre filtrele
   let stuGrade = null;
-  if(aNo){ let st = DB.s.find(x=>x.no===aNo); if(st) stuGrade = getGrade(st.class); }
+  if(aNo){ let st = getStuMap().get(aNo); if(st) stuGrade = getGrade(st.class); }
   let entries = [];
   Object.values(EXAM_META).forEach(m => {
     if(m.examType !== eT) return;
@@ -949,7 +949,7 @@ function uExamDates(){
   let t=getEl('aEx').value, dates=[], datePublisherMap = {}, aT = getEl('aType') ? getEl('aType').value : '', sub = getEl('aSub') ? getEl('aSub').value : '';
   let stuGrade = null;
   if(aNo && aT === 'examdetail' && (sub === 'summary' || sub === 'list_single')) {
-    let st = DB.s.find(x=>x.no===aNo); if(st) stuGrade = getGrade(st.class);
+    let st = getStuMap().get(aNo); if(st) stuGrade = getGrade(st.class);
   }
   let lvlGrade = '';
   // === FIX: examdetail/subject/class için seçili sınıf seviyesi (aLvl) her zaman filtre ===
