@@ -734,151 +734,16 @@ function rH(){
 // ---- _buildSingleMetricSparkline: Tek bir metrik için (Toplam Net, Puan, ders neti, sıralama) eğilim kartı ----
 // metric: 'totalNet' | 'score' | 'rank_c'/'rank_i'/'rank_g' | 's_<dersAdı>'
 function _buildSingleMetricSparkline(stuNo, examType, curExam, metric, label){
-  let allEx = DB.e.filter(x => x.studentNo===stuNo && x.examType===examType && !x.abs).sort((a,b)=>srt(a.date,b.date));
-  if(allEx.length < 2) return '';
-  let curIdx = allEx.findIndex(e => e.date===curExam.date && (e.publisher||'')===(curExam.publisher||''));
-  if(curIdx < 0) return '';
-  let startIdx = Math.max(0, curIdx - 4);
-  let window = allEx.slice(startIdx, curIdx + 1);
-  if(window.length < 2) return '';
-  let isRank = metric && metric.indexOf('rank_')===0;
-  let getV = (e) => {
-    if(metric === 'totalNet' || !metric) return (e.totalNet!==undefined?e.totalNet:null);
-    if(metric === 'score') return (e.score!==undefined?e.score:null);
-    if(metric === 'rank_c') return pN(e.cR);
-    if(metric === 'rank_i') return pN(e.iR);
-    if(metric === 'rank_g') return pN(e.gR);
-    if(metric.indexOf('s_')===0){
-      let key = metric.replace('s_',''); let kT = toTitleCase(key);
-      let sn = e.subs ? (e.subs[key] || e.subs[kT]) : null;
-      return sn && sn.net!==null && sn.net!==undefined ? sn.net : null;
-    }
-    return null;
-  };
-  let series = window.map(getV);
-  let valid = series.filter(v => v !== null);
-  if(valid.length < 2) return '';
-  let curVal = series[series.length-1];
-  let prevVal = null;
-  for(let i=series.length-2;i>=0;i--){ if(series[i]!==null){ prevVal=series[i]; break; } }
-  let delta = (curVal!==null && prevVal!==null) ? (isRank ? (prevVal-curVal) : (curVal-prevVal)) : null;
-  let dCls = delta===null?'sec-neutral':(delta>0?'sec-pos':(delta<0?'sec-neg':'sec-neutral'));
-  let dIcon = delta===null?'fa-minus':(delta>0?'fa-arrow-up':(delta<0?'fa-arrow-down':'fa-minus'));
-  let dColor = delta===null?'#6c757d':(delta>0?'#198754':(delta<0?'#dc3545':'#6c757d'));
-  let dStr = delta===null?'—':((delta>0?'+':'')+(isRank?delta:delta.toFixed(2)));
-  let W=260, H=60, padX=6, padY=8;
-  let mn=Math.min(...valid), mx=Math.max(...valid);
-  if(mn===mx){ mn-=1; mx+=1; }
-  let toY = v => isRank
-    ? (padY + (H-padY*2) * ((v - mn)/(mx-mn)))
-    : (padY + (H-padY*2) * (1 - (v-mn)/(mx-mn)));
-  let n=series.length;
-  let xStep=(W-padX*2)/Math.max(1,n-1);
-  let pathParts=[]; let cur='';
-  series.forEach((v,i)=>{
-    if(v===null){ if(cur){pathParts.push(cur); cur='';} return; }
-    let x=padX+i*xStep, y=toY(v);
-    cur += (cur?' L':'M')+x.toFixed(1)+','+y.toFixed(1);
-  });
-  if(cur) pathParts.push(cur);
-  let pathSvg = pathParts.map(p=>`<path d="${p}" fill="none" stroke="${dColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
-  let dots = series.map((v,i)=>{
-    if(v===null) return '';
-    let x=padX+i*xStep, y=toY(v);
-    let isLast=(i===series.length-1);
-    return isLast
-      ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${dColor}" stroke="#fff" stroke-width="1.6"/>`
-      : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" fill="#fff" stroke="${dColor}" stroke-width="1.4"/>`;
-  }).join('');
-  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:60px;display:block;">${pathSvg}${dots}</svg>`;
-  let curStr = curVal===null?'—':(isRank?curVal:curVal.toFixed(2));
-  return `<div class="single-exam-chart-title" style="margin-top:14px;"><i class="fas fa-chart-line"></i>${label} — Eğilim <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— son ${window.length} sınav</span></div>
-    <div class="row single-exam-cards"><div class="col-md-6 col-sm-12 mb-2"><div class="sec-card ${dCls}" style="min-height:auto;padding:10px 14px;">
-      <div class="sec-body" style="width:100%;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-          <span class="sec-label">${label}</span>
-          <span style="font-size:0.78rem;font-weight:700;color:${dColor};"><i class="fas ${dIcon} mr-1"></i>${dStr}</span>
-        </div>
-        <div style="margin-top:5px;">${svg}</div>
-        <div style="font-size:0.72rem;color:#6c757d;margin-top:3px;">Şu an: <strong>${curStr}</strong>${prevVal!==null?' · Önceki: '+(isRank?prevVal:prevVal.toFixed(2)):''}</div>
-      </div></div></div></div>`;
+  // Eğilim (sparkline) grafiği kullanıcı isteğiyle kaldırıldı.
+  return '';
 }
 
 // ---- buildSubjectSparklines: Tek sınav modu — Ders Eğilimi mini-grafik paneli ----
 // Her ders için, öğrencinin aynı sınav türündeki son 5 sınavının (seçili sınav dahil)
 // neti üzerinden minik bir SVG çizgi grafiği üretir. Seçili sınavın noktası vurgulanır.
 function buildSubjectSparklines(stuNo, examType, curExam, subjects){
-  if(!subjects || !subjects.length) return '';
-  // Öğrencinin bu sınav türündeki tüm sınavları (kronolojik sıra)
-  let allEx = DB.e.filter(x => x.studentNo===stuNo && x.examType===examType && !x.abs).sort((a,b)=>srt(a.date,b.date));
-  if(allEx.length < 2) return '';
-  // Seçili sınavın indeksi
-  let curIdx = allEx.findIndex(e => e.date===curExam.date && (e.publisher||'')===(curExam.publisher||''));
-  if(curIdx < 0) return '';
-  // Son 5 (seçili dahil) — yeterli geçmiş yoksa baştan al
-  let startIdx = Math.max(0, curIdx - 4);
-  let window = allEx.slice(startIdx, curIdx + 1);
-  if(window.length < 2) return '';
-
-  let cards = subjects.map(s => {
-    let series = window.map(e => (e.subs && e.subs[s] && e.subs[s].net !== undefined && e.subs[s].net !== null) ? e.subs[s].net : null);
-    let valid = series.filter(v => v !== null);
-    if(valid.length < 2) return ''; // tek noktalı eğilim çizgisi anlamsız
-    let curVal = series[series.length - 1];
-    let prevVal = null;
-    for(let i = series.length - 2; i >= 0; i--) { if(series[i] !== null) { prevVal = series[i]; break; } }
-    let delta = (curVal !== null && prevVal !== null) ? (curVal - prevVal) : null;
-    let dCls = delta === null ? 'sec-neutral' : (delta > 0 ? 'sec-pos' : (delta < 0 ? 'sec-neg' : 'sec-neutral'));
-    let dIcon = delta === null ? 'fa-minus' : (delta > 0 ? 'fa-arrow-up' : (delta < 0 ? 'fa-arrow-down' : 'fa-minus'));
-    let dColor = delta === null ? '#6c757d' : (delta > 0 ? '#198754' : (delta < 0 ? '#dc3545' : '#6c757d'));
-    let dStr = delta === null ? '—' : (delta > 0 ? '+' : '') + delta.toFixed(2);
-
-    // SVG sparkline
-    let W = 140, H = 38, padX = 4, padY = 5;
-    let mn = Math.min(...valid), mx = Math.max(...valid);
-    if(mn === mx) { mn -= 1; mx += 1; }
-    let n = series.length;
-    let xStep = (W - padX*2) / Math.max(1, n - 1);
-    let toY = v => padY + (H - padY*2) * (1 - (v - mn) / (mx - mn));
-
-    // Çizgi yolu (null değerleri atla, parça parça çiz)
-    let pathParts = [];
-    let cur = '';
-    series.forEach((v, i) => {
-      if(v === null) { if(cur) { pathParts.push(cur); cur = ''; } return; }
-      let x = padX + i * xStep, y = toY(v);
-      cur += (cur ? ' L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1);
-    });
-    if(cur) pathParts.push(cur);
-    let pathSvg = pathParts.map(p => `<path d="${p}" fill="none" stroke="${dColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
-
-    // Noktalar — son nokta vurgulu
-    let dots = series.map((v, i) => {
-      if(v === null) return '';
-      let x = padX + i * xStep, y = toY(v);
-      let isLast = (i === series.length - 1);
-      return isLast
-        ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.2" fill="${dColor}" stroke="#fff" stroke-width="1.4"/>`
-        : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#fff" stroke="${dColor}" stroke-width="1.2"/>`;
-    }).join('');
-
-    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:38px;display:block;">${pathSvg}${dots}</svg>`;
-
-    return `<div class="col-md-3 col-sm-6 mb-2"><div class="sec-card ${dCls}" style="min-height:auto;padding:8px 10px;">
-      <div class="sec-body" style="width:100%;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-          <span class="sec-label" style="font-size:0.7rem;">${toTitleCase(s)}</span>
-          <span style="font-size:0.72rem;font-weight:700;color:${dColor};"><i class="fas ${dIcon} mr-1" style="font-size:0.85em;"></i>${dStr}</span>
-        </div>
-        <div style="margin-top:3px;">${svg}</div>
-        <div style="font-size:0.68rem;color:#6c757d;margin-top:2px;">Son ${window.length} sınav · Şu an: ${curVal===null?'—':curVal.toFixed(2)}</div>
-      </div>
-    </div></div>`;
-  }).filter(x => x).join('');
-
-  if(!cards) return '';
-  return `<div class="single-exam-chart-title" style="margin-top:14px;"><i class="fas fa-chart-line"></i>Ders Eğilimi <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— son ${window.length} sınav</span></div>
-    <div class="row single-exam-cards">${cards}</div>`;
+  // Ders Eğilimi sparkline paneli kullanıcı isteğiyle kaldırıldı.
+  return '';
 }
 
 // ---- buildSingleExamCards: Tek sınav modu için 4 özet kart ----
