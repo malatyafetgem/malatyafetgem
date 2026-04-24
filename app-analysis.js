@@ -1864,6 +1864,7 @@ function rAnl(){
     let targetLvl = lvl; if (!targetLvl && aNo) { let st = getStuMap().get(aNo); if(st) targetLvl = getGrade(st.class); }
     if (targetLvl) { baseExams = baseExams.filter(x => getGrade(x.studentClass) === targetLvl); }
     let brFilterED = getBrVal();
+    if (brFilterED) { baseExams = baseExams.filter(x => { let mm = x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR') === brFilterED; }); }
 
     let getName = (no) => getStuMap().get(no)?.name || 'Bilinmiyor';
 
@@ -1918,7 +1919,7 @@ function rAnl(){
         let buildRow = (e, i, prop, countLabel) => `<tr><td>${i+1}</td><td>${e.no}</td><td>${e.name}</td><td>${e.cls}</td><td><strong>${e[prop]} ${countLabel}</strong></td><td>${e.avgNet.toFixed(2)}</td><td>${e.avgScore.toFixed(2)}</td></tr>`;
         let top5Html = top5List.length ? top5List.map((e,i) => buildRow(e, i, 'top5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
         let bottom5Html = bottom5List.length ? bottom5List.map((e,i) => buildRow(e, i, 'bottom5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
-        let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName = `${eT}_Genel_Ozet`;
+        let lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ', safeName = `${eT}_Genel_Ozet`;
 
         let eligibleStusGS = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toLocaleUpperCase('tr-TR') !== brFilterED) return false; } return true; });
         let gsExamGradeMap = {};
@@ -1985,7 +1986,7 @@ function rAnl(){
             });
             let validClsMap = Object.fromEntries(Object.entries(genClassMap).filter(([c,v])=>v.length>=3));
             let lvlForGenBP = targetLvl || '';
-            let allGradeStus = DB.e.filter(x => x.examType===eT && !x.abs && (lvlForGenBP ? getGrade(x.studentClass)===lvlForGenBP : true));
+            let allGradeStus = DB.e.filter(x => x.examType===eT && !x.abs && (lvlForGenBP ? getGrade(x.studentClass)===lvlForGenBP : true) && (!brFilterED || (() => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; })()));
             let gradeStudentAvgs = {};
             allGradeStus.forEach(e => {
               if(!gradeStudentAvgs[e.studentNo]) gradeStudentAvgs[e.studentNo] = [];
@@ -2052,6 +2053,7 @@ function rAnl(){
       let isFirstExam = (currentIndex === 0 || prevDate === null);
       let prevBatch = prevDate ? DB.e.filter(x => x.examType === eT && x.date === prevDate) :[];
       if(targetLvl) prevBatch = prevBatch.filter(x => getGrade(x.studentClass) === targetLvl);
+      if(brFilterED) prevBatch = prevBatch.filter(x => { let mm = x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR') === brFilterED; });
       let prevExams = prevBatch.filter(x => !x.abs), sortedExams = [...currentExams].sort((a,b) => { let dp=(b.score||0)-(a.score||0); if(dp!==0) return dp; return (b.totalNet||0)-(a.totalNet||0); }), winner = sortedExams[0], progress =[];
       
       let _validNosSum = new Set(DB.s.map(s=>s.no));
@@ -2074,7 +2076,7 @@ function rAnl(){
       let bottomExams = [...sortedExams].reverse().slice(0,5); 
       let bottom5Html = bottomExams.map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, i)).join('');
       
-      let safeName = `${eT}_${dt.replace(/\./g,'-')}_Ozet`, lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
+      let safeName = `${eT}_${dt.replace(/\./g,'-')}_Ozet`, lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ';
       let pubName = Object.values(EXAM_META).find(m=>m.date===dt&&m.examType===eT)?.publisher || '';
       
       let thisExamMeta = Object.values(EXAM_META).find(m=>m.date===dt && m.examType===eT);
@@ -2132,7 +2134,7 @@ function rAnl(){
             examClassMap[e.studentClass].push(e.totalNet);
           });
           let lvlForExBP = targetLvl || (currentExams.length > 0 ? getGrade(currentExams[0].studentClass) : '');
-          let allGradeNets = DB.e.filter(e => e.examType===eT && e.date===dt && !e.abs && (lvlForExBP ? getGrade(e.studentClass)===lvlForExBP : true)).map(e => e.totalNet);
+          let allGradeNets = DB.e.filter(e => e.examType===eT && e.date===dt && !e.abs && (lvlForExBP ? getGrade(e.studentClass)===lvlForExBP : true) && (!brFilterED || (() => { let mm=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; })())).map(e => e.totalNet);
           let validClasses = Object.fromEntries(Object.entries(examClassMap).filter(([c,v])=>v.length>=3));
           if(allGradeNets.length >= 3) {
             let multiClsBP = Object.keys(validClasses).length >= 1 ? mkMultiClassBoxPlot(validClasses, null, {height:220}, allGradeNets) : '';
