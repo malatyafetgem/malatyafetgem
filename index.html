@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -123,7 +122,6 @@
   </aside>
 
   <div class="content-wrapper">
-    <!-- SADELEŞTİRİLMİŞ ÜST BAŞLIK (SADECE BREADCRUMB) -->
     <div class="content-header" style="padding: 10px 0.5rem; border-bottom: 1px solid #dee2e6; background: #fff; margin-bottom: 15px;">
       <div class="container-fluid">
         <ol class="breadcrumb" style="background: transparent; padding: 0; margin: 0; font-size: 1.05rem;">
@@ -138,10 +136,10 @@
         
         <div id="anasayfa_genel" class="pane active-pane">
           <div class="row mb-3">
-            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-primary" onclick="sTab('anasayfa', document.getElementById('nav-anasayfa'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-user-graduate"></i></span><div class="info-box-content"><span class="info-box-text">Öğrenci Profili</span><span class="progress-description" style="font-size:0.8em;">Kişisel karneler</span></div></div></div>
-            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-success" onclick="sTab('sonuclar', document.getElementById('nav-sonuclar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Sonuçlar & Analizler</span><span class="progress-description" style="font-size:0.8em;">Sınıf/Ders analizleri</span></div></div></div>
-            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-info" onclick="sTab('rapor', document.getElementById('nav-rapor'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-file-alt"></i></span><div class="info-box-content"><span class="info-box-text">Toplu Rapor</span><span class="progress-description" style="font-size:0.8em;">Sınıf karneleri yazdır</span></div></div></div>
-            <div class="col-md-3 col-sm-6 col-12 admin-only"><div class="info-box bg-warning" onclick="sTab('ayarlar', document.getElementById('nav-ayarlar'))" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"><span class="info-box-icon"><i class="fas fa-cog text-white"></i></span><div class="info-box-content text-white"><span class="info-box-text">Ayarlar & Yükleme</span><span class="progress-description" style="font-size:0.8em;">Excel ile veri aktarımı</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-primary" onclick="sTab('anasayfa', document.getElementById('nav-anasayfa'))" style="cursor:pointer; transition:transform 0.2s;"><span class="info-box-icon"><i class="fas fa-user-graduate"></i></span><div class="info-box-content"><span class="info-box-text">Öğrenci Profili</span><span class="progress-description" style="font-size:0.8em;">Kişisel karneler</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-success" onclick="sTab('sonuclar', document.getElementById('nav-sonuclar'))" style="cursor:pointer; transition:transform 0.2s;"><span class="info-box-icon"><i class="fas fa-chart-line"></i></span><div class="info-box-content"><span class="info-box-text">Sonuçlar & Analizler</span><span class="progress-description" style="font-size:0.8em;">Sınıf/Ders analizleri</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12"><div class="info-box bg-info" onclick="sTab('rapor', document.getElementById('nav-rapor'))" style="cursor:pointer; transition:transform 0.2s;"><span class="info-box-icon"><i class="fas fa-file-alt"></i></span><div class="info-box-content"><span class="info-box-text">Toplu Rapor</span><span class="progress-description" style="font-size:0.8em;">Sınıf karneleri yazdır</span></div></div></div>
+            <div class="col-md-3 col-sm-6 col-12 admin-only"><div class="info-box bg-warning" onclick="sTab('ayarlar', document.getElementById('nav-ayarlar'))" style="cursor:pointer; transition:transform 0.2s;"><span class="info-box-icon"><i class="fas fa-cog text-white"></i></span><div class="info-box-content text-white"><span class="info-box-text">Ayarlar & Yükleme</span><span class="progress-description" style="font-size:0.8em;">Excel ile veri aktarımı</span></div></div></div>
           </div>
           <div class="card card-outline card-info"><div class="card-header"><h3 class="card-title"><i class="fas fa-tachometer-alt mr-2"></i>Sistem Özeti</h3></div><div class="card-body"><div class="row" id="dynamicStatsGrid"></div></div></div>
         </div>
@@ -161,66 +159,26 @@
             <div class="col-sm-6 col-md-4 col-lg-2" id="gExDate" style="display:none;"><div class="form-group"><label>Sınav Seç</label><select id="aExDate" class="form-control" onchange="onExDateStudentChange()"><option value="">Tümü</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="form-group"><label id="lblDate">Sınav Seç</label><select id="aDate" class="form-control" onchange="onDateChange()"><option value="" disabled selected>Sınav Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gSub" style="display:none;"><div class="form-group"><label id="lblSub">Veri</label><select id="aSub" class="form-control" onchange="handleSubChange()"></select></div></div>
-            <!-- Risk Analizi Filtreleri — sadece Risk modunda görünür -->
             <div class="col-sm-6 col-md-4 col-lg-2" id="gRiskGrade" style="display:none;"><div class="form-group"><label>Sınıf Seviyesi</label><select id="riskGradeFilter" class="form-control" onchange="_populateRiskFilterDropdowns();renderRiskPanel()"><option value="">Tüm Sınıflar</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gRiskBranch" style="display:none;"><div class="form-group"><label>Şube</label><select id="riskBranchFilter" class="form-control" onchange="renderRiskPanel()"><option value="">Tüm Şubeler</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gRiskExType" style="display:none;"><div class="form-group"><label>Sınav Türü</label><select id="riskExTypeFilter" class="form-control" onchange="renderRiskPanel()"><option value="">Tüm Sınav Türleri</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gRiskLevel" style="display:none;"><div class="form-group"><label>Risk Türü</label><select id="riskLevelFilter" class="form-control" onchange="renderRiskPanel()"><option value="">Tüm Riskler</option><option value="high">🔴 Yüksek Risk</option><option value="med">🟠 Orta Risk</option><option value="low">🟡 Düşük Risk</option></select></div></div>
           </div></div></div>
           <div id="anlRes"></div>
-          <!-- RİSK ANALİZİ PANELİ -->
           <div id="riskPanel" style="display:none;">
             <div class="card" style="border-top:3px solid #e05260; box-shadow:0 2px 12px rgba(220,53,69,0.10);">
-              <div class="card-header" style="background:linear-gradient(135deg,#fff0f2 0%,#fde8eb 100%);border-bottom:1px solid rgba(220,53,69,0.15);padding:10px 14px;">
+              <div class="card-header" style="background:linear-gradient(135deg,#fff0f2 0%,#fde8eb 100%);padding:10px 14px;">
                 <div class="risk-panel-header">
-                  <h6 style="color:#842029;"><i class="fas fa-shield-alt" style="color:#dc3545;"></i>Risk Analizi <span id="riskTotalBadge" style="background:rgba(220,53,69,0.12);color:#842029;padding:1px 8px;border-radius:12px;font-size:0.82em;font-weight:700;margin-left:4px;border:1px solid rgba(220,53,69,0.2);"></span></h6>
+                  <h6 style="color:#842029;"><i class="fas fa-shield-alt" style="color:#dc3545;"></i>Risk Analizi <span id="riskTotalBadge"></span></h6>
                 </div>
               </div>
               <div class="card-body" style="padding:12px 14px;">
-                <!-- Özet Kartlar -->
                 <div class="row mb-3" id="riskStatCards">
-                  <div class="col-6 col-md-3 mb-2">
-                    <div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#dc3545,#b02a37);color:#fff;border-radius:8px;cursor:pointer;" onclick="setRiskLevel('high')">
-                      <span class="info-box-icon" style="width:50px;font-size:1.2rem;color:#fff;background:rgba(0,0,0,0.15);border-radius:8px 0 0 8px;"><i class="fas fa-exclamation-circle"></i></span>
-                      <div class="info-box-content" style="padding:5px 10px;">
-                        <span class="info-box-text" style="font-size:0.72em;color:#fff;">Yüksek Risk</span>
-                        <span class="info-box-number" style="font-size:1.4em;color:#fff;" id="riskCardHigh">0</span>
-                        <span class="progress-description" style="font-size:0.7em;color:rgba(255,255,255,0.85);">öğrenci</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 col-md-3 mb-2">
-                    <div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#fd7e14,#e06a10);color:#fff;border-radius:8px;cursor:pointer;" onclick="setRiskLevel('med')">
-                      <span class="info-box-icon" style="width:50px;font-size:1.2rem;color:#fff;background:rgba(0,0,0,0.15);border-radius:8px 0 0 8px;"><i class="fas fa-exclamation-triangle"></i></span>
-                      <div class="info-box-content" style="padding:5px 10px;">
-                        <span class="info-box-text" style="font-size:0.72em;color:#fff;">Orta Risk</span>
-                        <span class="info-box-number" style="font-size:1.4em;color:#fff;" id="riskCardMed">0</span>
-                        <span class="progress-description" style="font-size:0.7em;color:rgba(255,255,255,0.85);">öğrenci</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 col-md-3 mb-2">
-                    <div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#ffc107,#d4a000);color:#fff;border-radius:8px;cursor:pointer;" onclick="setRiskLevel('low')">
-                      <span class="info-box-icon" style="width:50px;font-size:1.2rem;color:#fff;background:rgba(0,0,0,0.15);border-radius:8px 0 0 8px;"><i class="fas fa-info-circle"></i></span>
-                      <div class="info-box-content" style="padding:5px 10px;">
-                        <span class="info-box-text" style="font-size:0.72em;color:#212529;">Düşük Risk</span>
-                        <span class="info-box-number" style="font-size:1.4em;color:#212529;" id="riskCardLow">0</span>
-                        <span class="progress-description" style="font-size:0.7em;color:rgba(0,0,0,0.65);">öğrenci</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 col-md-3 mb-2">
-                    <div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#0d6efd,#0a58ca);color:#fff;border-radius:8px;cursor:pointer;" onclick="setRiskLevel('')">
-                      <span class="info-box-icon" style="width:50px;font-size:1.2rem;color:#fff;background:rgba(0,0,0,0.15);border-radius:8px 0 0 8px;"><i class="fas fa-users"></i></span>
-                      <div class="info-box-content" style="padding:5px 10px;">
-                        <span class="info-box-text" style="font-size:0.72em;color:#fff;">Toplam Riskteki</span>
-                        <span class="info-box-number" style="font-size:1.4em;color:#fff;" id="riskCardTotal">0</span>
-                        <span class="progress-description" style="font-size:0.7em;color:rgba(255,255,255,0.85);">öğrenci</span>
-                      </div>
-                    </div>
-                  </div>
+                  <div class="col-6 col-md-3 mb-2"><div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#dc3545,#b02a37);color:#fff;cursor:pointer;" onclick="setRiskLevel('high')"><span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">Yüksek Risk</span><span class="info-box-number" id="riskCardHigh">0</span></div></div></div>
+                  <div class="col-6 col-md-3 mb-2"><div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#fd7e14,#e06a10);color:#fff;cursor:pointer;" onclick="setRiskLevel('med')"><span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span><div class="info-box-content"><span class="info-box-text">Orta Risk</span><span class="info-box-number" id="riskCardMed">0</span></div></div></div>
+                  <div class="col-6 col-md-3 mb-2"><div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#ffc107,#d4a000);color:#fff;cursor:pointer;" onclick="setRiskLevel('low')"><span class="info-box-icon"><i class="fas fa-info-circle"></i></span><div class="info-box-content"><span class="info-box-text" style="color:#212529;">Düşük Risk</span><span class="info-box-number" style="color:#212529;" id="riskCardLow">0</span></div></div></div>
+                  <div class="col-6 col-md-3 mb-2"><div class="info-box mb-0" style="min-height:64px;background:linear-gradient(135deg,#0d6efd,#0a58ca);color:#fff;cursor:pointer;" onclick="setRiskLevel('')"><span class="info-box-icon"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">Toplam Risk</span><span class="info-box-number" id="riskCardTotal">0</span></div></div></div>
                 </div>
-                <!-- Liste -->
                 <div class="risk-list-wrap" id="riskList"></div>
               </div>
             </div>
@@ -228,12 +186,16 @@
         </div>
 
         <div id="rapor" class="pane">
-          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-file-alt mr-2"></i>Toplu Sınıf Raporu</h3></div><div class="card-body"><div class="row">
-            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınıf Seviyesi</label><select id="rLvl" class="form-control" onchange="raporFillBranches()"><option value="">Seçiniz</option></select></div></div>
-            <div class="col-sm-6 col-md-2"><div class="form-group"><label>Şube</label><select id="rBr" class="form-control" onchange="generateRapor()"><option value="">Tümü</option></select></div></div>
-            <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınav Türü</label><select id="rExType" class="form-control" onchange="generateRapor()"><option value="" disabled selected>Sınav Seçiniz</option></select></div></div>
-            
-          </div></div></div>
+          <div class="card card-primary card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-file-alt mr-2"></i>Toplu Rapor & Liste</h3></div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınıf Seviyesi</label><select id="rLvl" class="form-control" onchange="raporFillBranches()"><option value="">Seçiniz</option></select></div></div>
+                <div class="col-sm-6 col-md-2"><div class="form-group"><label>Şube</label><select id="rBr" class="form-control" onchange="generateRapor()"><option value="">Tümü</option></select></div></div>
+                <div class="col-sm-6 col-md-3"><div class="form-group"><label>Sınav Türü</label><select id="rExType" class="form-control" onchange="generateRapor()"><option value="" disabled selected>Sınav Seçiniz</option></select></div></div>
+                <div class="col-sm-6 col-md-3"><div class="form-group"><label>Rapor Türü</label><select id="rReportType" class="form-control" onchange="generateRapor()"><option value="Karne">Karne (Öğrenci Bazlı)</option><option value="Liste">Liste (Toplu Netler)</option></select></div></div>
+              </div>
+            </div>
+          </div>
           <div id="raporRes"></div>
         </div>
 
@@ -243,81 +205,18 @@
               <div class="card card-primary card-outline">
                 <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title"><i class="fas fa-users mr-2"></i>Öğrenci Yönetimi</h3><button class="btn btn-success btn-sm ml-auto" onclick="oModAdd()"><i class="fas fa-plus mr-1"></i>Ekle</button></div>
                 <div class="card-body">
-                  <!-- ARAMA KUTUSU EKLENDİ -->
                   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3" style="gap:10px;">
-                    <div class="btn-group">
-                      <button class="btn btn-primary btn-sm" onclick="getEl('fStu').click()"><i class="fas fa-upload mr-1"></i>Listeden Yükle (Excel)</button>
-                      <input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')" accept=".xlsx,.xls">
-                    </div>
-                    <div class="input-group input-group-sm" style="max-width: 250px;">
-                      <input type="text" id="setStuSearch" class="form-control" placeholder="İsim veya No ile ara..." onkeyup="filterSettingsStudents()">
-                      <div class="input-group-append">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                      </div>
-                    </div>
+                    <div class="btn-group"><button class="btn btn-primary btn-sm" onclick="getEl('fStu').click()"><i class="fas fa-upload mr-1"></i>Excelden Yükle</button><input type="file" id="fStu" style="display:none;" onchange="upl(event,'s')" accept=".xlsx,.xls"></div>
+                    <div class="input-group input-group-sm" style="max-width: 250px;"><input type="text" id="setStuSearch" class="form-control" placeholder="İsim veya No ile ara..." onkeyup="filterSettingsStudents()"><div class="input-group-append"><span class="input-group-text"><i class="fas fa-search"></i></span></div></div>
                   </div>
-                  <div class="table-responsive" style="max-height:300px;overflow-y:auto;">
-                    <table class="table table-sm table-hover text-nowrap" id="tStu">
-                      <thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead>
-                      <tbody></tbody>
-                    </table>
-                  </div>
-                  <button class="btn btn-danger btn-block mt-2 admin-only" onclick="cDel('allStudents','Tüm öğrenciler ve sınav verileri silinecek. Onaylıyor musunuz?')"><i class="fas fa-trash mr-1"></i>Tümünü Sil</button>
+                  <div class="table-responsive" style="max-height:300px;overflow-y:auto;"><table class="table table-sm table-hover text-nowrap" id="tStu"><thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>İşlem</th></tr></thead><tbody></tbody></table></div>
+                  <button class="btn btn-danger btn-block mt-2 admin-only" onclick="cDel('allStudents','Tüm veriler silinecek. Onaylıyor musunuz?')"><i class="fas fa-trash mr-1"></i>Tümünü Sil</button>
                 </div>
               </div>
             </div>
-
-            <div class="col-lg-12">
-              <div class="card card-warning card-outline">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri Yükleme</h3></div>
-                <div class="card-body">
-                  <div class="btn-group mb-3">
-                    <button class="btn btn-primary btn-sm" onclick="getEl('fEx').click()"><i class="fas fa-magic mr-1"></i>Akıllı Sihirbaz ile Sonuç Yükle</button>
-                    <input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')" accept=".xlsx,.xls">
-                  </div>
-                  <div id="tExA" class="table-responsive mt-2"></div>
-                </div>
-              </div>
-            </div>
-
+            <div class="col-lg-12"><div class="card card-warning card-outline"><div class="card-header"><h3 class="card-title"><i class="fas fa-file-excel mr-2"></i>Sınav Verileri</h3></div><div class="card-body"><button class="btn btn-primary btn-sm mb-3" onclick="getEl('fEx').click()"><i class="fas fa-magic mr-1"></i>Sonuç Yükle (Sihirbaz)</button><input type="file" id="fEx" style="display:none;" onchange="upl(event,'e')" accept=".xlsx,.xls"><div id="tExA" class="table-responsive"></div></div></div></div>
             <div class="col-lg-12 admin-only">
-              <div class="card sys-mgmt-card admin-only">
-                <div class="card-header">
-                  <h3 class="card-title"><i class="fas fa-database"></i>Sistem Yönetimi</h3>
-                </div>
-                <div class="card-body">
-                  <div class="sys-mgmt-inner">
-                  <div class="sys-mgmt-section">
-                    <button type="button" class="sys-mgmt-tile tile-export" onclick="expDB()">
-                      <span class="tile-icon"><i class="fas fa-cloud-download-alt"></i></span>
-                      <span class="tile-text">
-                        <strong>Tam Yedeği İndir</strong>
-                        <span>Öğrenci, sınav meta ve sonuçları tek JSON dosyasına</span>
-                      </span>
-                    </button>
-                    <button type="button" class="sys-mgmt-tile tile-import" onclick="getEl('fImp').click()">
-                      <span class="tile-icon"><i class="fas fa-cloud-upload-alt"></i></span>
-                      <span class="tile-text">
-                        <strong>Yedekten Geri Yükle</strong>
-                        <span>Daha önce indirdiğiniz JSON yedek dosyasını seçin</span>
-                      </span>
-                    </button>
-                    <input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)">
-                  </div>
-                  <div class="sys-mgmt-divider"></div>
-                  <div class="sys-mgmt-danger">
-                    <span class="danger-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                    <span class="danger-text">
-                      <strong>Tehlikeli Bölge</strong>
-                      <span>Tüm veritabanını kalıcı olarak siler. Bu işlem geri alınamaz.</span>
-                    </span>
-                    <button type="button" class="btn-danger-modern" onclick="cDel('all','Tüm Veritabanı Silinecek, Onaylıyor Musunuz?')">
-                      <i class="fas fa-trash mr-1"></i>Sıfırla
-                    </button>
-                  </div>
-                  </div>
-                </div>
-              </div>
+              <div class="card sys-mgmt-card"><div class="card-header"><h3 class="card-title"><i class="fas fa-database"></i>Sistem Yönetimi</h3></div><div class="card-body"><div class="sys-mgmt-inner"><div class="sys-mgmt-section"><button class="sys-mgmt-tile tile-export" onclick="expDB()"><span class="tile-icon"><i class="fas fa-cloud-download-alt"></i></span><span class="tile-text"><strong>Yedeği İndir</strong></span></button><button class="sys-mgmt-tile tile-import" onclick="getEl('fImp').click()"><span class="tile-icon"><i class="fas fa-cloud-upload-alt"></i></span><span class="tile-text"><strong>Yedekten Geri Yükle</strong></span></button><input type="file" id="fImp" style="display:none;" accept=".json" onchange="impDB(event)"></div><div class="sys-mgmt-divider"></div><div class="sys-mgmt-danger"><span class="danger-icon"><i class="fas fa-exclamation-triangle"></i></span><span class="danger-text"><strong>Sıfırla</strong></span><button class="btn-danger-modern" onclick="cDel('all','Tüm Veritabanı Silinecek!')">Sıfırla</button></div></div></div></div>
             </div>
           </div>
         </div>
@@ -329,33 +228,23 @@
 
 <div id="toastContainer"></div>
 
-<!-- ŞİFREMİ UNUTTUM MODALI -->
-<div class="modal fade" id="mForgot" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-key mr-2"></i>Şifre Sıfırlama</h5><button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><p style="font-size:0.9em;">Kayıtlı e-posta adresinizi girin. Şifre sıfırlama bağlantısı gönderilecektir.</p><div class="form-group mb-0"><input type="email" id="forgotEmail" class="form-control" placeholder="ornek@okul.com"></div><div id="forgotMsg" class="mt-2" style="font-size:0.85em;"></div></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-primary btn-sm" onclick="sendPasswordReset()"><i class="fas fa-paper-plane mr-1"></i>Gönder</button></div></div></div></div>
-
-<!-- EŞLEŞTİRME SİHİRBAZI MODALI -->
-<div class="modal fade" id="mMappings" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-magic mr-2"></i>Sütun Eşleştirme Sihirbazı</h5><button type="button" class="close text-white" data-dismiss="modal" onclick="cancelUpload()"><span>&times;</span></button></div><div class="modal-body" id="mMappingsBody" style="max-height:calc(100vh - 200px);overflow-y:auto;"></div><div class="modal-footer d-flex justify-content-between" id="mMappingsFooter"><button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><button class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ml-1"></i></button></div></div></div></div>
-
-<!-- YÜKLEME ÖN İZLEME MODALI -->
-<div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg" style="margin:8px auto;max-width:800px;"><div class="modal-content" style="max-height:calc(100vh - 16px);display:flex;flex-direction:column;overflow:hidden;"><div class="modal-header bg-info text-white" style="flex-shrink:0;"><h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Yükleme Ön İzlemesi</h5><button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="cancelUpload()"><span aria-hidden="true">&times;</span></button></div><div class="modal-body" id="uploadPreviewBody" style="overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch;"></div><div class="modal-footer" style="position:sticky;bottom:0;background:#fff;z-index:10;border-top:2px solid #dee2e6;padding:10px 15px;"><button class="btn btn-secondary" onclick="backToMapping()"><i class="fas fa-arrow-left mr-1"></i>Geri Dön</button><button class="btn btn-success ml-auto" onclick="confirmUpload()"><i class="fas fa-check mr-1"></i>Sisteme Kaydet</button></div></div></div></div>
-
-<div class="modal fade" id="mEditExam" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-warning text-dark"><h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Sınav Düzenle</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><input type="hidden" id="eExBatchId"><div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="eExDate" class="form-control" placeholder="15.04.2024"></div><div class="form-group"><label>Sınav Türü</label><input type="text" id="eExType" class="form-control" placeholder="Örn: TYT"></div><div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="eExPub" class="form-control" placeholder="Örn: MEB"></div></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-warning btn-sm" onclick="svExam()"><i class="fas fa-save mr-1"></i>Kaydet</button></div></div></div></div>
-
-<div class="modal fade" id="mConf" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Dikkat!</h5></div><div class="modal-body"><p id="cTxt"></p></div><div class="modal-footer"><button class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button><button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button></div></div></div></div>
-
-<div class="modal fade" id="mStu" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci İşlemi</h5></div><div class="modal-body"><div class="form-group"><label>Öğrenci No</label><input type="text" id="mSNo" class="form-control" placeholder="Değiştirilemez"></div><div class="form-group"><label>Ad Soyad</label><input type="text" id="mSNa" class="form-control" placeholder="Ad Soyad"></div><div class="form-group"><label>Sınıfı</label><input type="text" id="mSCl" class="form-control" placeholder="Örn: 11A"></div></div><div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">İptal</button><button class="btn btn-success" onclick="svStu()"><i class="fas fa-save mr-1"></i>Kaydet</button></div></div></div></div>
+<!-- MODALLAR (Forgot, Mapping, Preview, Edit, Conf, Stu) -->
+<div class="modal fade" id="mForgot" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Şifre Sıfırlama</h5><button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><input type="email" id="forgotEmail" class="form-control" placeholder="E-posta"><div id="forgotMsg" class="mt-2"></div></div><div class="modal-footer"><button class="btn btn-primary btn-sm" onclick="sendPasswordReset()">Gönder</button></div></div></div></div>
+<div class="modal fade" id="mMappings" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Sihirbaz</h5></div><div class="modal-body" id="mMappingsBody"></div><div class="modal-footer" id="mMappingsFooter"></div></div></div></div>
+<div class="modal fade" id="mUploadPreview" tabindex="-1" data-backdrop="static"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title">Ön İzleme</h5></div><div class="modal-body" id="uploadPreviewBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="backToMapping()">Geri</button><button class="btn btn-success ml-auto" onclick="confirmUpload()">Kaydet</button></div></div></div></div>
+<div class="modal fade" id="mEditExam" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title">Sınav Düzenle</h5></div><div class="modal-body"><input type="hidden" id="eExBatchId"><div class="form-group"><label>Tarih</label><input type="text" id="eExDate" class="form-control"></div><div class="form-group"><label>Tür</label><input type="text" id="eExType" class="form-control"></div></div><div class="modal-footer"><button class="btn btn-warning btn-sm" onclick="svExam()">Kaydet</button></div></div></div></div>
+<div class="modal fade" id="mConf" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title">Dikkat!</h5></div><div class="modal-body"><p id="cTxt"></p></div><div class="modal-footer"><button class="btn btn-danger btn-sm" onclick="xDel()">Evet, Sil</button></div></div></div></div>
+<div class="modal fade" id="mStu" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title" id="mSTit">Öğrenci</h5></div><div class="modal-body"><div class="form-group"><label>No</label><input type="text" id="mSNo" class="form-control"></div><div class="form-group"><label>Ad</label><input type="text" id="mSNa" class="form-control"></div><div class="form-group"><label>Sınıf</label><input type="text" id="mSCl" class="form-control"></div></div><div class="modal-footer"><button class="btn btn-success" onclick="svStu()">Kaydet</button></div></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
-
-<!-- Application code (split into 4 modules) -->
 <script src="./app-core.js"></script>
 <script src="./app-ui.js"></script>
 <script src="./app-analysis.js"></script>
 <script src="./app-settings.js"></script>
 
-
-<footer class="main-footer text-center" style="background:#fff;border-top:1px solid #dee2e6;padding:10px;font-size:0.85em;color:#6c757d;">© 2026 AYUSTASI</footer>
+<footer class="main-footer text-center" style="font-size:0.85em;">© 2026 AYUSTASI</footer>
 </body>
 </html>
