@@ -367,6 +367,21 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   background: #fff; border: 1px solid #e2e6ea;
   font-size: 0.78rem; color: #495057;
 }
+.home-stat-card .hsc-grade-link {
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.home-stat-card .hsc-grade-link:hover {
+  background: var(--exam-color, #0d6efd);
+  border-color: var(--exam-color, #0d6efd);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+.home-stat-card .hsc-grade-link:hover strong,
+.home-stat-card .hsc-grade-link:hover small,
+.home-stat-card .hsc-grade-link:hover i {
+  color: #fff !important;
+}
 .home-stat-card .hsc-grade strong {
   color: var(--exam-color, #0d6efd); font-weight: 700;
 }

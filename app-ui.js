@@ -660,7 +660,7 @@ function uStat(){
     const label = toExamLabel(t);
     const gradeKeys = Object.keys(info.grades).sort((a,b)=> Number(a)-Number(b));
     const gradesHtml = gradeKeys.length
-      ? gradeKeys.map(gr => `<span class="hsc-grade"><strong>${gr}. Sınıf:</strong> ${info.grades[gr]} <small>Sınav</small></span>`).join('')
+      ? gradeKeys.map(gr => `<span class="hsc-grade hsc-grade-link" style="cursor:pointer;" onclick="goToAnaliz('${t.replace(/'/g,"\\'")}','${gr}')" title="${label} — ${gr}. Sınıf analizine git"><strong>${gr}. Sınıf:</strong> ${info.grades[gr]} <small>Sınav</small> <i class="fas fa-arrow-right" style="font-size:10px;opacity:0.6;"></i></span>`).join('')
       : '<span class="hsc-empty">Sınıf bilgisi yok</span>';
     
     h += `<div class="col-md-4 col-sm-6 col-12 mb-3">
@@ -674,6 +674,52 @@ function uStat(){
     </div>`;
   });
   g.innerHTML = h;
+}
+
+// ---- goToAnaliz: Sistem Özeti'nden Sınav Analizi sayfasına yönlendirme ----
+function goToAnaliz(examType, grade) {
+  // 1. Sınav Analizi sayfasına geç
+  sTab('sonuclar', document.getElementById('nav-sonuclar'));
+
+  // 2. Filtreleri doldur (reqUI() çağrıldıktan sonra DOM hazır olur)
+  setTimeout(() => {
+    // Analiz Türü: Sınav Analizi (examdetail)
+    let aTypeEl = getEl('aType');
+    if (aTypeEl) { aTypeEl.value = 'examdetail'; }
+
+    // reqUI çağrısı → sınıf ve şube dropdown'larını oluşturur
+    uUI();
+
+    setTimeout(() => {
+      // Sınıf Seviyesi
+      let aLvlEl = getEl('aLvl');
+      if (aLvlEl) { aLvlEl.value = String(grade); }
+
+      // Şube: Tümü (__ALL__)
+      uBranches();
+      setTimeout(() => {
+        let aBrEl = getEl('aBr');
+        if (aBrEl) { aBrEl.value = '__ALL__'; }
+
+        // Sınav Türü
+        uExamTypes();
+        setTimeout(() => {
+          let aExEl = getEl('aEx');
+          if (aExEl) { aExEl.value = examType; }
+          applyExamColorToFilters();
+
+          // Veri: Genel Sınav Özeti (Tüm Sınavlar)
+          uSub();
+          setTimeout(() => {
+            let aSubEl = getEl('aSub');
+            if (aSubEl) { aSubEl.value = 'general_summary'; }
+            _updateGDateVisibility();
+            reqAnl();
+          }, 80);
+        }, 80);
+      }, 80);
+    }, 80);
+  }, 150);
 }
 
 // ---- uDrp (orig lines 1923-1925) ----
