@@ -1486,7 +1486,7 @@ function rAnl(){
         <span style="font-size:13px;">Sınıf: ${st.class} | ${eT}</span>
       </div>
       <div class="card-body" style="padding-top:5px;">
-        ${karneCardsHtml}${stuRiskHtml}${perfHtml}${trendHtml}
+        ${karneCardsHtml}${stuRiskHtml}${perfHtml}
         <div id="stuBoxPlotArea"></div>
         <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div>
         <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>

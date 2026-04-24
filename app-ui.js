@@ -172,445 +172,373 @@ function xXLMul(cId,fn){
   XLSX.writeFile(wb,fn+'.xlsx');
 }
 
-// ---- xPR (orig lines 1569-1888) ----
+// ---- xPR (Yeniden yazıldı: sınav türü renkleri inline, otomatik yön, sınav türü başına yeni sayfa, tablo başlık tekrarı) ----
+// Yön kararı:
+//   - Yatay (landscape): "Öğrenci (Sorgula)" sayfası (kCont = karne, pS sourceId'li 3 görünüm:
+//     Ogrenci_Tek_Sinav / Ogrenci_Ders / Ogrenci_Veri) ve "Toplu Rapor" (raporCont).
+//     Ayrıca pED/pEDAll çağrı tarafından zaten 'landscape' param ile gelir.
+//   - Dikey (portrait): "Öğrenci Analizi" (pS + 'Ogrenci_Analizi'), Sınıf Analizi (pC),
+//     Ders Analizi (pSubj), Sınav Özeti (pSummary, pGenSummary).
+const _XPR_LANDSCAPE_IDS = new Set(['kCont','raporCont','raporRes']);
+const _XPR_LANDSCAPE_TITLES = new Set(['Ogrenci_Tek_Sinav','Ogrenci_Ders','Ogrenci_Veri']);
+function _xprIsLandscape(sourceId, title, orientation){
+  if(orientation === 'landscape') return true;
+  if(orientation === 'portrait')  return false;
+  if(_XPR_LANDSCAPE_IDS.has(sourceId)) return true;
+  if(_XPR_LANDSCAPE_TITLES.has(title)) return true;
+  return false; // varsayılan dikey
+}
+
+// Sınav türü paleti — style.css'teki .exam-color-N ile birebir aynı (yeni pencerede style.css yok, inline yazıyoruz)
+const _XPR_EXAM_PALETTE = ['#5a7fa8','#2a9d8f','#c97b3b','#b65a7a','#7e6cb0','#4a8a6b','#5b6cad','#c97560'];
+
+function _xprExamColorFor(el){
+  // 1) Önce element veya en yakın atadan data-exam-color="0..7" oku
+  let scope = el.closest && el.closest('[data-exam-color]');
+  if(scope){
+    let idx = parseInt(scope.getAttribute('data-exam-color'), 10);
+    if(!isNaN(idx) && idx >= 0 && idx < _XPR_EXAM_PALETTE.length) return _XPR_EXAM_PALETTE[idx];
+  }
+  // 2) exam-color-N sınıfını ara
+  let cl = (el.className && el.className.toString) ? el.className.toString() : '';
+  let m = cl.match(/exam-color-(\d)/);
+  if(m){ return _XPR_EXAM_PALETTE[parseInt(m[1],10)] || null; }
+  let anc = el.closest && el.closest('[class*="exam-color-"]');
+  if(anc){
+    let m2 = (anc.className.toString()||'').match(/exam-color-(\d)/);
+    if(m2) return _XPR_EXAM_PALETTE[parseInt(m2[1],10)] || null;
+  }
+  // 3) Computed --exam-color
+  try {
+    let cs = window.getComputedStyle(el);
+    let v = (cs.getPropertyValue('--exam-color')||'').trim();
+    if(v) return v;
+  } catch(e){}
+  return null;
+}
+
 function xPR(sourceId, title, btn, orientation) {
+  // Chart tooltip temizliği (orijinal davranış korunuyor)
   if(window._karneCharts) window._karneCharts.forEach(ch => { try { ch.tooltip.setActiveElements([]); ch.update('none'); } catch(e){} });
   if(window._raporCharts) window._raporCharts.forEach(ch => { try { ch.tooltip.setActiveElements([]); ch.update('none'); } catch(e){} });
-  if(c.a) { try { c.a.tooltip.setActiveElements([]); c.a.update('none'); } catch(e){} }
-  if(c.h) { try { c.h.tooltip.setActiveElements([]); c.h.update('none'); } catch(e){} }
+  try { if(c && c.a){ c.a.tooltip.setActiveElements([]); c.a.update('none'); } } catch(e){}
+  try { if(c && c.h){ c.h.tooltip.setActiveElements([]); c.h.update('none'); } } catch(e){}
 
-  let portraitSources = ['pS','pC','pSubj','pSummary','pGenSummary'];
-  let isPortrait = orientation === 'portrait' || portraitSources.includes(sourceId);
-  let orig = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-1'></i>"; btn.disabled = true;
+  // YÖN: explicit param > sourceId haritası > default portrait
+  let isLandscape = _xprIsLandscape(sourceId, title, orientation);
+  let isPortrait = !isLandscape;
 
-  let sourceEl = getEl(sourceId); if (!sourceEl) { btn.innerHTML = orig; btn.disabled = false; return; }
+  let sourceEl = getEl(sourceId);
+  if(!sourceEl){ return; }
+  let orig = btn ? btn.innerHTML : '';
+  if(btn){ btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-1'></i>"; btn.disabled = true; }
 
-  // Canvas → img dönüşümü
+  // Canvas → PNG
   let canvasMap = [];
-  sourceEl.querySelectorAll('canvas').forEach(cv => { try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e) {} });
+  sourceEl.querySelectorAll('canvas').forEach(cv => {
+    try { canvasMap.push({ id: cv.id, url: cv.toDataURL('image/png', 1.0) }); } catch(e){}
+  });
+
+  // CSS link'leri (style.css HARİÇ — proje stilleri kasıtlı dışarıda; AdminLTE/FA içeride)
   let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-  .filter(l => !l.href.includes('style.css'))
-  .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
+    .filter(l => !l.href.includes('style.css'))
+    .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
 
   let clone = sourceEl.cloneNode(true);
+
+  // Canvas → IMG değişimi
   clone.querySelectorAll('canvas').forEach((cv, idx) => {
-    let mapEntry = canvasMap.find(m => m.id && m.id === cv.id) || canvasMap[idx];
-    if (!mapEntry) { cv.remove(); return; }
+    let entry = canvasMap.find(m => m.id && m.id === cv.id) || canvasMap[idx];
+    if(!entry){ cv.remove(); return; }
     let img = document.createElement('img');
-    img.src = mapEntry.url;
+    img.src = entry.url;
     img.className = 'print-chart-img';
     cv.parentElement.replaceChild(img, cv);
   });
 
-  // Gizlenecek elemanlar
-  clone.querySelectorAll('.no-print, .d-flex.justify-content-end, .scroll-hint').forEach(el => el.remove());
+  // Yazdırılmaması gerekenleri at
+  clone.querySelectorAll('.no-print, .d-flex.justify-content-end, .scroll-hint, button, .btn').forEach(el => el.remove());
   clone.querySelectorAll('.report-header').forEach(el => el.style.display = 'flex');
 
-  // Ekrandaki gerçek kart/bölüm sınırlarını yazdırma kopyasına inline taşı.
-  let styleSelector = '.exam-type-block, .karne-bolum, .card, .card-header, .card-body, .report-header, .home-stat-card, .boxplot-card, .trend-card, .info-box';
-  let srcStyled = sourceEl.querySelectorAll(styleSelector);
-  let cloneStyled = clone.querySelectorAll(styleSelector);
-  cloneStyled.forEach((el, idx) => {
-    let src = srcStyled[idx];
-    if (!src) return;
+  // ── SINAV TÜRÜ RENKLERİNİ INLINE YAZ ───────────────────────────────
+  // Her .exam-type-block / .karne-bolum / üst seviye renkli kart için
+  // gerçek hex rengi DOM'dan oku ve hem CSS değişkeni hem inline border olarak yapıştır.
+  let srcBlocks   = sourceEl.querySelectorAll('.exam-type-block, .karne-bolum, [data-exam-color]');
+  let cloneBlocks = clone.querySelectorAll('.exam-type-block, .karne-bolum, [data-exam-color]');
+  cloneBlocks.forEach((el, idx) => {
+    let src = srcBlocks[idx]; if(!src) return;
+    let color = _xprExamColorFor(src);
+    if(!color) return;
+    el.style.setProperty('--exam-color', color);
+    el.setAttribute('data-print-color', color);
+    if(el.classList.contains('exam-type-block') || el.classList.contains('karne-bolum')){
+      el.style.borderLeft  = `4px solid ${color}`;
+      el.style.borderRight = `4px solid ${color}`;
+      el.style.borderTop   = `1px solid #c7d0db`;
+      el.style.borderBottom= `1px solid #c7d0db`;
+      el.style.borderRadius= '6px';
+      el.style.background  = '#fff';
+      el.style.padding     = el.style.padding || '8px 10px';
+    }
+  });
+
+  // ── KARTLARIN ÇERÇEVELERİNİ INLINE GARANTİLE ──────────────────────
+  let srcCards   = sourceEl.querySelectorAll('.card, .home-stat-card, .boxplot-card, .trend-card, .info-box, .sec-card');
+  let cloneCards = clone.querySelectorAll('.card, .home-stat-card, .boxplot-card, .trend-card, .info-box, .sec-card');
+  cloneCards.forEach((el, idx) => {
+    let src = srcCards[idx]; if(!src) return;
     let cs = window.getComputedStyle(src);
-    let colorScope = src.closest('[data-exam-color]') || src;
-    let scopeCs = window.getComputedStyle(colorScope);
-    let examColor = (cs.getPropertyValue('--exam-color') || scopeCs.getPropertyValue('--exam-color') || '').trim();
-    if (examColor) el.style.setProperty('--exam-color', examColor);
-
-    let bgColor = (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') ? cs.backgroundColor : '#ffffff';
-    let borderBase = (cs.borderTopColor && cs.borderTopColor !== 'rgba(0, 0, 0, 0)') ? cs.borderTopColor : '#c7d0db';
-    let accent = examColor || ((scopeCs.borderTopColor && scopeCs.borderTopColor !== 'rgba(0, 0, 0, 0)') ? scopeCs.borderTopColor : borderBase);
-
-    if (cs.backgroundImage && cs.backgroundImage !== 'none') el.style.backgroundImage = cs.backgroundImage;
-    el.style.backgroundColor = bgColor;
-    el.style.borderRadius = cs.borderRadius;
+    // Renkli sol/sağ şerit varsa koru
+    let leftW  = parseFloat(cs.borderLeftWidth)  || 0;
+    let rightW = parseFloat(cs.borderRightWidth) || 0;
+    let leftC  = (cs.borderLeftColor  && cs.borderLeftColor  !== 'rgba(0, 0, 0, 0)') ? cs.borderLeftColor  : '';
+    let rightC = (cs.borderRightColor && cs.borderRightColor !== 'rgba(0, 0, 0, 0)') ? cs.borderRightColor : '';
+    let topC   = (cs.borderTopColor   && cs.borderTopColor   !== 'rgba(0, 0, 0, 0)') ? cs.borderTopColor   : '#dee2e6';
+    let topW   = parseFloat(cs.borderTopWidth)   || 1;
+    // Sınav rengi var mı? (kart kendi exam-color-N taşıyor olabilir veya atasından miras alır)
+    let exC = _xprExamColorFor(src);
+    if(exC){
+      if(leftW >= 2 || el.classList.contains('home-stat-card') || el.classList.contains('sec-card')){
+        el.style.borderLeft  = `${Math.max(leftW,3)}px solid ${exC}`;
+      } else if(leftW > 0){
+        el.style.borderLeft  = `${leftW}px solid ${leftC || exC}`;
+      }
+      if(rightW >= 2 || el.classList.contains('sec-card')){
+        el.style.borderRight = `${Math.max(rightW,3)}px solid ${exC}`;
+      } else if(rightW > 0){
+        el.style.borderRight = `${rightW}px solid ${rightC || exC}`;
+      }
+      if(topW >= 2){
+        el.style.borderTop = `${topW}px solid ${exC}`;
+      }
+    } else {
+      if(leftW > 0)  el.style.borderLeft  = `${leftW}px solid ${leftC || '#dee2e6'}`;
+      if(rightW > 0) el.style.borderRight = `${rightW}px solid ${rightC || '#dee2e6'}`;
+      if(topW > 0)   el.style.borderTop   = `${topW}px solid ${topC}`;
+    }
+    el.style.borderBottom = el.style.borderBottom || `1px solid #dee2e6`;
+    el.style.background = (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') ? cs.backgroundColor : '#fff';
+    if(cs.backgroundImage && cs.backgroundImage !== 'none') el.style.backgroundImage = cs.backgroundImage;
     el.style.boxShadow = 'none';
-
-    ['Top','Right','Bottom','Left'].forEach(side => {
-      let width = cs['border' + side + 'Width'];
-      let style = cs['border' + side + 'Style'];
-      let color = cs['border' + side + 'Color'];
-      if (width && width !== '0px' && style && style !== 'none') {
-        el.style['border' + side] = `${width} ${style} ${color}`;
-      }
-    });
-
-    if (el.classList.contains('card')) {
-      el.style.backgroundColor = bgColor;
-      el.style.borderTop = el.style.borderTop || `1.35px solid ${borderBase}`;
-      el.style.borderBottom = el.style.borderBottom || `1.35px solid ${borderBase}`;
-      el.style.borderLeft = `1.35px solid ${accent}`;
-      el.style.borderRight = `1.35px solid ${accent}`;
-      if (src.classList.contains('card-outline') || src.closest('#anlRes[data-exam-color], #riskPanel[data-exam-color]')) {
-        el.style.borderLeft = `3px solid ${accent}`;
-        el.style.borderRight = `3px solid ${accent}`;
-      }
-    }
-
-    if (el.classList.contains('exam-type-block') || el.classList.contains('karne-bolum')) {
-      el.style.backgroundColor = '#ffffff';
-      el.style.borderTop = `1px solid ${borderBase}`;
-      el.style.borderBottom = `1px solid ${borderBase}`;
-      el.style.borderLeft = `3px solid ${accent}`;
-      el.style.borderRight = `3px solid ${accent}`;
-      el.style.borderRadius = '6px';
-      el.style.backgroundClip = 'padding-box';
-    }
-
-    if (el.classList.contains('card-header')) {
-      el.style.borderBottom = `1px solid ${((cs.borderBottomColor && cs.borderBottomColor !== 'rgba(0, 0, 0, 0)') ? cs.borderBottomColor : '#cfd7e2')}`;
-    }
+    el.style.borderRadius = cs.borderRadius || '4px';
   });
 
-  // ── SAYFA KIRMA MANTIĞI ──────────────────────────────────────────
-  // Kural: Her .exam-type-block (TYT, AYT vb.) DAIMA kendi sayfasında başlar.
-  // Toplu raporda: her yeni öğrenci de yeni sayfada başlar.
-  // Öğrenci isim başlığı (report-header) her exam-type-block'un önüne eklenir (ilk hariç).
-
-  let examBlocks = clone.querySelectorAll('.exam-type-block');
-  examBlocks.forEach((blk, idx) => {
-    let stuName  = blk.getAttribute('data-stu-name')  || '';
-    let stuClass = blk.getAttribute('data-stu-class') || '';
-
-    // İlk block mı? (wrapper içindeki veya global olarak)
-    let wrapper = blk.closest('.student-rapor-wrapper');
-    let isFirstInScope = false;
-    if(wrapper) {
-      let siblings = wrapper.querySelectorAll('.exam-type-block');
-      isFirstInScope = (siblings[0] === blk);
-    } else {
-      isFirstInScope = (idx === 0);
-    }
-
-    // Her exam-type-block bir sayfa bölümüdür — sayfa kırmayı her bloğa uygula
-    if(isFirstInScope) {
-      // İlk blokta kırma yok, sadece içerik taşmasına izin ver
-      blk.style.cssText += '; page-break-inside: auto; break-inside: auto;';
-      blk.classList.add('exam-type-first');
-    } else {
-      let isKarne = blk.classList.contains('karne-bolum');
-      // Karne modunda başlık zaten blok içinde var — bloğun kendisi kırar, hdr eklenmez
-      // Toplu rapor modunda başlık ayrı eklenir, sonra blok kırmaz (çifte kırma önlemi)
-      if(stuName && !isKarne) {
-        let hdr = document.createElement('div');
-        hdr.className = 'report-header print-page-hdr';
-        hdr.style.cssText = 'margin-bottom:10px; margin-top:0; page-break-before:always; break-before:page;';
-        hdr.innerHTML = `<span style="font-size:15px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stuName}</strong></span><span style="font-size:12px;">Sınıf: ${stuClass} | ${new Date().toLocaleDateString('tr-TR')}</span>`;
-        blk.parentNode.insertBefore(hdr, blk);
-        // blk kendisi KIRMIYOR — kırmayı sadece hdr üstlendi
-        blk.style.cssText += '; page-break-before: auto; break-before: auto; page-break-inside: auto; break-inside: auto;';
-      } else {
-        // Karne modu veya başlık yoksa bloğun kendisi kırar
-        blk.style.cssText += '; page-break-before: always; break-before: page; page-break-inside: auto; break-inside: auto;';
-      }
-    }
-
-    // Tablo, grafik ve kutu grafiklerini esnek hale getir (shrink-to-fit)
-    blk.querySelectorAll('.chart-box, .boxplot-card, .boxplot-wrap').forEach(el => {
-      el.style.cssText += '; page-break-inside: avoid; break-inside: avoid;';
-    });
-  });
-
-  // Toplu rapor: öğrenciler arası zorunlu sayfa kırma (student-rapor-wrapper'lar arası)
+  // ── SAYFA KIRMA: Her sınav türü kendi sayfasında ──────────────────
+  // Toplu rapor (öğrenciler arası): her wrapper yeni sayfa
   let wrappers = clone.querySelectorAll('.student-rapor-wrapper');
   wrappers.forEach((w, i) => {
-    if(i > 0) w.style.cssText += '; page-break-before: always; break-before: page;';
-    w.style.cssText += '; page-break-inside: auto; break-inside: auto;';
+    if(i > 0) w.style.cssText += ';page-break-before:always;break-before:page;';
+    w.style.cssText += ';page-break-inside:auto;break-inside:auto;';
   });
 
-  // karne-bolum (tekil öğrenci karnesi, birden fazla sınav türü varsa)
-  // Not: karne-bolum aynı zamanda exam-type-block ise zaten yukarıda işlendi — atla
-  clone.querySelectorAll('.karne-bolum').forEach((blk, idx) => {
-    if(blk.classList.contains('exam-type-block')) return; // zaten işlendi
-    if(idx > 0) {
-      blk.style.cssText += '; page-break-before: always; break-before: page;';
+  // .exam-type-block: her biri kendi sayfasında başlar (wrapper içinde ilk hariç, global ilk hariç)
+  clone.querySelectorAll('.exam-type-block').forEach((blk, idx) => {
+    let wrapper = blk.closest('.student-rapor-wrapper');
+    let isFirst;
+    if(wrapper){
+      isFirst = wrapper.querySelector('.exam-type-block') === blk;
+    } else {
+      isFirst = (idx === 0);
     }
-    blk.style.cssText += '; page-break-inside: auto; break-inside: auto;';
+    if(!isFirst){
+      blk.style.cssText += ';page-break-before:always;break-before:page;';
+    }
+    // Bloğun kendisi taşabilir; içerik tek sayfaya zaten sığacak şekilde tasarlandı
+    blk.style.cssText += ';page-break-inside:auto;break-inside:auto;';
+    // Blok içindeki kart/grafik/tablo birimleri parçalanmasın
+    blk.querySelectorAll('.card, .chart-box, .boxplot-card, .trend-card, .info-box, .sec-card').forEach(el => {
+      el.style.cssText += ';page-break-inside:avoid;break-inside:avoid;';
+    });
+    // Stu name (varsa) bloğun başına başlık olarak ekle
+    let stuName  = blk.getAttribute('data-stu-name')  || '';
+    let stuClass = blk.getAttribute('data-stu-class') || '';
+    if(stuName && !blk.classList.contains('karne-bolum')){
+      let hdr = document.createElement('div');
+      hdr.className = 'report-header print-page-hdr';
+      hdr.style.cssText = 'margin:0 0 8px 0;';
+      hdr.innerHTML = `<span style="font-size:14px;"><i class="fas fa-user-graduate" style="margin-right:6px;"></i><strong>${stuName}</strong></span><span style="font-size:11px;">Sınıf: ${stuClass} &nbsp;|&nbsp; ${new Date().toLocaleDateString('tr-TR')}</span>`;
+      blk.insertBefore(hdr, blk.firstChild);
+    }
   });
 
-  // Toplu liste tablolarında satır page-break'i JS ile override et
-  if(sourceId === 'pED' || sourceId === 'pEDAll') {
-    clone.querySelectorAll('table').forEach(tbl => {
-      tbl.style.pageBreakInside = 'auto';
-      tbl.style.breakInside = 'auto';
-      tbl.style.width = '100%';
-    });
-    clone.querySelectorAll('tbody tr').forEach(tr => {
-      tr.style.pageBreakInside = 'avoid';
-      tr.style.breakInside = 'avoid';
-    });
-    clone.querySelectorAll('thead').forEach(h => {
-      h.style.display = 'table-header-group';
-    });
-  }
+  // .karne-bolum (exam-type-block değilse): her biri yeni sayfa (ilk hariç)
+  clone.querySelectorAll('.karne-bolum').forEach((blk, idx) => {
+    if(blk.classList.contains('exam-type-block')) return;
+    if(idx > 0) blk.style.cssText += ';page-break-before:always;break-before:page;';
+    blk.style.cssText += ';page-break-inside:auto;break-inside:auto;';
+  });
+
+  // Liste tabloları (pED, pEDAll vb.): satır içi kırma yok, thead her sayfada
+  clone.querySelectorAll('table').forEach(tbl => {
+    tbl.style.pageBreakInside = 'auto';
+    tbl.style.breakInside = 'auto';
+    tbl.style.width = '100%';
+    tbl.style.borderCollapse = 'collapse';
+  });
+  clone.querySelectorAll('tbody tr').forEach(tr => {
+    tr.style.pageBreakInside = 'avoid';
+    tr.style.breakInside = 'avoid';
+  });
+  clone.querySelectorAll('thead').forEach(h => {
+    h.style.display = 'table-header-group';
+  });
+  clone.querySelectorAll('tfoot').forEach(f => {
+    f.style.display = 'table-footer-group';
+  });
+
+  // Sınav türü palet sabitleri yeni pencerede de class olarak çalışsın diye CSS bloğu üret
+  let paletteCss = _XPR_EXAM_PALETTE.map((c,i) => `.exam-color-${i}{--exam-color:${c};}`).join('\n');
 
   let printHtml = `<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  ${cssLinks}
-  <style>
-    *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    html, body {
-      width: 100% !important;
-      min-width: 0 !important;
-      max-width: 100% !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-    body {
-      background: #fff !important; color: #212529 !important;
-      font-family: 'Source Sans Pro', Arial, sans-serif;
-      font-size: 10px;
-    }
-    @page { margin: 7mm 6mm; size: ${isPortrait ? 'A4 portrait' : 'A4 landscape'}; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title}</title>
+${cssLinks}
+<style>
+  *,*::before,*::after{box-sizing:border-box;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  html,body{width:100%;margin:0;padding:0;background:#fff;color:#212529;font-family:'Source Sans Pro',Arial,sans-serif;font-size:${isLandscape?'10px':'10.5px'};}
+  @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:8mm 7mm;}
 
-    /* ── TEMEL LAYOUT — Yüzde bazlı grid (portrait/landscape her ikisinde çalışır) ── */
-    .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -5px !important; }
-    .col-6, .col-sm-6, .col-md-6, .col-lg-6 {
-      flex: 0 0 50% !important;
-      max-width: 50% !important;
-      width: 50% !important;
-      padding: 0 5px !important;
-    }
-    .col-md-3, .col-sm-3 {
-      flex: 0 0 25% !important;
-      max-width: 25% !important;
-      width: 25% !important;
-      padding: 0 5px !important;
-    }
-    .col-md-4, .col-lg-4 {
-      flex: 0 0 33.333% !important;
-      max-width: 33.333% !important;
-      width: 33.333% !important;
-      padding: 0 5px !important;
-    }
-    .col-12, .col-sm-12, .col-lg-12 {
-      flex: 0 0 100% !important;
-      max-width: 100% !important;
-      padding: 0 5px !important;
-    }
-    /* col-md-4 col-sm-12 kombinasyonu (Sınav Analizi kartları) */
-    .col-md-4.col-sm-12 {
-      flex: 0 0 33.333% !important;
-      max-width: 33.333% !important;
-      width: 33.333% !important;
-      padding: 0 5px !important;
-    }
-    .col-md-2 {
-      flex: 0 0 16.666% !important;
-      max-width: 16.666% !important;
-      width: 16.666% !important;
-      padding: 0 5px !important;
-    }
-    .mb-1 { margin-bottom: 3px !important; } .mb-2 { margin-bottom: 6px !important; } .mb-3 { margin-bottom: 10px !important; } .mb-4 { margin-bottom: 14px !important; }
-    .mt-2 { margin-top: 6px !important; } .mt-3 { margin-top: 10px !important; }
-    .p-2 { padding: 6px !important; } .p-0 { padding: 0 !important; }
+  /* Sınav türü paleti (yeni pencerede style.css yok) */
+  ${paletteCss}
 
-    /* ── BAŞLIK ── */
-    .report-header {
-      display: flex !important; align-items: center; justify-content: space-between;
-      background: linear-gradient(135deg, #1a5fa8, #0d47a1) !important;
-      color: #fff !important; padding: 9px 14px; border-radius: 5px;
-      margin-bottom: 10px;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .report-header span, .report-header strong, .report-header i { color: #fff !important; }
+  /* Grid */
+  .row{display:flex !important;flex-wrap:wrap !important;width:100% !important;margin:0 -4px !important;}
+  .col-12,.col-sm-12,.col-md-12,.col-lg-12{flex:0 0 100% !important;max-width:100% !important;padding:0 4px !important;}
+  .col-6,.col-sm-6,.col-md-6,.col-lg-6{flex:0 0 50% !important;max-width:50% !important;padding:0 4px !important;}
+  .col-md-4,.col-lg-4,.col-md-4.col-sm-12{flex:0 0 33.333% !important;max-width:33.333% !important;padding:0 4px !important;}
+  .col-md-3,.col-sm-3{flex:0 0 25% !important;max-width:25% !important;padding:0 4px !important;}
+  .col-md-2{flex:0 0 16.666% !important;max-width:16.666% !important;padding:0 4px !important;}
 
-    /* ── TABLOLAR ── */
-    .table {
-      width: 100% !important; border-collapse: collapse !important;
-      font-size: 7.5px !important; margin-bottom: 5px;
-    }
-    .table th, .table td {
-      border: 1px solid #bbb !important;
-      padding: 1.5px 2.5px !important; color: #212529 !important;
-      vertical-align: middle !important;
-    }
-    .table thead th {
-      background: #1a5fa8 !important; color: #fff !important;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-      font-size: 7px !important; font-weight: 700;
-    }
-    thead { display: table-header-group; }
-    tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-    .scroll, .table-responsive { overflow: visible !important; }
+  .mb-1{margin-bottom:3px !important;} .mb-2{margin-bottom:5px !important;}
+  .mb-3{margin-bottom:8px !important;} .mb-4{margin-bottom:12px !important;}
+  .mt-2{margin-top:5px !important;} .mt-3{margin-top:8px !important;}
+  .p-2{padding:5px !important;} .p-0{padding:0 !important;}
 
-    tr.highlight-row td { background: #fff3cd !important; font-weight: bold !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    tr.absent-row td { background: #f8d7da !important; color: #721c24 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    tr.avg-row td { background: #e8eef7 !important; color: #1a5fa8 !important; font-weight: bold !important; border-top: 2px solid #9cb3d8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* Rapor başlığı */
+  .report-header{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a5fa8,#0d47a1) !important;color:#fff !important;padding:8px 14px;border-radius:5px;margin-bottom:8px;}
+  .report-header *{color:#fff !important;}
 
-    /* ── KARTLAR ── */
-    .card {
-      background: #fff !important;
-      border-top: 1.35px solid #b9c3cf !important;
-      border-right: 1.35px solid #94a3b8 !important;
-      border-bottom: 1.35px solid #b9c3cf !important;
-      border-left: 1.35px solid #94a3b8 !important;
-      outline: 1px solid #c6cfda !important;
-      outline-offset: -1px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      display: block;
-      box-shadow: none !important;
-      background-clip: padding-box !important;
-    }
-    .card-header { background: #f5f5f5 !important; padding: 5px 10px; border-bottom: 1px solid #c6cfda !important; font-size: 10px; }
-    .card-body { padding: 8px 10px; }
-    .card[style*="border-top:3px solid #0d6efd"], .card[style*="border-top: 3px solid #0d6efd"] { border-top: 3px solid #1a5fa8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .card.card-outline, .card[class*="card-outline"], #anlRes[data-exam-color] > .card, #riskPanel[data-exam-color] > .card {
-      border-left-width: 3px !important;
-      border-right-width: 3px !important;
-    }
-    .exam-type-block, .karne-bolum, .exam-type-block.karne-bolum {
-      background: #fff !important;
-      border-top: 1px solid #c7d0db !important;
-      border-right: 3px solid var(--exam-color, #1a5fa8) !important;
-      border-bottom: 1px solid #c7d0db !important;
-      border-left: 3px solid var(--exam-color, #1a5fa8) !important;
-      border-radius: 6px !important;
-      box-shadow: none !important;
-      background-clip: padding-box !important;
-    }
-    .exam-type-block > h5, .karne-bolum > h5 {
-      border-bottom: 1px solid #d5dde7 !important;
-      padding-bottom: 6px !important;
-      margin-bottom: 8px !important;
-    }
+  /* Tablolar — başlık her sayfada, satır içi kırma yok */
+  .table{width:100% !important;border-collapse:collapse !important;font-size:${isLandscape?'8px':'9px'} !important;margin-bottom:5px;}
+  .table th,.table td{border:1px solid #bbb !important;padding:2px 4px !important;color:#212529 !important;vertical-align:middle !important;}
+  .table thead th{background:#1a5fa8 !important;color:#fff !important;font-size:${isLandscape?'7.5px':'8.5px'} !important;font-weight:700;}
+  thead{display:table-header-group !important;}
+  tfoot{display:table-footer-group !important;}
+  tbody tr{page-break-inside:avoid !important;break-inside:avoid !important;}
+  .scroll,.table-responsive{overflow:visible !important;}
+  tr.highlight-row td{background:#fff3cd !important;font-weight:bold !important;}
+  tr.absent-row td{background:#f8d7da !important;color:#721c24 !important;}
+  tr.avg-row td{background:#e8eef7 !important;color:#1a5fa8 !important;font-weight:bold !important;border-top:2px solid #9cb3d8 !important;}
 
-    /* ── INFO BOX ── */
-    .info-box {
-      display: flex !important; align-items: stretch;
-      border-radius: 5px; margin-bottom: 5px;
-      page-break-inside: avoid !important; break-inside: avoid !important;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .info-box-icon {
-      display: flex !important; align-items: center; justify-content: center;
-      width: 48px !important; min-width: 48px; font-size: 1.2em;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .info-box-content { padding: 5px 8px; flex: 1; }
-    .info-box-text { display: block; font-size: 0.72em; font-weight: 700; }
-    .info-box-number { display: block; font-size: 1.1em; font-weight: bold; margin: 1px 0; }
-    .progress-description { display: block; font-size: 0.68em; }
-    .info-box[style*="background:linear-gradient"] { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .info-box[style*="background:linear-gradient"] * { color: #fff !important; }
-    .info-box[style*="background:#6c757d"] { background: #6c757d !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .info-box[style*="background:#6c757d"] * { color: #fff !important; }
-    .bg-primary { background: #1a5fa8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .bg-success  { background: #198754 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .bg-danger   { background: #dc3545 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .bg-warning  { background: #e6a800 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .bg-info     { background: #0dcaf0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* Kartlar — inline border'ları KORU; sadece varsayılanları ver */
+  .card{background:#fff;border:1px solid #dee2e6;border-radius:4px;margin-bottom:6px;display:block;box-shadow:none !important;background-clip:padding-box !important;}
+  .card-header{background:#f5f5f5 !important;padding:5px 10px;border-bottom:1px solid #dee2e6;font-size:${isLandscape?'10px':'10.5px'};font-weight:600;}
+  .card-body{padding:6px 8px;}
+  .card-title{font-size:${isLandscape?'10.5px':'11px'} !important;margin:0;}
 
-    /* ── TREND KARTI ── */
-    .trend-card {
-      background: #f5f7fa !important; border-radius: 6px;
-      padding: 8px 10px; margin-bottom: 8px;
-      page-break-inside: avoid !important; break-inside: avoid !important;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .trend-indicator { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 0.78em; font-weight: bold; }
-    .trend-up    { background: rgba(40,167,69,0.15); color: #1e7e34; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .trend-down  { background: rgba(220,53,69,0.15);  color: #b02a37; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .trend-stable{ background: rgba(108,117,125,0.15); color: #495057; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .border-left { border-left: 1px solid #ccc; }
+  /* Sınav türü blokları — inline renk gelir; varsayılan da ver */
+  .exam-type-block,.karne-bolum{background:#fff;border:1px solid #c7d0db;border-left:4px solid var(--exam-color,#1a5fa8);border-right:4px solid var(--exam-color,#1a5fa8);border-radius:6px;padding:8px 10px;background-clip:padding-box !important;}
+  .exam-type-block>h5,.karne-bolum>h5{font-size:11px !important;border-bottom:1px solid #d5dde7;padding-bottom:5px;margin:0 0 6px 0;color:var(--exam-color,#1a5fa8);}
 
-    /* ── GRAFİK IMG ── */
-    .print-chart-img {
-      max-width: 100%; width: 100%;
-      max-height: ${isPortrait ? '170px' : '130px'};
-      height: auto; object-fit: contain;
-      display: block; margin: 2px auto 5px;
-    }
-    .chart-box {
-      height: auto !important; margin-bottom: 5px;
-      page-break-inside: avoid !important; break-inside: avoid !important;
-    }
+  /* sec-card / home-stat-card */
+  .sec-card,.home-stat-card{background:#fff;border:1px solid #e9ecef;border-left:3px solid var(--exam-color,#1a5fa8);border-right:3px solid var(--exam-color,#1a5fa8);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:10px;min-height:60px;box-shadow:none !important;}
+  .sec-card .sec-icon{flex-shrink:0;width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#fff !important;background:var(--exam-color,#1a5fa8) !important;font-size:1em;}
+  .sec-card.sec-pos .sec-icon{background:#198754 !important;}
+  .sec-card.sec-neg .sec-icon{background:#dc3545 !important;}
+  .sec-card.sec-neutral .sec-icon{background:#6c757d !important;}
+  .sec-card .sec-label{font-size:0.7rem;font-weight:700;color:#6c757d;text-transform:uppercase;}
+  .sec-card .sec-value{font-size:1rem;font-weight:700;color:#212529;line-height:1.2;}
+  .sec-card .sec-sub{font-size:0.7rem;color:#6c757d;}
+  .sec-card.sec-pos .sec-value{color:#198754;}
+  .sec-card.sec-neg .sec-value{color:#dc3545;}
 
-    /* ── KUTU GRAFİĞİ ── */
-    .boxplot-card {
-      background: #f8f9ff !important; border: 1px solid #c8d4ee !important;
-      border-radius: 6px; padding: 6px 8px; margin-top: 4px;
-      page-break-inside: avoid !important; break-inside: avoid !important;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .boxplot-title { font-size: 9px; font-weight: 700; color: #1a5fa8; margin-bottom: 3px; }
-    .boxplot-wrap { overflow: visible !important; }
-    .boxplot-svg {
-      max-height: ${isPortrait ? '120px' : '100px'} !important;
-      width: 100% !important; height: auto !important;
-    }
+  /* Info-box */
+  .info-box{display:flex !important;align-items:stretch;border-radius:5px;margin-bottom:4px;page-break-inside:avoid !important;break-inside:avoid !important;}
+  .info-box-icon{display:flex !important;align-items:center;justify-content:center;width:44px !important;min-width:44px;font-size:1.1em;color:#fff;}
+  .info-box-content{padding:5px 8px;flex:1;}
+  .info-box-text{display:block;font-size:0.72em;font-weight:700;}
+  .info-box-number{display:block;font-size:1.05em;font-weight:bold;margin:1px 0;}
+  .info-box.bg-primary,.bg-primary{background:#1a5fa8 !important;color:#fff !important;}
+  .info-box.bg-success,.bg-success{background:#198754 !important;color:#fff !important;}
+  .info-box.bg-danger,.bg-danger{background:#dc3545 !important;color:#fff !important;}
+  .info-box.bg-warning,.bg-warning{background:#e6a800 !important;color:#fff !important;}
+  .info-box.bg-info,.bg-info{background:#0dcaf0 !important;color:#055160 !important;}
+  .info-box.bg-secondary,.bg-secondary{background:#6c757d !important;color:#fff !important;}
+  .info-box.bg-primary *,.info-box.bg-success *,.info-box.bg-danger *,.info-box.bg-warning *,.info-box.bg-info *,.info-box.bg-secondary *{color:inherit !important;}
 
-    /* ── RİSK KARTLARI ── */
-    [style*="border:1px solid #dc3545"], [style*="border:1px solid #fd7e14"], [style*="border:1px solid #ffc107"] {
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .risk-badge {
-      display: inline-flex; align-items: center; gap: 2px;
-      padding: 1px 6px; border-radius: 20px; font-size: 0.68em;
-      font-weight: 600; white-space: nowrap;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .rb-abs    { background: rgba(255,193,7,0.2);   color: #664d03; }
-    .rb-trend  { background: rgba(220,53,69,0.12);  color: #842029; }
-    .rb-rank   { background: rgba(108,117,125,0.12); color: #495057; }
-    .rb-subj   { background: rgba(111,66,193,0.12);  color: #4a1d8a; }
+  /* Trend kartı */
+  .trend-card{background:#f5f7fa !important;border:1px solid #dee2e6;border-radius:6px;padding:6px 8px;margin-bottom:5px;page-break-inside:avoid !important;break-inside:avoid !important;}
+  .trend-indicator{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:0.78em;font-weight:bold;}
+  .trend-up{background:rgba(40,167,69,0.15) !important;color:#1e7e34 !important;}
+  .trend-down{background:rgba(220,53,69,0.15) !important;color:#b02a37 !important;}
+  .trend-stable{background:rgba(108,117,125,0.15) !important;color:#495057 !important;}
 
-    /* ── SAYFA KIRMA — Tüm kırmalar JS inline style ile yönetilir ── */
-    /* !important kurallar YOK — JS'in inline atamaları ezilmesin diye */
-    .exam-type-block       { page-break-inside: auto; break-inside: auto; }
-    .karne-bolum           { page-break-inside: auto; break-inside: auto; }
-    .student-rapor-wrapper { page-break-inside: auto; break-inside: auto; }
+  /* Grafikler */
+  .print-chart-img{max-width:100%;width:100%;max-height:${isLandscape?'150px':'180px'};height:auto;object-fit:contain;display:block;margin:2px auto 4px;}
+  .chart-box{height:auto !important;margin-bottom:4px;page-break-inside:avoid !important;break-inside:avoid !important;}
 
-    /* Info-box satırı: sıkıştır */
-    .info-box { margin-bottom: 3px !important; }
-    .trend-card { padding: 5px 8px !important; margin-bottom: 5px !important; }
-    .card-body { padding: 5px 8px !important; }
-    .mb-4 { margin-bottom: 8px !important; }
-    .mb-3 { margin-bottom: 6px !important; }
-    .mb-2 { margin-bottom: 3px !important; }
-    /* ── GİZLE ── */
-    .no-print, button, .btn, .scroll-hint,
-    .d-flex.justify-content-end, #riskPanel,
-    .main-sidebar, .main-header, .content-wrapper > .overlay { display: none !important; }
+  /* Box plot */
+  .boxplot-card{background:#f8f9ff !important;border:1px solid #c8d4ee !important;border-radius:6px;padding:5px 8px;margin-top:3px;page-break-inside:avoid !important;break-inside:avoid !important;}
+  .boxplot-title{font-size:9px;font-weight:700;color:#1a5fa8;margin-bottom:3px;}
+  .boxplot-wrap{overflow:visible !important;}
+  .boxplot-svg{max-height:${isLandscape?'110px':'140px'} !important;width:100% !important;height:auto !important;}
 
-    /* ── TİPOGRAFİ ── */
-    h4 { font-size: 12px !important; margin: 6px 0; }
-    h5 { font-size: 11px !important; margin: 5px 0; }
-    h3.card-title { font-size: 11px !important; }
-    .text-primary  { color: #1a5fa8 !important; }
-    .text-success  { color: #198754 !important; }
-    .text-danger   { color: #dc3545 !important; }
-    .text-muted    { color: #6c757d !important; }
-    .font-weight-bold { font-weight: bold; }
-    .small, small  { font-size: 0.8em; }
-    .badge { display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 0.72em; }
-    .badge-info { background: #0dcaf0 !important; color: #055160 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .shadow-sm { box-shadow: none !important; }
-    /* ── LANDSCAPE FULL WIDTH ── */
-    .wrapper, .content-wrapper, .container-fluid { 
-      margin-left: 0 !important; padding-left: 0 !important; 
-      width: 100% !important; max-width: 100% !important; 
-    }
-  </style>
+  /* Risk badge */
+  .risk-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:20px;font-size:0.68em;font-weight:600;white-space:nowrap;}
+  .rb-abs{background:rgba(255,193,7,0.2) !important;color:#664d03 !important;}
+  .rb-trend{background:rgba(220,53,69,0.12) !important;color:#842029 !important;}
+  .rb-rank{background:rgba(108,117,125,0.12) !important;color:#495057 !important;}
+  .rb-subj{background:rgba(111,66,193,0.12) !important;color:#4a1d8a !important;}
+
+  /* Sınav türü blok başlığı (üst sayfada öğrenci adı) */
+  .print-page-hdr{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--exam-color,#1a5fa8),#0d47a1) !important;color:#fff !important;padding:6px 12px;border-radius:4px;}
+  .print-page-hdr *{color:#fff !important;}
+
+  /* Tipografi */
+  h4{font-size:12px !important;margin:5px 0;}
+  h5{font-size:11px !important;margin:4px 0;}
+  .text-primary{color:#1a5fa8 !important;}
+  .text-success{color:#198754 !important;}
+  .text-danger{color:#dc3545 !important;}
+  .text-muted{color:#6c757d !important;}
+  .small,small{font-size:0.82em;}
+  .badge{display:inline-block;padding:1px 5px;border-radius:8px;font-size:0.72em;}
+  .shadow-sm{box-shadow:none !important;}
+
+  /* Sayfa kırma kuralları */
+  .exam-type-block{page-break-inside:auto;break-inside:auto;}
+  .karne-bolum{page-break-inside:auto;break-inside:auto;}
+  .student-rapor-wrapper{page-break-inside:auto;break-inside:auto;}
+
+  /* Gizle */
+  .no-print,button,.btn,.scroll-hint,.d-flex.justify-content-end,#riskPanel,
+  .main-sidebar,.main-header,.content-wrapper>.overlay{display:none !important;}
+
+  /* Tam genişlik */
+  .wrapper,.content-wrapper,.container-fluid{margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;}
+</style>
 </head>
 <body>
-  <div style="padding:0 3px;">${clone.outerHTML}</div>
-  <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},450);});<\/script>
+<div style="padding:0 2px;">${clone.outerHTML}</div>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},500);});<\/script>
 </body>
 </html>`;
 
-  let printWin = window.open('', '_blank', `width=${isPortrait ? 900 : 1200},height=800,scrollbars=yes`);
-  if (!printWin) { showToast('Açılır pencere engellendi!', 'warning', 6000); btn.innerHTML = orig; btn.disabled = false; return; }
-  printWin.document.write(printHtml); printWin.document.close();
-  btn.innerHTML = orig; btn.disabled = false;
+  let winW = isLandscape ? 1200 : 900;
+  let printWin = window.open('', '_blank', `width=${winW},height=820,scrollbars=yes`);
+  if(!printWin){
+    if(typeof showToast === 'function') showToast('Açılır pencere engellendi! Tarayıcıdan izin verin.', 'warning', 6000);
+    if(btn){ btn.innerHTML = orig; btn.disabled = false; }
+    return;
+  }
+  printWin.document.write(printHtml);
+  printWin.document.close();
+  if(btn){ btn.innerHTML = orig; btn.disabled = false; }
 }
+
 
 // ---- debounceSearch (orig lines 1890-1890) ----
 function debounceSearch(){clearTimeout(searchDebounceTimer);searchDebounceTimer=setTimeout(sSearch,280);}

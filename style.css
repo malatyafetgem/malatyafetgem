@@ -36,26 +36,10 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .btn-print:hover { background: linear-gradient(135deg, #0a58ca, #a0c4e8); box-shadow: 0 4px 12px rgba(108,142,191,0.35); transform: translateY(-1px); }
 
 /* ===== PRINT — Tüm cihazlar için temel kurallar ===== */
-@media print {
-  .no-print { display: none !important; }
-  body { background: #fff !important; }
-  .container-fluid { width: 100% !important; padding: 0 !important; }
-  .row { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin: 0 -8px !important;}
-  .col-md-3 { flex: 0 0 25% !important; max-width: 25% !important; padding: 0 8px !important; }
-  .col-md-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; padding: 0 8px !important; }
-  .col-md-6, .col-sm-6, .col-lg-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 8px !important; }
-  .col-12, .col-sm-12, .col-lg-12 { flex: 0 0 100% !important; max-width: 100% !important; padding: 0 8px !important; }
-  .table-responsive { overflow-x: visible !important; }
-  .main-sidebar, .main-header { display: none !important; }
-  .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
-  .card { border: 1px solid #ddd !important; box-shadow: none !important; }
-  .report-header { background: #4a6fa5 !important; margin-bottom: 12px; border-radius: 6px; }
-}
+
 
 /* ===== PRINT — Sadece masaüstü/geniş ekran optimizasyonu ===== */
-@media print and (min-width: 768px) {
-  body { min-width: 1024px !important; zoom: 0.85; }
-}
+
 
 /* ===== ARAMA ===== */
 #anlStuSearchWrapper { position:relative; }
@@ -439,22 +423,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 }
 
 /* Print: blok sarmalayıcı görsel ekleri ekran-only */
-@media print {
-  .exam-type-block.karne-bolum {
-    background: transparent !important;
-    border: none !important;
-    border-left: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin-bottom: 0 !important;
-    border-radius: 0 !important;
-  }
-  .exam-type-block.karne-bolum > h5 {
-    color: #1a5fa8 !important;
-    border-bottom: 1px solid #ccc !important;
-  }
-  .exam-type-block.karne-bolum > h5 .etb-count { display: none !important; }
-}
+
 
 /* =====================================================================
    SINAV TÜRÜ RENK SİSTEMİ — Tüm Sayfalara Yayılan Bütünlük
@@ -610,23 +579,30 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 }
 
 /* Print: renk sistemi yazdırılırken sade tonlar */
+
+/* ===== PRINT — Yeni xPR() fonksiyonu yeni pencere açıp kendi inline stilini yazıyor.
+   Burada SADECE tarayıcıdan Ctrl+P ile direkt yazdıranlar için minimum kural. ===== */
 @media print {
-  .aex-badge { display: none !important; }
-  .sec-card {
-    box-shadow: none !important;
-    border: 1px solid #ccc !important;
-    border-left: 3px solid #1a5fa8 !important;
-    border-right: 3px solid #1a5fa8 !important;
+  .no-print, .main-sidebar, .main-header, button, .btn, .scroll-hint { display: none !important; }
+  body { background: #fff !important; }
+  .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+  .card, .exam-type-block, .karne-bolum, .sec-card, .home-stat-card, .info-box,
+  .trend-card, .boxplot-card, .report-header, .print-page-hdr {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .sec-card .sec-icon { background: #1a5fa8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sec-card.sec-pos .sec-icon { background: #198754 !important; }
-  .sec-card.sec-neg .sec-icon { background: #dc3545 !important; }
-  [data-exam-color] table.table > thead > tr > th {
-    background: #e8eef7 !important; color: #1a5fa8 !important;
-    border-bottom: 2px solid #9cb3d8 !important;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  /* Sınav türü blok renkleri yazdırmada da görünsün */
+  .exam-type-block, .karne-bolum {
+    border-left: 4px solid var(--exam-color, #1a5fa8) !important;
+    border-right: 4px solid var(--exam-color, #1a5fa8) !important;
   }
-  #anlFilterCard, #anlFilterCard * { display: none !important; }
-  #anlRes[data-exam-color] > .card::before,
-  #anlRes[data-exam-color] > .card::after { display: none !important; }
+  .sec-card, .home-stat-card {
+    border-left: 3px solid var(--exam-color, #1a5fa8) !important;
+    border-right: 3px solid var(--exam-color, #1a5fa8) !important;
+  }
+  thead { display: table-header-group !important; }
+  tfoot { display: table-footer-group !important; }
+  tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+  .exam-type-block { page-break-before: always; break-before: page; }
+  .exam-type-block:first-of-type { page-break-before: auto; break-before: auto; }
 }
