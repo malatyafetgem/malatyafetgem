@@ -380,14 +380,14 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 /* ===== SINAV TÜRÜ RENK PALETİ (dinamik — hash ile atanır) ===== */
 /* Sayfada şu an kullanılmayan, orta-düşük doygunlukta tonlar */
-.exam-color-0 { --exam-color: #5a7fa8; } /* slate blue */
-.exam-color-1 { --exam-color: #2a9d8f; } /* teal */
-.exam-color-2 { --exam-color: #c97b3b; } /* amber-rust */
-.exam-color-3 { --exam-color: #b65a7a; } /* rose */
-.exam-color-4 { --exam-color: #7e6cb0; } /* violet */
-.exam-color-5 { --exam-color: #4a8a6b; } /* emerald */
-.exam-color-6 { --exam-color: #5b6cad; } /* indigo */
-.exam-color-7 { --exam-color: #c97560; } /* coral */
+.exam-color-0 { --exam-color: #1e3a8a; } /* deep navy */
+.exam-color-1 { --exam-color: #059669; } /* emerald green */
+.exam-color-2 { --exam-color: #ea580c; } /* vivid orange */
+.exam-color-3 { --exam-color: #be185d; } /* magenta */
+.exam-color-4 { --exam-color: #7c3aed; } /* royal purple */
+.exam-color-5 { --exam-color: #9f1239; } /* bordeaux */
+.exam-color-6 { --exam-color: #0891b2; } /* cyan */
+.exam-color-7 { --exam-color: #a16207; } /* mustard */
 
 /* ===== ÖĞRENCİ SAYFASI — SINAV TÜRÜ BLOK SARMALAYICISI ===== */
 /* Her sınav türünün başlangıcı/bitişi net görünsün diye çerçeve + iki yanda renkli bar */

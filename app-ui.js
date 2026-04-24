@@ -190,7 +190,8 @@ function _xprIsLandscape(sourceId, title, orientation){
 }
 
 // Sınav türü paleti — style.css'teki .exam-color-N ile birebir aynı (yeni pencerede style.css yok, inline yazıyoruz)
-const _XPR_EXAM_PALETTE = ['#5a7fa8','#2a9d8f','#c97b3b','#b65a7a','#7e6cb0','#4a8a6b','#5b6cad','#c97560'];
+// Yeni palet: birbirinden net ayırt edilebilen, şık 8 renk.
+const _XPR_EXAM_PALETTE = ['#1e3a8a','#059669','#ea580c','#be185d','#7c3aed','#9f1239','#0891b2','#a16207'];
 
 function _xprExamColorFor(el){
   // 1) Önce element veya en yakın atadan data-exam-color="0..7" oku
@@ -280,6 +281,38 @@ function xPR(sourceId, title, btn, orientation) {
       el.style.background  = '#fff';
       el.style.padding     = el.style.padding || '8px 10px';
     }
+    // Bloğun içindeki tüm "kimlik" öğelerini sınav türü rengiyle boya
+    // (varsayılan lacivert gradient/mavi başlıklar yerine).
+    let darker = color; // başlık gradient için ikincil ton: %60 koyu
+    let mkGrad = (c) => `linear-gradient(135deg, ${c}, ${c}cc)`;
+    el.querySelectorAll('.report-header, .print-page-hdr').forEach(h => {
+      h.style.background = mkGrad(color);
+      h.style.color = '#fff';
+    });
+    el.querySelectorAll('.table thead th, table thead th').forEach(th => {
+      th.style.background = color;
+      th.style.color = '#fff';
+      th.style.borderBottom = `2px solid ${color}`;
+    });
+    el.querySelectorAll('tr.avg-row td').forEach(td => {
+      td.style.background = `${color}1a`; // ~10% opacity
+      td.style.color = color;
+      td.style.borderTop = `2px solid ${color}80`;
+    });
+    el.querySelectorAll('.text-primary, .card-title, h3, h4, h5').forEach(t => {
+      // Sadece sınav türü bloğunun "kimlik" başlıklarını boya
+      t.style.color = color;
+    });
+    el.querySelectorAll('.card-header').forEach(ch => {
+      ch.style.borderBottom = `2px solid ${color}`;
+      ch.style.background = `${color}14`; // ~8% opacity
+    });
+    // Blok içindeki tüm kartlara sınav türü rengini şerit olarak da uygula
+    el.querySelectorAll('.card').forEach(cd => {
+      // Mevcut inline border varsa (cards loop'unda set edilecek) bozmamak için
+      // sadece soldaki şeridi güçlendir.
+      cd.style.borderLeft = `3px solid ${color}`;
+    });
   });
 
   // ── KARTLARIN ÇERÇEVELERİNİ INLINE GARANTİLE ──────────────────────
@@ -417,14 +450,14 @@ ${cssLinks}
   .mt-2{margin-top:5px !important;} .mt-3{margin-top:8px !important;}
   .p-2{padding:5px !important;} .p-0{padding:0 !important;}
 
-  /* Rapor başlığı */
-  .report-header{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a5fa8,#0d47a1) !important;color:#fff !important;padding:8px 14px;border-radius:5px;margin-bottom:8px;}
+  /* Rapor başlığı (varsayılan; sınav türü blokları içindeki başlıklar inline ile sınav rengine boyanır) */
+  .report-header{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#334155,#1e293b) !important;color:#fff !important;padding:8px 14px;border-radius:5px;margin-bottom:8px;}
   .report-header *{color:#fff !important;}
 
   /* Tablolar — başlık her sayfada, satır içi kırma yok */
   .table{width:100% !important;border-collapse:collapse !important;font-size:${isLandscape?'8px':'9px'} !important;margin-bottom:5px;}
   .table th,.table td{border:1px solid #bbb !important;padding:2px 4px !important;color:#212529 !important;vertical-align:middle !important;}
-  .table thead th{background:#1a5fa8 !important;color:#fff !important;font-size:${isLandscape?'7.5px':'8.5px'} !important;font-weight:700;}
+  .table thead th{background:#475569 !important;color:#fff !important;font-size:${isLandscape?'7.5px':'8.5px'} !important;font-weight:700;}
   thead{display:table-header-group !important;}
   tfoot{display:table-footer-group !important;}
   tbody tr{page-break-inside:avoid !important;break-inside:avoid !important;}
@@ -493,8 +526,8 @@ ${cssLinks}
   .rb-rank{background:rgba(108,117,125,0.12) !important;color:#495057 !important;}
   .rb-subj{background:rgba(111,66,193,0.12) !important;color:#4a1d8a !important;}
 
-  /* Sınav türü blok başlığı (üst sayfada öğrenci adı) */
-  .print-page-hdr{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--exam-color,#1a5fa8),#0d47a1) !important;color:#fff !important;padding:6px 12px;border-radius:4px;}
+  /* Sınav türü blok başlığı (üst sayfada öğrenci adı) — sınav rengiyle */
+  .print-page-hdr{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--exam-color,#334155),color-mix(in srgb,var(--exam-color,#334155) 70%, #000)) !important;color:#fff !important;padding:6px 12px;border-radius:4px;}
   .print-page-hdr *{color:#fff !important;}
 
   /* Tipografi */
