@@ -125,6 +125,26 @@ function _explain(txt){
 // Trend kartı için minimum sınav sayısı (regresyonun anlamlı olması için).
 const _TREND_MIN_N = 3;
 
+/**
+ * Adaptif R² eşiği — örneklem büyüklüğüne göre ölçeklenir.
+ * Az sayıda sınavda (n=3-4) sabit 0.30 eşiği çok katı olur;
+ * büyük n'lerde (n≥10) 0.25 yeterince seçici kalır.
+ *
+ * Pedagojik gerekçe: az veriyle düşük R² kaçınılmazdır —
+ * n=3'te R²>0.30 zorlamak gerçek trendi gizler.
+ * APA (2019) simülasyonlarına göre n<6 için 0.15 kabul edilebilir.
+ *
+ * @param {number} n  Sınav sayısı
+ * @returns {number}  Kullanılacak R² eşiği
+ */
+function _adaptiveR2(n){
+  if(!n || n < 3) return 0.30; // n<3'te trend hesabı yapılmaz zaten
+  if(n <= 4)  return 0.15;
+  if(n <= 6)  return 0.20;
+  if(n <= 9)  return 0.25;
+  return 0.30; // n≥10 için standart eşik
+}
+
 // ============================================================
 // ORTAK YARDIMCILAR SONU
 // ============================================================
@@ -252,9 +272,10 @@ function calcRiskScores() {
         let allNets = attended.map(x => x.totalNet);
         let ewmaScore = ewma(allNets, 3, 0.5); // Son 3 sınavın EWMA'sı
 
-        // R² ile trend güvenilirliği — düşük R² = "regression to the mean" gürültüsü
+        // R² ile trend güvenilirliği — düşük R² = "regression to the mean" gürültüsü.
+        // Eşik, sınav sayısına göre adaptif: az veriyle 0.30 çok kısıtlayıcıdır.
         let r2 = linRegR2(allNets);
-        let trendReliable = r2 >= 0.30; // R²<0.30 ise trend belirsiz
+        let trendReliable = r2 >= _adaptiveR2(allNets.length);
 
         let lastEx = attended[attended.length - 1];
         let prevEx = attended[attended.length - 2];
@@ -1714,12 +1735,29 @@ function rAnl(){
       });
       let partRate = baseCount > 0 ? Math.max(0, Math.min(100, Math.round((attendedCount / baseCount) * 100))) : 0;
 
-      // Cohen's d — en iyi şube vs en düşük şube (yalnızca >=2 şube + ≥2 sınav modunda)
+      // Cohen's d — en iyi şube vs en düşük şube (yalnızca >=2 şube + ≥2 sınav modunda).
+      // Ham kayıt yerine öğrenci başına ortalama kullanılır:
+      //   Ham kayıtlar her sınavı ayrı gözlem sayar → büyük n/küçük n şubeler
+      //   arasında yapay varyans farkı oluşur (sınav sayısı Cohen's d'yi etkiler).
+      //   Öğrenci başına ortalama, ölçeği eşitler ve gerçek grup farkını yansıtır.
+      // Minimum n≥10 öğrenci: küçük örneklemlerde Cohen's d güvenilir değildir
+      //   (SE büyür, d kolayca ±∞ alır). 10 öğrenci APA'nın önerdiği alt sınırdır.
       let cohenHtml = '';
       if(showCompCards && sd.length >= 2) {
-        let bestVals  = ex.filter(x=>x.studentClass===best.cls ).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; });
-        let worstVals = ex.filter(x=>x.studentClass===worst.cls).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; });
-        if(bestVals.length >= 2 && worstVals.length >= 2) {
+        // En iyi ve en düşük şubede her öğrencinin ortalamasını hesapla
+        let _stuAvgsForCls = (cls) => {
+          let map = {};
+          ex.filter(x=>x.studentClass===cls).forEach(x=>{
+            let v; if(sb==='score') v=x.score; else if(sb==='totalNet'||!sb) v=x.totalNet; else v=x.subs[toTitleCase(sb.replace('s_',''))]?.net||0;
+            if(!map[x.studentNo]) map[x.studentNo]=[];
+            map[x.studentNo].push(v);
+          });
+          return Object.values(map).map(arr=>arr.reduce((a,b)=>a+b,0)/arr.length);
+        };
+        let bestVals  = _stuAvgsForCls(best.cls);
+        let worstVals = _stuAvgsForCls(worst.cls);
+        // n≥10 koşulu: az öğrencili şubede Cohen's d güvenilir değil
+        if(bestVals.length >= 10 && worstVals.length >= 10) {
           let d = _statCohenD(bestVals, worstVals);
           if(d !== null && isFinite(d)) {
             let lab = _cohenLabel(d);
@@ -1796,8 +1834,10 @@ function rAnl(){
         let clsSSign    = clsTSlope > 0 ? '+' : '';
 
         let ssRawVals = sd.flatMap(dt => (d[dt]||[]).map(x => { if(sb==='score') return x.score; if(sb==='totalNet'||!sb) return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }));
+        // Örneklem standart sapması (n-1 paydası) — grup heterojenliği için doğru ölçü.
+        // Popülasyon σ (n paydası) örneklem varyansını sistematik olarak küçümser.
         let ssMean = ssRawVals.length ? ssRawVals.reduce((a,b)=>a+b,0)/ssRawVals.length : 0;
-        let ssVal  = ssRawVals.length > 1 ? Math.sqrt(ssRawVals.map(v=>(v-ssMean)**2).reduce((a,b)=>a+b,0)/ssRawVals.length) : 0;
+        let ssVal  = _statStd(ssRawVals) || 0;
         let _clsAvgsForMM = sortedClasses.map(clsName => {
           let vals = sd.flatMap(dt => (d[dt]||[]).filter(x=>x.studentClass===clsName).map(x=>{ if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; }));
           return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
@@ -1977,7 +2017,8 @@ function rAnl(){
 
         let subjAllNets = ex.map(e => e.subs[toTitleCase(subj)].net);
         let subjMean    = subjAllNets.reduce((a,b)=>a+b,0)/subjAllNets.length;
-        let subjSS      = subjAllNets.length > 1 ? Math.sqrt(subjAllNets.map(v=>(v-subjMean)**2).reduce((a,b)=>a+b,0)/subjAllNets.length) : 0;
+        // Örneklem standart sapması (n-1 paydası) — öğrenci heterojenliği için doğru ölçü.
+        let subjSS      = _statStd(subjAllNets) || 0;
         let subjClsAvgs = clsArr.map(c=>c.avg);
         let subjMMDiff  = subjClsAvgs.length > 1 ? Math.max(...subjClsAvgs) - Math.min(...subjClsAvgs) : null;
 
