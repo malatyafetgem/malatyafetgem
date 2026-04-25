@@ -1557,32 +1557,45 @@ function rAnl(){
       let avgLabel      = isRank ? 'Sınav Başına Sıra Değişimi' : 'Sınav Başına Ortalama Değişim';
       let avgSubLabel   = 'Her yeni sınavda beklenen artış/azalış';
 
-      // Kişisel Tutarlılık (Standart Sapma) — öğrencinin sınavlar arası dalgalanması
-      let _stuMean = _trendNets.reduce((a,b)=>a+b,0)/_trendNets.length;
-      let _stuSD   = Math.sqrt(_trendNets.map(v=>(v-_stuMean)**2).reduce((a,b)=>a+b,0)/_trendNets.length);
+      // Kişisel Tutarlılık (Standart Sapma) — öğrencinin sınavlar arası dalgalanması.
+      // Örneklem σ (n-1 paydası): az sınav sayısında (n=3-4) popülasyon σ, dalgalanmayı
+      // sistematik olarak küçümser ve öğrenciyi yanıltıcı biçimde "Çok tutarlı" etiketler.
+      let _stuMean = _statMean(_trendNets);
+      let _stuSD   = _statStd(_trendNets) || 0; // n-1 paydası
       let _stuCV   = _stuMean !== 0 ? Math.abs(_stuSD/_stuMean)*100 : 0;
       let _consistencyLabel = _stuCV < 10 ? 'Çok tutarlı' : (_stuCV < 20 ? 'Tutarlı' : (_stuCV < 35 ? 'Dalgalı' : 'Çok dalgalı'));
+      // R² — trend güvenilirliği: düşük R² = gürültülü trend, "Yükseliş" etiketi yanıltıcı olabilir.
+      // Adaptif eşik: az veriyle (n=3-4) sabit 0.30 çok kısıtlayıcı; _adaptiveR2 bunu dengeler.
+      let _stuR2     = linRegR2(_trendNets);
+      let _stuR2Thr  = _adaptiveR2(_trendNets.length);
+      let _stuR2Lab  = _stuR2 >= 0.65 ? 'Güçlü trend' : (_stuR2 >= _stuR2Thr ? 'Orta trend' : 'Zayıf trend');
+      let _stuR2Col  = _stuR2 >= 0.65 ? '#28a745'     : (_stuR2 >= _stuR2Thr ? '#fd7e14'   : '#dc3545');
 
       trendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
-        <div class="col-md-3 col-6 text-center mb-2 mb-md-0" title="Tüm sınavların regresyon doğrusunun yönü">
+        <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Tüm sınavların regresyon doğrusunun yönü">
           <span class="trend-indicator ${trendClass}"><i class="fas ${trendIcon} mr-1"></i>${trendText}</span>
           <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
           <div class="x-small text-muted">Sınavlar boyunca genel yön</div>
         </div>
-        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="${totalSubLabel}">
-          <div style="font-size:1.5em; font-weight:bold; color:${totalColor};">${totalSign}${totalDisplay}</div>
+        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="${totalSubLabel}">
+          <div style="font-size:1.4em; font-weight:bold; color:${totalColor};">${totalSign}${totalDisplay}</div>
           <div class="small text-muted"><strong>${totalLabel}</strong></div>
           <div class="x-small text-muted">${totalSubLabel}</div>
         </div>
-        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="${avgSubLabel}">
-          <div style="font-size:1.5em; font-weight:bold; color:${avgColor};">${avgSign}${avgDisplay}</div>
+        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="${avgSubLabel}">
+          <div style="font-size:1.4em; font-weight:bold; color:${avgColor};">${avgSign}${avgDisplay}</div>
           <div class="small text-muted"><strong>${avgLabel}</strong></div>
           <div class="x-small text-muted">${avgSubLabel}</div>
         </div>
-        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="Sınavlar arasındaki dalgalanma (standart sapma). Düşük değer = istikrarlı performans.">
-          <div style="font-size:1.5em; font-weight:bold; color:#6f42c1;">±${_stuSD.toFixed(2)}</div>
+        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Sınavlar arasındaki dalgalanma (örneklem standart sapması, n-1). Düşük değer = istikrarlı performans.">
+          <div style="font-size:1.4em; font-weight:bold; color:#6f42c1;">±${_stuSD.toFixed(2)}</div>
           <div class="small text-muted"><strong>Performans Tutarlılığı</strong></div>
           <div class="x-small text-muted">${_consistencyLabel} • ${_trendNets.length} sınav</div>
+        </div>
+        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Trend Güvenilirliği (R²): 1'e yakınsa regresyon doğrusu veriyi iyi açıklıyor, 0'a yakınsa gürültülü. Adaptif eşik (n=${_trendNets.length} sınav): ${_stuR2Thr.toFixed(2)}">
+          <div style="font-size:1.4em; font-weight:bold; color:${_stuR2Col};">${_stuR2.toFixed(2)}</div>
+          <div class="small text-muted"><strong>Trend Güvenilirliği (R²)</strong></div>
+          <div class="x-small text-muted">${_stuR2Lab}</div>
         </div>
       </div></div>`;
     }
@@ -1783,6 +1796,10 @@ function rAnl(){
     
     let stuRankMap = {};
     ex.forEach(e => {
+      // BUG DÜZELTMESİ: tek sınav seçildiğinde (dateFilter) En İyi/Düşük 5
+      // yalnızca o sınavın verilerini yansıtmalı; aksi hâlde tüm sınavların
+      // ortalamasına göre sıralama yapılır ve seçilen sınavla tutarsız sonuç çıkar.
+      if(dateFilter && e.date !== dateFilter) return;
       let stu = getStuMap().get(e.studentNo);
       if(!stu) return; 
       let m = stu.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);
@@ -1845,6 +1862,11 @@ function rAnl(){
         let mmDiff = _clsAvgsForMM.length > 1 ? Math.max(..._clsAvgsForMM) - Math.min(..._clsAvgsForMM) : null;
 
         let _consistencyLabelC = (function(){ let cv = ssMean!==0 ? Math.abs(ssVal/ssMean)*100 : 0; return cv<10?'Çok homojen':(cv<20?'Homojen':(cv<35?'Heterojen':'Çok heterojen')); })();
+        // R² — sınıf trend güvenilirliği (adaptif eşik)
+        let clsTR2    = linRegR2(dateAvgSeries);
+        let clsTR2Thr = _adaptiveR2(dateAvgSeries.length);
+        let clsTR2Lab = clsTR2 >= 0.65 ? 'Güçlü trend' : (clsTR2 >= clsTR2Thr ? 'Orta trend' : 'Zayıf trend');
+        let clsTR2Col = clsTR2 >= 0.65 ? '#28a745'     : (clsTR2 >= clsTR2Thr ? '#fd7e14'   : '#dc3545');
 
         clsTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
           <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Sınıf ortalamasının zaman içindeki yönü">
@@ -1867,7 +1889,7 @@ function rAnl(){
             <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
             <div class="x-small text-muted">Trend hesabına dahil</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrencilerin ortalama etrafındaki dağılımı (standart sapma). Düşük = homojen sınıf.">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrencilerin ortalama etrafındaki dağılımı (örneklem standart sapması, n-1). Düşük = homojen sınıf.">
             <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${ssVal.toFixed(2)}</div>
             <div class="small text-muted"><strong>Sınıf İçi Dağılım</strong></div>
             <div class="x-small text-muted">${_consistencyLabelC}</div>
@@ -1877,7 +1899,15 @@ function rAnl(){
             <div class="small text-muted"><strong>Şubeler Arası Fark</strong></div>
             <div class="x-small text-muted">En iyi − en düşük şube</div>
           </div>
-        </div></div>`;
+        </div>
+        <div class="row mt-2 pt-2 border-top">
+          <div class="col-12 text-center" title="R² (determinasyon katsayısı): 1'e yakınsa trend veriye iyi uyuyor, 0'a yakınsa gürültülü. Adaptif eşik: n=${dateAvgSeries.length} sınav için min R²=${clsTR2Thr.toFixed(2)}.">
+            <span class="x-small text-muted">Trend Güvenilirliği (R²):&nbsp;</span>
+            <strong style="font-size:0.9em; color:${clsTR2Col};">${clsTR2.toFixed(2)}</strong>
+            <span class="x-small text-muted ml-1">— ${clsTR2Lab}</span>
+          </div>
+        </div>
+        </div>`;
       }
     }
 
@@ -2023,6 +2053,11 @@ function rAnl(){
         let subjMMDiff  = subjClsAvgs.length > 1 ? Math.max(...subjClsAvgs) - Math.min(...subjClsAvgs) : null;
 
         let _consistencyLabelS = (function(){ let cv = subjMean!==0 ? Math.abs(subjSS/subjMean)*100 : 0; return cv<10?'Çok homojen':(cv<20?'Homojen':(cv<35?'Heterojen':'Çok heterojen')); })();
+        // R² — ders trend güvenilirliği (adaptif eşik)
+        let subjR2    = linRegR2(subjDateAvgSeries);
+        let subjR2Thr = _adaptiveR2(subjDateAvgSeries.length);
+        let subjR2Lab = subjR2 >= 0.65 ? 'Güçlü trend' : (subjR2 >= subjR2Thr ? 'Orta trend' : 'Zayıf trend');
+        let subjR2Col = subjR2 >= 0.65 ? '#28a745'     : (subjR2 >= subjR2Thr ? '#fd7e14'   : '#dc3545');
 
         subjTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
           <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Bu dersin ortalamasının zaman içindeki yönü">
@@ -2045,7 +2080,7 @@ function rAnl(){
             <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
             <div class="x-small text-muted">Bu dersi içeren sınavlar</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrenci netlerinin ortalama etrafındaki dağılımı (standart sapma)">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrenci netlerinin ortalama etrafındaki dağılımı (örneklem standart sapması, n-1)">
             <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${subjSS.toFixed(2)}</div>
             <div class="small text-muted"><strong>Öğrenciler Arası Dağılım</strong></div>
             <div class="x-small text-muted">${_consistencyLabelS}</div>
@@ -2055,7 +2090,51 @@ function rAnl(){
             <div class="small text-muted"><strong>Sınıflar Arası Fark</strong></div>
             <div class="x-small text-muted">En iyi − en düşük sınıf</div>
           </div>
-        </div></div>`;
+        </div>
+        <div class="row mt-2 pt-2 border-top">
+          <div class="col-12 text-center" title="R² (determinasyon katsayısı): 1'e yakınsa ders trendi güçlü, 0'a yakınsa gürültülü. Adaptif eşik: n=${subjDateAvgSeries.length} sınav için min R²=${subjR2Thr.toFixed(2)}.">
+            <span class="x-small text-muted">Trend Güvenilirliği (R²):&nbsp;</span>
+            <strong style="font-size:0.9em; color:${subjR2Col};">${subjR2.toFixed(2)}</strong>
+            <span class="x-small text-muted ml-1">— ${subjR2Lab}</span>
+          </div>
+        </div>
+        </div>`;
+      }
+    }
+
+    // Ders Analizi Cohen's d — en iyi şube vs en düşük şube (n≥10 öğrenci koşulu).
+    // Pedagojik gerekçe: tek bir derste iki şubenin performans farkının "pratik büyüklüğünü"
+    // gösterir. Sadece ortalama farkı değil, varyansla normalize edilmiş etki büyüklüğü.
+    let subjCohenHtml = '';
+    if(clsArr.length >= 2) {
+      let subjBestCls  = clsArr[0].cls;
+      let subjWorstCls = clsArr[clsArr.length - 1].cls;
+      let _subjStuAvgs = (cls) => {
+        let map = {};
+        ex.filter(e => e.studentClass === cls).forEach(e => {
+          if(!map[e.studentNo]) map[e.studentNo] = [];
+          map[e.studentNo].push(e.subs[toTitleCase(subj)].net);
+        });
+        return Object.values(map).map(arr => arr.reduce((a,b)=>a+b,0)/arr.length);
+      };
+      let subjBestVals  = _subjStuAvgs(subjBestCls);
+      let subjWorstVals = _subjStuAvgs(subjWorstCls);
+      if(subjBestVals.length >= 10 && subjWorstVals.length >= 10) {
+        let subjD = _statCohenD(subjBestVals, subjWorstVals);
+        if(subjD !== null && isFinite(subjD)) {
+          let subjDLab = _cohenLabel(subjD);
+          let subjDCol = Math.abs(subjD) >= 0.8 ? '#dc3545' : (Math.abs(subjD) >= 0.5 ? '#fd7e14' : (Math.abs(subjD) >= 0.2 ? '#ffc107' : '#6c757d'));
+          subjCohenHtml = `<div class="row mb-2">
+            <div class="col-12">
+              <div class="sec-card"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body">
+                <div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div>
+                <div class="sec-value" style="color:${subjDCol};">d = ${subjD.toFixed(2)}</div>
+                <div class="sec-sub">${subjDLab} fark — ${subjBestCls} vs ${subjWorstCls} (bu derste)</div>
+                ${_explain("Cohen's d: iki şubenin bu dersteki başarı farkının pratik büyüklüğü. 0.2 küçük, 0.5 orta, 0.8+ büyük.")}
+              </div></div>
+            </div>
+          </div>`;
+        }
       }
     }
 
@@ -2074,6 +2153,7 @@ function rAnl(){
           <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${worstStudent ? worstStudent.name : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div>${_explain('Bu dersteki tüm sınav net ortalaması en düşük öğrenci')}</div></div></div>
           <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neutral h-100"><div class="sec-icon"><i class="fas fa-chart-pie"></i></div><div class="sec-body"><div class="sec-label">Katılım Oranı</div><div class="sec-value">%${partRateS}</div><div class="sec-sub">${attendedCountS} / ${baseCountS} Katılım</div>${_explain('Bu dersi içeren sınavların yüzde kaçına girilmiş')}</div></div></div>
         </div>
+        ${subjCohenHtml}
         ${subjTrendHtml}
         <div id="subjBoxPlotArea"></div>
         <div class="row">
@@ -2361,6 +2441,26 @@ function rAnl(){
         </div>`;
       }
 
+      // Katılmayan öğrenci listesi: "Katılım %82" kartı hangi %18'in kim olduğunu söylemiyor.
+      // Ders öğretmeni sınav sonucunu incelerken katılmayanları doğrudan bu sayfadan görebilmeli.
+      let attendedNos = new Set(currentExams.map(e => e.studentNo));
+      let absentStus  = eligibleStusE.filter(s => !attendedNos.has(s.no));
+      let absentListHtml = '';
+      if(absentStus.length > 0) {
+        let absentRows = absentStus.map((s, i) => `<tr><td>${i+1}</td><td>${escapeHtml(s.no)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.class)}</td></tr>`).join('');
+        absentListHtml = `<div class="card shadow-sm mt-3 avoid-break">
+          <div class="card-header bg-warning text-dark">
+            <h3 class="card-title m-0" style="font-size:14px;"><i class="fas fa-user-times mr-1"></i> Sınava Katılmayan Öğrenciler (${absentStus.length} kişi)</h3>
+          </div>
+          <div class="card-body p-0 table-responsive">
+            <table class="table table-sm table-striped m-0" style="font-size:0.85em;">
+              <thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th></tr></thead>
+              <tbody>${absentRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }
+
       let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSummary','Sinav_Ozeti_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
       <div id="pSummary" class="card shadow-sm" style="border-top:3px solid #17a2b8; background:#f4f6f9;">
           <div class="report-header">
@@ -2380,7 +2480,7 @@ function rAnl(){
                 <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-arrow-up"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Artan Ders</div><div class="sec-value" style="font-size:1.05em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div>${_explain('Önceki sınava göre sınıf ortalaması en çok yükselen ders')}</div></div></div>
                 <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value" style="font-size:1.05em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} ➔ ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div>${_explain('Önceki sınava göre sınıf ortalaması en çok gerileyen ders')}</div></div></div>
                 ` : ''}
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Sınav Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateE}</div><div class="sec-sub">${currentExams.length} / ${eligibleStusE.length} Öğrenci</div>${_explain('Sınava girmesi beklenen öğrencilerin yüzde kaçı katıldı')}</div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Sınav Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateE}</div><div class="sec-sub">${currentExams.length} katıldı · ${absentStus.length} katılmadı</div>${_explain('Sınava girmesi beklenen öğrencilerin yüzde kaçı katıldı')}</div></div></div>
             </div>
             ${examStatsHtml}
             
@@ -2389,6 +2489,7 @@ function rAnl(){
                 <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
             </div>
 
+            ${absentListHtml}
             <div id="examSummaryBPArea"></div>
             <div id="examSummaryChartArea" class="chart-box avoid-break mt-3" style="display:none; height:280px;"><canvas id="cExamSummaryBar"></canvas></div>
           </div>
