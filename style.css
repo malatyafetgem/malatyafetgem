@@ -621,3 +621,13 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   .exam-type-block { page-break-before: always; break-before: page; }
   .exam-type-block:first-of-type { page-break-before: auto; break-before: auto; }
 }
+
+/* ====== Trend kartı açıklama satırı (Türkçeleştirme + ipucu) ====== */
+.trend-card .x-small{
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: #6c757d;
+  margin-top: 2px;
+  display: block;
+}
+.trend-card [title]{ cursor: help; }

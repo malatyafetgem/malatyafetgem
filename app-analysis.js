@@ -1380,9 +1380,39 @@ function rAnl(){
       let avgDisplay   = avgChange.toFixed(2);
       let totalSign = totalChange > 0 ? '+' : '';
       let avgSign   = avgChange > 0 ? '+' : '';
-      let totalLabel = isRank ? 'Sıra Değişimi (Regresyon)' : 'Toplam Değişim (Regresyon)';
-      let avgLabel   = isRank ? 'Sınav Başı Sıra Eğimi' : 'Sınav Başı Ort. Eğim';
-      trendHtml = `<div class="trend-card mb-3"><div class="row align-items-center"><div class="col-md-3 text-center"><span class="trend-indicator ${trendClass}"><i class="fas ${trendIcon} mr-1"></i>${trendText}</span><div class="mt-2 small text-muted">Genel Trend</div></div><div class="col-md-3 text-center border-left"><div style="font-size:1.5em; font-weight:bold; color:${totalColor};">${totalSign}${totalDisplay}</div><div class="small text-muted">${totalLabel}</div></div><div class="col-md-3 text-center border-left"><div style="font-size:1.5em; font-weight:bold; color:${avgColor};">${avgSign}${avgDisplay}</div><div class="small text-muted">${avgLabel}</div></div><div class="col-md-3 text-center border-left"><div style="font-size:1.5em; font-weight:bold;">${_trendNets.length}</div><div class="small text-muted">Toplam Sınav</div></div></div></div>`;
+      let totalLabel    = isRank ? 'Sıralamadaki Toplam Değişim' : 'Toplam İlerleme';
+      let totalSubLabel = isRank ? 'İlk sınavdan son sınava (regresyon)' : 'İlk sınavdan son sınava net farkı';
+      let avgLabel      = isRank ? 'Sınav Başına Sıra Değişimi' : 'Sınav Başına Ortalama Değişim';
+      let avgSubLabel   = 'Her yeni sınavda beklenen artış/azalış';
+
+      // Kişisel Tutarlılık (Standart Sapma) — öğrencinin sınavlar arası dalgalanması
+      let _stuMean = _trendNets.reduce((a,b)=>a+b,0)/_trendNets.length;
+      let _stuSD   = Math.sqrt(_trendNets.map(v=>(v-_stuMean)**2).reduce((a,b)=>a+b,0)/_trendNets.length);
+      let _stuCV   = _stuMean !== 0 ? Math.abs(_stuSD/_stuMean)*100 : 0;
+      let _consistencyLabel = _stuCV < 10 ? 'Çok tutarlı' : (_stuCV < 20 ? 'Tutarlı' : (_stuCV < 35 ? 'Dalgalı' : 'Çok dalgalı'));
+
+      trendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
+        <div class="col-md-3 col-6 text-center mb-2 mb-md-0" title="Tüm sınavların regresyon doğrusunun yönü">
+          <span class="trend-indicator ${trendClass}"><i class="fas ${trendIcon} mr-1"></i>${trendText}</span>
+          <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
+          <div class="x-small text-muted">Sınavlar boyunca genel yön</div>
+        </div>
+        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="${totalSubLabel}">
+          <div style="font-size:1.5em; font-weight:bold; color:${totalColor};">${totalSign}${totalDisplay}</div>
+          <div class="small text-muted"><strong>${totalLabel}</strong></div>
+          <div class="x-small text-muted">${totalSubLabel}</div>
+        </div>
+        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="${avgSubLabel}">
+          <div style="font-size:1.5em; font-weight:bold; color:${avgColor};">${avgSign}${avgDisplay}</div>
+          <div class="small text-muted"><strong>${avgLabel}</strong></div>
+          <div class="x-small text-muted">${avgSubLabel}</div>
+        </div>
+        <div class="col-md-3 col-6 text-center border-left mb-2 mb-md-0" title="Sınavlar arasındaki dalgalanma (standart sapma). Düşük değer = istikrarlı performans.">
+          <div style="font-size:1.5em; font-weight:bold; color:#6f42c1;">±${_stuSD.toFixed(2)}</div>
+          <div class="small text-muted"><strong>Performans Tutarlılığı</strong></div>
+          <div class="x-small text-muted">${_consistencyLabel} • ${_trendNets.length} sınav</div>
+        </div>
+      </div></div>`;
     }
     
     let karneCardsHtml = '';
@@ -1607,30 +1637,38 @@ function rAnl(){
         }).filter(v=>v!==null);
         let mmDiff = _clsAvgsForMM.length > 1 ? Math.max(..._clsAvgsForMM) - Math.min(..._clsAvgsForMM) : null;
 
+        let _consistencyLabelC = (function(){ let cv = ssMean!==0 ? Math.abs(ssVal/ssMean)*100 : 0; return cv<10?'Çok homojen':(cv<20?'Homojen':(cv<35?'Heterojen':'Çok heterojen')); })();
+
         clsTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
-          <div class="col-6 col-md-2 text-center mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Sınıf ortalamasının zaman içindeki yönü">
             <span class="trend-indicator ${clsTClass}"><i class="fas ${clsTIcon} mr-1"></i>${clsTText}</span>
-            <div class="mt-2 small text-muted">Genel Trend</div>
+            <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
+            <div class="x-small text-muted">Sınıf ortalamasının yönü</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="İlk sınavdan son sınava ortalamadaki net değişim (regresyon)">
             <div style="font-size:1.4em;font-weight:bold;color:${clsTColor};">${clsTSign}${clsTTotal.toFixed(2)}</div>
-            <div class="small text-muted">Toplam Değişim (Regresyon)</div>
+            <div class="small text-muted"><strong>Toplam İlerleme</strong></div>
+            <div class="x-small text-muted">Dönem başı → dönem sonu</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Her yeni sınavda beklenen ortalama değişim">
             <div style="font-size:1.4em;font-weight:bold;color:${clsTColor};">${clsSSign}${clsTSlope.toFixed(2)}</div>
-            <div class="small text-muted">Sınav Başı Ort. Eğim</div>
+            <div class="small text-muted"><strong>Sınav Başına Değişim</strong></div>
+            <div class="x-small text-muted">Ortalama eğim</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Analize dahil edilen toplam sınav sayısı">
             <div style="font-size:1.4em;font-weight:bold;">${dateAvgSeries.length}</div>
-            <div class="small text-muted">Toplam Sınav</div>
+            <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
+            <div class="x-small text-muted">Trend hesabına dahil</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrencilerin ortalama etrafındaki dağılımı (standart sapma). Düşük = homojen sınıf.">
             <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${ssVal.toFixed(2)}</div>
-            <div class="small text-muted">Standart Sapma</div>
+            <div class="small text-muted"><strong>Sınıf İçi Dağılım</strong></div>
+            <div class="x-small text-muted">${_consistencyLabelC}</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="En yüksek ortalamalı sınıf ile en düşük arasındaki fark">
             <div style="font-size:1.4em;font-weight:bold;color:#fd7e14;">${mmDiff !== null ? mmDiff.toFixed(2) : '—'}</div>
-            <div class="small text-muted">Sınıflar Arası Fark</div>
+            <div class="small text-muted"><strong>Şubeler Arası Fark</strong></div>
+            <div class="x-small text-muted">En iyi − en düşük şube</div>
           </div>
         </div></div>`;
       }
@@ -1776,30 +1814,38 @@ function rAnl(){
         let subjClsAvgs = clsArr.map(c=>c.avg);
         let subjMMDiff  = subjClsAvgs.length > 1 ? Math.max(...subjClsAvgs) - Math.min(...subjClsAvgs) : null;
 
+        let _consistencyLabelS = (function(){ let cv = subjMean!==0 ? Math.abs(subjSS/subjMean)*100 : 0; return cv<10?'Çok homojen':(cv<20?'Homojen':(cv<35?'Heterojen':'Çok heterojen')); })();
+
         subjTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
-          <div class="col-6 col-md-2 text-center mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Bu dersin ortalamasının zaman içindeki yönü">
             <span class="trend-indicator ${subjTClass}"><i class="fas ${subjTIcon} mr-1"></i>${subjTText}</span>
-            <div class="mt-2 small text-muted">Genel Trend</div>
+            <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
+            <div class="x-small text-muted">Ders ortalamasının yönü</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="İlk sınavdan son sınava ders ortalamasındaki değişim (regresyon)">
             <div style="font-size:1.4em;font-weight:bold;color:${subjTColor};">${subjTSign}${subjTotal.toFixed(2)}</div>
-            <div class="small text-muted">Toplam Değişim (Regresyon)</div>
+            <div class="small text-muted"><strong>Toplam İlerleme</strong></div>
+            <div class="x-small text-muted">Dönem başı → dönem sonu</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Her yeni sınavda derste beklenen değişim">
             <div style="font-size:1.4em;font-weight:bold;color:${subjTColor};">${subjSSign}${subjSlope.toFixed(2)}</div>
-            <div class="small text-muted">Sınav Başı Ort. Eğim</div>
+            <div class="small text-muted"><strong>Sınav Başına Değişim</strong></div>
+            <div class="x-small text-muted">Ortalama eğim</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Trend hesabına dahil edilen toplam sınav sayısı">
             <div style="font-size:1.4em;font-weight:bold;">${subjDateAvgSeries.length}</div>
-            <div class="small text-muted">Toplam Sınav</div>
+            <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
+            <div class="x-small text-muted">Bu dersi içeren sınavlar</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrenci netlerinin ortalama etrafındaki dağılımı (standart sapma)">
             <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${subjSS.toFixed(2)}</div>
-            <div class="small text-muted">Standart Sapma</div>
+            <div class="small text-muted"><strong>Öğrenciler Arası Dağılım</strong></div>
+            <div class="x-small text-muted">${_consistencyLabelS}</div>
           </div>
-          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0">
+          <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Bu derste en yüksek ve en düşük sınıf ortalaması arasındaki fark">
             <div style="font-size:1.4em;font-weight:bold;color:#fd7e14;">${subjMMDiff !== null ? subjMMDiff.toFixed(2) : '—'}</div>
-            <div class="small text-muted">Sınıflar Arası Fark</div>
+            <div class="small text-muted"><strong>Sınıflar Arası Fark</strong></div>
+            <div class="x-small text-muted">En iyi − en düşük sınıf</div>
           </div>
         </div></div>`;
       }
