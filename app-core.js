@@ -247,12 +247,7 @@ async function reqProfile() {
 }
 
 // ---- reqAnl (orig lines 873-940) ----
-// Aktif reqAnl çağrısını iptal etmek için token (race condition önleme)
-let _reqAnlToken = 0;
-
 async function reqAnl() {
-  const myToken = ++_reqAnlToken; // Bu çağrıya ait benzersiz token
-
   let eT = getEl('aEx').value, dt = getEl('aDate') ? getEl('aDate').value : '', aT = getEl('aType').value, sub = getEl('aSub') ? getEl('aSub').value : '';
   let needed = [];
 
@@ -261,15 +256,10 @@ async function reqAnl() {
 
   if(!eT){ getEl('anlRes').innerHTML=''; return; }
 
-  // Sınıf Analizi için sınıf seviyesi seçilmeden render yapma
+  // Hangi batch'lerin yüklenmesi gerektiğini belirle
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
-  if(aT === 'class' && !lvlF) { getEl('anlRes').innerHTML='<div class="alert alert-default-info"><i class="fas fa-info-circle mr-2"></i>Lütfen Sınıf Seviyesi ve Sınav Türü seçiniz.</div>'; return; }
-
-  // Fetch başlamadan önce anlRes'i temizle (eski veriler veya başka sayfaların verilerinin kalmasını önler)
-  getEl('anlRes').innerHTML = '';
 
   if(aT === 'student'){
-
     // Öğrenci analizi: öğrenci seçilmeli
     if(!aNo){ getEl('anlRes').innerHTML=''; return; }
     let st = getStuMap().get(aNo), stuGrade = st ? getGrade(st.class) : null;
@@ -322,9 +312,7 @@ async function reqAnl() {
     }
   }
 
-  if(needed.length > 0) await fetchBatches(needed);
-  // Fetch sırasında daha yeni bir reqAnl çağrısı başladıysa bu çağrıyı iptal et
-  if(myToken !== _reqAnlToken) return;
+  if(needed.length > 0) await fetchBatches(needed); 
   rAnl();
 }
 
