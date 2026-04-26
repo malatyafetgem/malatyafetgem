@@ -1605,102 +1605,13 @@ function rAnl(){
       avgRowHtml = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Öğrenci Ortalama</td><td>${displayStu}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Sınıf Ortalama (${st.class})</td><td>${displayCls}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Kurum Ortalama (${stGrade}. Sınıflar)</td><td>${displayGen}</td><td>—</td></tr>`;
     }
 
-    let trendHtml = '';
-    let _trendNets = dDValid;
-    if(_trendNets.length >= _TREND_MIN_N) {
-      let slope = linRegSlope(_trendNets);
-      let totalChange = slope * (_trendNets.length - 1);
-      let avgChange = slope;
-      let improving = isRank ? (slope < 0) : (slope > 0);
-      let worsening = isRank ? (slope > 0) : (slope < 0);
-      let trendClass = improving ? 'trend-up' : (worsening ? 'trend-down' : 'trend-stable');
-      let trendIcon  = improving ? 'fa-arrow-up' : (worsening ? 'fa-arrow-down' : 'fa-minus');
-      let trendText  = improving ? (isRank ? 'Sıra Yükseliyor' : 'Yükseliş')
-                                 : (worsening ? (isRank ? 'Sıra Düşüyor' : 'Düşüş') : 'Sabit');
-      let posColor = '#28a745', negColor = '#dc3545';
-      let totalColor = improving ? posColor : (worsening ? negColor : '#6c757d');
-      let avgColor   = improving ? posColor : (worsening ? negColor : '#6c757d');
-      let totalDisplay = (isRank ? Math.round(totalChange) : totalChange.toFixed(2));
-      let avgDisplay   = avgChange.toFixed(2);
-      let totalSign = totalChange > 0 ? '+' : '';
-      let avgSign   = avgChange > 0 ? '+' : '';
-      let totalLabel    = isRank ? 'Sıralamadaki Toplam Değişim' : 'Toplam Net Değişimi';
-      let totalSubLabel = isRank ? 'İlk sınavdan son sınava (regresyon)' : 'Süreç Boyunca';
-      let avgLabel      = isRank ? 'Sınav Başına Sıra Değişimi' : 'Sınav Başı Değişim';
-      let avgSubLabel   = '(Regresyon Analizi)';
-
-      // Sürpriz Payı — regresyon doğrusundan kalıntıların RMSE'si (Standart Hata).
-      // Trendin tahmininden ortalama sapma; düşük = öngörülebilir, yüksek = sürprizli.
-      let _stuRMSE = linRegRMSE(_trendNets);
-      let _stuSD   = _stuRMSE !== null ? _stuRMSE : 0;
-      let _surpriseLab = _surpriseLabel(_stuRMSE);
-      // R² — trend güvenilirliği: düşük R² = gürültülü trend, "Yükseliş" etiketi yanıltıcı olabilir.
-      // Adaptif eşik: az veriyle (n=3-4) sabit 0.30 çok kısıtlayıcı; _adaptiveR2 bunu dengeler.
-      let _stuR2     = linRegR2(_trendNets);
-      let _stuR2Thr  = _adaptiveR2(_trendNets.length);
-      let _stuR2Lab  = _stuR2 >= 0.65 ? 'Güçlü trend' : (_stuR2 >= _stuR2Thr ? 'Orta trend' : 'Zayıf trend');
-      let _stuR2Col  = _stuR2 >= 0.65 ? '#28a745'     : (_stuR2 >= _stuR2Thr ? '#fd7e14'   : '#dc3545');
-      let _stuR2Pct  = Math.round(_stuR2 * 100);
-
-      trendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
-        <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Tüm sınavların regresyon doğrusunun yönü">
-          <span class="trend-indicator ${trendClass}"><i class="fas ${trendIcon} mr-1"></i>${trendText}</span>
-          <div class="mt-2 small text-muted"><strong>Genel Yön (Trend)</strong></div>
-          <div class="x-small" style="color:${totalColor};"><strong>%${_stuR2Pct}</strong> doğruluk payıyla (R²: ${_stuR2.toFixed(2)})</div>
-        </div>
-        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="${totalSubLabel}">
-          <div style="font-size:1.4em; font-weight:bold; color:${totalColor};">${totalSign}${totalDisplay}</div>
-          <div class="small text-muted"><strong>${totalLabel}</strong></div>
-          <div class="x-small text-muted">${totalSubLabel}</div>
-        </div>
-        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="${avgSubLabel}">
-          <div style="font-size:1.4em; font-weight:bold; color:${avgColor};">${avgSign}${avgDisplay}</div>
-          <div class="small text-muted"><strong>${avgLabel}</strong></div>
-          <div class="x-small text-muted">${avgSubLabel}</div>
-        </div>
-        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Sınav sonuçlarının trend doğrusundan ortalama sapması (Standart Hata / RMSE). Düşük değer = trend güvenilir, sürpriz az.">
-          <div style="font-size:1.4em; font-weight:bold; color:#6f42c1;">±${_stuSD.toFixed(2)} Net</div>
-          <div class="small text-muted"><strong>Sürpriz Payı</strong></div>
-          <div class="x-small text-muted">${_surpriseLab}</div>
-          <div class="x-small text-muted">(Standart Hata / RMSE)</div>
-        </div>
-        <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Trend Güvenilirliği (R²): 1'e yakınsa regresyon doğrusu veriyi iyi açıklıyor, 0'a yakınsa gürültülü. Adaptif eşik (n=${_trendNets.length} sınav): ${_stuR2Thr.toFixed(2)}">
-          <div style="font-size:1.4em; font-weight:bold; color:${_stuR2Col};">${_stuR2.toFixed(2)}</div>
-          <div class="small text-muted"><strong>Trend Güvenilirliği (R²)</strong></div>
-          <div class="x-small text-muted">${_stuR2Lab}</div>
-        </div>
-      </div></div>`;
-    }
-    
     let karneCardsHtml = '';
     let stuRiskHtml = '';
     if(!isRank && (sb === '' || sb === 'totalNet' || sb === 'score')) {
       try {
         let _summary = calcKarneSummaryCards(no, eT, stGrade, ex);
         if(_summary) {
-          let {classRank, classTotalStudents, rank, totalStudents} = _summary;
-          karneCardsHtml = `<div class="row mb-2">
-            <div class="col-md-6 col-sm-6">
-              <div class="sec-card">
-                <div class="sec-icon"><i class="fas fa-users"></i></div>
-                <div class="sec-body">
-                  <div class="sec-label">Sınıf Derece (Genel)</div>
-                  <div class="sec-value">${classRank>0?classRank:'—'}</div>
-                  <div class="sec-sub">Toplam: ${classTotalStudents} Öğrenci</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-sm-6">
-              <div class="sec-card">
-                <div class="sec-icon"><i class="fas fa-trophy"></i></div>
-                <div class="sec-body">
-                  <div class="sec-label">Kurum Derece (Genel)</div>
-                  <div class="sec-value">${rank>0?rank:'—'}</div>
-                  <div class="sec-sub">Toplam: ${totalStudents} Öğrenci</div>
-                </div>
-              </div>
-            </div>
-          </div>`;
+          karneCardsHtml = buildKarneExamCards(_summary, eT);
         }
       } catch(e){}
       try { stuRiskHtml = buildRiskInfoCards(no, eT, st.class) || ''; } catch(e){ stuRiskHtml = ''; }
