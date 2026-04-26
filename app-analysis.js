@@ -2337,6 +2337,39 @@ function rAnl(){
         });
         let partRateGS = baseCountGS > 0 ? Math.max(0, Math.min(100, Math.round((attendedCountGS / baseCountGS) * 100))) : 0;
 
+        // Tüm Sınavlar istatistik kartları: her öğrencinin ortalama neti baz alınır
+        let _gsAvgNets = Object.values(stuStats).filter(s => s.avgNet !== undefined && s.exList && s.exList.length > 0).map(s => s.avgNet);
+        let gsStatsHtml = '';
+        if (_gsAvgNets.length >= 5) {
+          let _gsMean = _statMean(_gsAvgNets);
+          let _gsStd  = _statStd(_gsAvgNets);
+          let _gsMed  = _statMedian(_gsAvgNets);
+          let _gsQ    = _statQuartiles(_gsAvgNets);
+          let _gsCV   = _statCV(_gsAvgNets);
+          let _gsHomLab = _homogeneityLabel(_gsCV);
+          let _gsIqrRatio = (_gsMed && _gsMed !== 0) ? _gsQ.iqr / Math.abs(_gsMed) : null;
+          let _gsIqrColor = '#6c757d', _gsIqrLabel = '—';
+          if (_gsIqrRatio !== null) {
+            if (_gsIqrRatio < 0.20)      { _gsIqrColor = '#28a745'; _gsIqrLabel = 'Homojen / Dengeli'; }
+            else if (_gsIqrRatio < 0.30) { _gsIqrColor = '#ffc107'; _gsIqrLabel = 'Normal Dağılım'; }
+            else if (_gsIqrRatio < 0.40) { _gsIqrColor = '#fd7e14'; _gsIqrLabel = 'Seviye Farkı Var (Dikkat!)'; }
+            else                         { _gsIqrColor = '#dc3545'; _gsIqrLabel = 'Kritik Kopukluk (Uçurum!)'; }
+          }
+          // Sınıf bazlı ortalama net (Tüm Sınavlar bağlamı için)
+          let _gsClsAvg = {};
+          Object.values(stuStats).forEach(s => { if (!_gsClsAvg[s.cls]) _gsClsAvg[s.cls] = []; _gsClsAvg[s.cls].push(s.avgNet); });
+          let _gsClsHtml = Object.keys(_gsClsAvg).sort().map(cls => `<span style="font-size:0.78em;background:#f1f3f5;border-radius:6px;padding:2px 8px;color:#495057;"><strong>${cls}:</strong> ${(_gsClsAvg[cls].reduce((a,b)=>a+b,0)/_gsClsAvg[cls].length).toFixed(2)}</span>`).join('');
+          gsStatsHtml = `
+              <div class="row mt-2">
+                <div class="col-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-chart-bar"></i></div><div class="sec-body"><div class="sec-label">Ortalama Net <small style="font-weight:400;color:#6c757d;">(Tüm Sınavlar)</small></div><div class="sec-value">${_gsMean.toFixed(2)}</div><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;">${_gsClsHtml}</div>${_explain('Öğrencilerin tüm sınavlardaki bireysel ortalama netleri üzerinden hesaplanmıştır.')}</div></div></div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-arrows-alt-h"></i></div><div class="sec-body"><div class="sec-label">Ortalamadan Uzaklık</div><div class="sec-value">±${_gsStd.toFixed(2)}</div><div class="sec-sub">Standart sapma · ${_gsHomLab}</div>${_explain('Öğrencilerin tüm sınav ortalamalarının genel ortalama etrafındaki yayılımı. Düşükse grup homojen.')}</div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-equals"></i></div><div class="sec-body"><div class="sec-label">Medyan Net</div><div class="sec-value">${_gsMed.toFixed(2)}</div><div class="sec-sub">Ortalama: ${_gsMean.toFixed(2)}</div>${_explain('Öğrenciler kendi sınav ortalamalarına göre sıralandığında ortadaki değer. Ortalamadan belirgin farklıysa dağılım çarpıktır.')}</div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-grip-lines-vertical"></i></div><div class="sec-body"><div class="sec-label">Çeyrekler Arası Aralık (IQR)</div><div class="sec-value" style="color:${_gsIqrColor};">${_gsQ.iqr.toFixed(2)}</div><div class="sec-sub" style="color:${_gsIqrColor};font-weight:600;">${_gsIqrLabel}</div><div class="sec-sub">Q1: ${_gsQ.q1.toFixed(2)} · Q3: ${_gsQ.q3.toFixed(2)}</div></div></div></div>
+              </div>`;
+        }
+
         let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary','${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
         <div id="pGenSummary" class="card shadow-sm" style="border-top:3px solid #0d6efd; background:#f4f6f9;">
             <div class="report-header">
@@ -2354,6 +2387,8 @@ function rAnl(){
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value" style="font-size:1.05em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Genel Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateGS}</div><div class="sec-sub">${attendedCountGS} / ${baseCountGS} Katılım</div></div></div></div>
               </div>
+
+              ${gsStatsHtml}
 
               <div id="genSummaryBPArea"></div>
               <div class="row mt-3">
