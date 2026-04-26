@@ -1173,7 +1173,11 @@ function rAnl(){
   let aT=getEl('aType').value,eT=getEl('aEx').value, sb=getEl('aSub')?getEl('aSub').value:'', r=getEl('anlRes');
   if(aT === 'risk') return; // Risk analizi renderRiskPanel tarafından yönetilir
   if(c.a){ c.a.destroy(); c.a=null; } clearTimeout(chartTimer); 
-  if(!eT){r.innerHTML='<div class="alert alert-default-info">Sınav verisi yok.</div>';return;}
+  if(!eT){
+    if(aT === 'class') { r.innerHTML='<div class="alert alert-default-info"><i class="fas fa-info-circle mr-2"></i>Lütfen Sınıf Seviyesi ve Sınav Türü seçiniz.</div>'; }
+    else { r.innerHTML='<div class="alert alert-default-info">Sınav verisi yok.</div>'; }
+    return;
+  }
   // (placeholder kept; user must explicitly choose data type)
   if(aT==='examdetail' && !sb) { return; }
 
@@ -1753,11 +1757,14 @@ function rAnl(){
 
   }else if(aT==='class'){
     let l=getEl('aLvl').value, b=getBrVal(), dateFilter = getEl('aDate') ? getEl('aDate').value : '';
-    let ex=DB.e.filter(x=>x.examType===eT&&!x.abs),d={};
+    let ex=DB.e.filter(x=>{
+      if(x.examType!==eT||x.abs) return false;
+      let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false;
+      if(l&&l!==m[1]) return false;
+      if(b&&b!==m[2].toLocaleUpperCase('tr-TR')) return false;
+      return true;
+    }), d={};
     ex.forEach(e=>{ 
-      let m=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m)return; 
-      if(l&&l!==m[1])return; 
-      if(b&&b!==m[2].toLocaleUpperCase('tr-TR'))return; 
       if(dateFilter && e.date!==dateFilter) return;
       (d[e.date]=d[e.date]||[]).push(e); 
     });
@@ -2423,36 +2430,7 @@ function rAnl(){
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value" style="font-size:1.05em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Genel Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateGS}</div><div class="sec-sub">${attendedCountGS} / ${baseCountGS} Katılım</div></div></div></div>
               </div>
-              ${(() => {
-                // 1-H: Sınav başına katılım trendi
-                let _datePartMap = {};
-                let _allEligibleNos = new Set(eligibleStusGS.map(s=>s.no));
-                dates.forEach(d => {
-                  let _eligibleForDate = new Set();
-                  eligibleStusGS.forEach(stu => {
-                    let g = getGrade(stu.class);
-                    Object.entries(gsExamGradeMap).forEach(([key, info]) => {
-                      if(key.startsWith(d+'||') && (info.grades.has('*') || info.grades.has(g))) _eligibleForDate.add(stu.no);
-                    });
-                  });
-                  let _attForDate = [..._allEligibleNos].filter(no => (gsAttendedSetByStu[no]||new Set()).has([...Object.keys(gsExamGradeMap)].find(k=>k.startsWith(d+'||'))||''));
-                  // Daha doğru: DB.e üzerinden direkt kontrol
-                  let _attCountForDate = DB.e.filter(x => x.examType===eT && !x.abs && x.date===d && _eligibleForDate.has(x.studentNo)).length;
-                  // Benzersiz öğrenci sayısı
-                  let _attUniqForDate = new Set(DB.e.filter(x => x.examType===eT && !x.abs && x.date===d && _eligibleForDate.has(x.studentNo)).map(x=>x.studentNo)).size;
-                  let _eligSz = _eligibleForDate.size;
-                  let _rate = _eligSz > 0 ? Math.round(_attUniqForDate/_eligSz*100) : 0;
-                  _datePartMap[d] = { att: _attUniqForDate, elig: _eligSz, rate: _rate };
-                });
-                if(dates.length < 2) return '';
-                let _rows = dates.map(d => {
-                  let dp = _datePartMap[d]||{att:0,elig:0,rate:0};
-                  let _barW = Math.max(2, dp.rate);
-                  let _barCol = dp.rate >= 80 ? '#28a745' : (dp.rate >= 50 ? '#ffc107' : '#dc3545');
-                  return `<tr><td style="font-size:0.82em;">${d}</td><td style="text-align:center;">${dp.att}/${dp.elig}</td><td style="min-width:110px;"><div style="background:#e9ecef;border-radius:3px;height:14px;"><div style="width:${_barW}%;background:${_barCol};height:14px;border-radius:3px;"></div></div></td><td style="text-align:right;font-weight:${dp.rate<50?'bold':'normal'};color:${dp.rate<50?'#dc3545':'inherit'};">${dp.rate}%</td></tr>`;
-                }).join('');
-                return `<div class="row mt-2"><div class="col-12"><div class="card shadow-sm"><div class="card-header py-1" style="background:#e8f4fd;"><strong><i class="fas fa-chart-area mr-1 text-info"></i>Sınav Başına Katılım Trendi</strong></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-bordered m-0" style="font-size:0.85em;"><thead><tr><th>Tarih</th><th style="text-align:center;">Kat./Uygun</th><th>Katılım Oranı</th><th style="text-align:right;">%</th></tr></thead><tbody>${_rows}</tbody></table></div></div></div></div></div>`;
-              })()}
+
               <div id="genSummaryBPArea"></div>
               <div class="row mt-3">
                   <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
@@ -2514,7 +2492,7 @@ function rAnl(){
                 responsive: true, maintainAspectRatio: false, animation: false,
                 plugins: {
                   legend: { display: false },
-                  datalabels: { display: true, anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' }, formatter: v => v.toFixed(1), color: '#343a40' }
+                  datalabels: { display: false }
                 },
                 scales: {
                   x: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } } },
@@ -2697,7 +2675,7 @@ function rAnl(){
               responsive: true, maintainAspectRatio: false, animation: false,
               plugins: {
                 legend: { display: false },
-                datalabels: { display: true, anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' }, formatter: v => v.toFixed(1), color: '#343a40' }
+                datalabels: { display: false }
               },
               scales: {
                 x: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } } },

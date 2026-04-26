@@ -875,18 +875,41 @@ function _resetSel(id){
 
 // ---- onLvlChange (orig lines 2064-2067) ----
 function onLvlChange(){
-  _resetSel('aBr'); _resetSel('aEx'); _resetSel('aDate'); _resetSel('aSub');
-  uBranches(); uExamTypes(); uExamDates(); uSub(); _updateGDateVisibility(); reqAnl();
+  let _prevEx = getEl('aEx') ? getEl('aEx').value : '';
+  _resetSel('aBr'); _resetSel('aDate'); _resetSel('aSub');
+  uBranches(); uExamTypes();
+  // Önceki sınav türü yeni filtreden sonra hâlâ geçerliyse koru
+  if(_prevEx && [...getEl('aEx').options].some(o => o.value === _prevEx)) {
+    getEl('aEx').value = _prevEx;
+  } else {
+    _resetSel('aEx');
+  }
+  uExamDates(); uSub(); _updateGDateVisibility(); reqAnl();
 }
 
 // ---- onBrChange (orig lines 2068-2071) ----
 function onBrChange(){
-  _resetSel('aEx'); _resetSel('aDate'); _resetSel('aSub');
-  uExamTypes(); uExamDates(); uSub(); _updateGDateVisibility(); reqAnl();
+  let _prevEx = getEl('aEx') ? getEl('aEx').value : '';
+  _resetSel('aDate'); _resetSel('aSub');
+  uExamTypes();
+  // Önceki sınav türü yeni filtreden sonra hâlâ geçerliyse koru
+  if(_prevEx && [...getEl('aEx').options].some(o => o.value === _prevEx)) {
+    getEl('aEx').value = _prevEx;
+  } else {
+    _resetSel('aEx');
+  }
+  uExamDates(); uSub(); _updateGDateVisibility(); reqAnl();
 }
 
 // ---- onExTypeChange (orig lines 2072-2075) ----
 function onExTypeChange(){
+  let _aT = getEl('aType') ? getEl('aType').value : '';
+  if(_aT === 'student' && !aNo){
+    // Sınav türüne tıklandı ama öğrenci seçilmedi — uyarı ver ve dropdown'ı sıfırla
+    showToast('Lütfen öğrenci seçiniz!', 'warning', 3000);
+    getEl('aEx').value = '';
+    return;
+  }
   _resetSel('aDate'); _resetSel('aSub');
   // Öğrenci modunda yeni sınav seçim dropdown'ı da sıfırlanır
   let _aExDate = getEl('aExDate'); if(_aExDate) _aExDate.value = '';
@@ -896,6 +919,12 @@ function onExTypeChange(){
 
 // ---- onExDateStudentChange: Öğrenci modu — tek sınav/Tümü ayrımı ----
 function onExDateStudentChange(){
+  let _aT = getEl('aType') ? getEl('aType').value : '';
+  if(_aT === 'student' && !aNo){
+    showToast('Lütfen öğrenci seçiniz!', 'warning', 3000);
+    let _el = getEl('aExDate'); if(_el) _el.value = '';
+    return;
+  }
   // aExDate boş = Tümü (toplu mod); dolu = tek sınav modu
   // Veri (aSub) listesine 'Sınav Özeti' eklensin/çıkarılsın diye uSub'u tazele
   uSub();
@@ -1137,7 +1166,12 @@ function _populateRiskFilterDropdowns() {
 
 // ---- handleSubChange (orig lines 2222-2230) ----
 function handleSubChange(){ 
-  let t = getEl('aType').value, sub = getEl('aSub').value; 
+  let t = getEl('aType').value, sub = getEl('aSub').value;
+  if(t === 'student' && !aNo){
+    showToast('Lütfen öğrenci seçiniz!', 'warning', 3000);
+    let _sub = getEl('aSub'); if(_sub) { _sub.value = ''; if(_sub.options.length && _sub.options[0].disabled) _sub.options[0].selected = true; }
+    return;
+  }
   if(t === 'examdetail') { 
     getEl('gDate').style.display = (sub === 'general_summary' || sub === 'list_all') ? 'none' : 'block'; 
     uExamDates(); 
