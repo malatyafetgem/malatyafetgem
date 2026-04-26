@@ -266,7 +266,7 @@ async function reqAnl() {
   if(aT === 'class' && !lvlF) { getEl('anlRes').innerHTML='<div class="alert alert-default-info"><i class="fas fa-info-circle mr-2"></i>Lütfen Sınıf Seviyesi ve Sınav Türü seçiniz.</div>'; return; }
 
   // Fetch başlamadan önce anlRes'i temizle (eski veriler veya başka sayfaların verilerinin kalmasını önler)
-  getEl('anlRes').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i>Veriler yükleniyor...</div>';
+  getEl('anlRes').innerHTML = '';
 
   if(aT === 'student'){
 
