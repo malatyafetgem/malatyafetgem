@@ -2359,7 +2359,9 @@ function rAnl(){
         }
         let bestSub = subDiffs.length > 0 && subDiffs[0].diff > 0 ? subDiffs[0] : null, worstSub = subDiffs.length > 0 && subDiffs[subDiffs.length-1].diff < 0 ? subDiffs[subDiffs.length-1] : null;
 
-        let mostFirstArr = Object.values(stuStats).filter(x=>x.first > 0).sort((a,b) => b.first - a.first), mostFirst = mostFirstArr.length > 0 ? mostFirstArr[0] : null;
+        let mostFirstArr = Object.values(stuStats).filter(x=>x.first > 0).sort((a,b) => { let df = b.first - a.first; if(df !== 0) return df; return (b.avgScore||0) - (a.avgScore||0); });
+        let mostFirst = mostFirstArr.length > 0 ? mostFirstArr[0] : null;
+        let mostFirstTie = mostFirst && mostFirstArr.length > 1 && mostFirstArr[1].first === mostFirst.first;
         let top5List = Object.values(stuStats).filter(x=>x.top5 > 0).sort((a,b) => b.top5 - a.top5).slice(0,5), bottom5List = Object.values(stuStats).filter(x=>x.bottom5 > 0).sort((a,b) => b.bottom5 - a.bottom5).slice(0,5);
         let buildRow = (e, i, prop, countLabel) => `<tr><td>${i+1}</td><td>${e.no}</td><td>${e.name}</td><td>${e.cls}</td><td><strong>${e[prop]} ${countLabel}</strong></td><td>${e.avgNet.toFixed(2)}</td><td>${e.avgScore.toFixed(2)}</td></tr>`;
         let top5Html = top5List.length ? top5List.map((e,i) => buildRow(e, i, 'top5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
@@ -2435,7 +2437,7 @@ function rAnl(){
             </div>
             <div class="card-body" style="padding-top:5px;">
               <div class="row">
-                  <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En Çok Birinci Olan</div><div class="sec-value" style="font-size:1.05em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu` : ''}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En Çok Birinci Olan</div><div class="sec-value" style="font-size:1.05em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu${mostFirstTie ? ' (Puan Üstünlüğü)' : ''}` : ''}</div></div></div></div>
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-chart-line"></i></div><div class="sec-body"><div class="sec-label">En Fazla İlerleme Kaydeden</div><div class="sec-value" style="font-size:1.05em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${bestP ? `+${bestP.diff.toFixed(2)} Puan Eğim (${bestP.firstScore.toFixed(2)} ➔ ${bestP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
                   <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">En Fazla Gerileme Kaydeden</div><div class="sec-value" style="font-size:1.05em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${worstP ? `${worstP.diff.toFixed(2)} Puan Eğim (${worstP.firstScore.toFixed(2)} ➔ ${worstP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
               </div>
