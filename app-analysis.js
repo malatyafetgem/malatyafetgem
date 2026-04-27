@@ -2156,14 +2156,19 @@ function rAnl(){
       }
     }
 
-    // Ders Analizi Cohen's d — en iyi şube vs en düşük şube (n≥10 öğrenci koşulu).
-    // Pedagojik gerekçe: tek bir derste iki şubenin performans farkının "pratik büyüklüğünü"
-    // gösterir. Sadece ortalama farkı değil, varyansla normalize edilmiş etki büyüklüğü.
-    let subjCohenHtml = '';
-    if(clsArr.length >= 2) {
-      let subjBestCls  = clsArr[0].cls;
-      let subjWorstCls = clsArr[clsArr.length - 1].cls;
-      let _subjStuAvgs = (cls) => {
+    // Ders Analizi Cohen's d: satır 2'de inline col olarak üretiliyor (aşağıda subjCohenColHtml)
+    let subjCohenHtml = ''; // (artık doğrudan kullanılmıyor, uyumluluk için tutuldu)
+
+    // Ders Analizi — Şube "Tümü" iken En İyi / En Zayıf Sınıf + Cohen's d inline kartları
+    let subjBestClsObj  = clsArr.length > 0 ? clsArr[0] : null;
+    let subjWorstClsObj = clsArr.length > 1 ? clsArr[clsArr.length - 1] : null;
+
+    // Cohen's d kartı satır 2'ye (subjCohenColHtml) entegre edildi
+    let subjCohenColHtml = '';
+    if(!br && clsArr.length >= 2) {
+      let subjBestClsN  = clsArr[0].cls;
+      let subjWorstClsN = clsArr[clsArr.length - 1].cls;
+      let _subjStuAvgs2 = (cls) => {
         let map = {};
         ex.filter(e => e.studentClass === cls).forEach(e => {
           if(!map[e.studentNo]) map[e.studentNo] = [];
@@ -2171,34 +2176,41 @@ function rAnl(){
         });
         return Object.values(map).map(arr => arr.reduce((a,b)=>a+b,0)/arr.length);
       };
-      let subjBestVals  = _subjStuAvgs(subjBestCls);
-      let subjWorstVals = _subjStuAvgs(subjWorstCls);
-      if(subjBestVals.length >= 10 && subjWorstVals.length >= 10) {
-        let subjD = _statCohenD(subjBestVals, subjWorstVals);
-        if(subjD !== null && isFinite(subjD)) {
-          let subjDLab = _cohenLabel(subjD);
-          let subjDCol = Math.abs(subjD) >= 0.8 ? '#dc3545' : (Math.abs(subjD) >= 0.5 ? '#fd7e14' : (Math.abs(subjD) >= 0.2 ? '#ffc107' : '#6c757d'));
-          subjCohenHtml = `<div class="row mb-2">
-            <div class="col-12">
-              <div class="sec-card"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body">
-                <div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div>
-                <div class="sec-value" style="color:${subjDCol};">d = ${subjD.toFixed(2)}</div>
-                <div class="sec-sub">${subjDLab} fark — ${subjBestCls} vs ${subjWorstCls} (bu derste)</div>
-                ${_explain("Cohen's d: iki şubenin bu dersteki başarı farkının pratik büyüklüğü. 0.2 küçük, 0.5 orta, 0.8+ büyük.")}
-              </div></div>
-            </div>
-          </div>`;
+      let subjBVals2  = _subjStuAvgs2(subjBestClsN);
+      let subjWVals2  = _subjStuAvgs2(subjWorstClsN);
+      if(subjBVals2.length >= 10 && subjWVals2.length >= 10) {
+        let subjD2 = _statCohenD(subjBVals2, subjWVals2);
+        if(subjD2 !== null && isFinite(subjD2)) {
+          let subjDLab2 = _cohenLabel(subjD2);
+          let subjDCol2 = Math.abs(subjD2) >= 0.8 ? '#dc3545' : (Math.abs(subjD2) >= 0.5 ? '#fd7e14' : (Math.abs(subjD2) >= 0.2 ? '#ffc107' : '#6c757d'));
+          subjCohenColHtml = `<div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div><div class="sec-value" style="color:${subjDCol2};">d = ${subjD2.toFixed(2)}</div><div class="sec-sub">${subjDLab2} fark — ${subjBestClsN} vs ${subjWorstClsN}</div>${_explain("Cohen's d: iki şubenin bu dersteki başarı farkının pratik büyüklüğü. 0.2 küçük, 0.5 orta, 0.8+ büyük.")}</div></div></div>`;
         }
       }
     }
 
-    // Ders Analizi — Şube "Tümü" iken En İyi / En Zayıf Sınıf kartları
-    let subjBestCls  = clsArr.length > 0 ? clsArr[0] : null;
-    let subjWorstCls2 = clsArr.length > 1 ? clsArr[clsArr.length - 1] : null;
-    let subjClassCardsHtml = (!br && clsArr.length > 1) ? `
-      <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-school"></i></div><div class="sec-body"><div class="sec-label">En İyi Sınıf</div><div class="sec-value">${subjBestCls.cls}</div><div class="sec-sub">Ort: ${subjBestCls.avg.toFixed(2)} Net</div></div></div></div>
-      <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-circle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Sınıf</div><div class="sec-value">${subjWorstCls2.cls}</div><div class="sec-sub">Ort: ${subjWorstCls2.avg.toFixed(2)} Net</div></div></div></div>
-    ` : '';
+    // Satır 1: Toplam Kayıt | Katılım Oranı | Genel Ortalama
+    let subjRow1Html = `<div class="row mb-2">
+      <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Toplam Kayıt</div><div class="sec-value">${ex.length} Sonuç</div></div></div></div>
+      <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neutral h-100"><div class="sec-icon"><i class="fas fa-chart-pie"></i></div><div class="sec-body"><div class="sec-label">Katılım Oranı</div><div class="sec-value">%${partRateS}</div><div class="sec-sub">${attendedCountS} / ${baseCountS} Katılım</div></div></div></div>
+      <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-calculator"></i></div><div class="sec-body"><div class="sec-label">Genel Ortalama</div><div class="sec-value">${genAvg.toFixed(2)} Net</div></div></div></div>
+    </div>`;
+
+    // Satır 2 (yalnızca Şube=Tümü ve birden fazla sınıf varsa):
+    // En İyi Sınıf | En Zayıf Sınıf | Şubeler Arası Etki Büyüklüğü (Cohen's d)
+    let subjRow2Html = '';
+    if(!br && clsArr.length > 1) {
+      subjRow2Html = `<div class="row mb-2">
+        <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-school"></i></div><div class="sec-body"><div class="sec-label">En İyi Sınıf</div><div class="sec-value">${subjBestClsObj.cls}</div><div class="sec-sub">Ort: ${subjBestClsObj.avg.toFixed(2)} Net</div></div></div></div>
+        <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-circle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Sınıf</div><div class="sec-value">${subjWorstClsObj.cls}</div><div class="sec-sub">Ort: ${subjWorstClsObj.avg.toFixed(2)} Net</div></div></div></div>
+        ${subjCohenColHtml}
+      </div>`;
+    }
+
+    // Satır 3: En İyi Öğrenci | En Zayıf Öğrenci
+    let subjRow3Html = `<div class="row mb-2">
+      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${bestStudent ? `${bestStudent.name} (${bestStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
+      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${worstStudent ? `${worstStudent.name} (${worstStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
+    </div>`;
 
     let h = `
     <div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSubj','${toTitleCase(subj)}_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
@@ -2208,15 +2220,9 @@ function rAnl(){
         <span style="font-size:13px;">${eT} | ${lvlStr} | Toplam ${dates.length} Sınav</span>
       </div>
       <div class="card-body" style="padding-top:5px;">
-        <div class="row mb-3">
-          <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-calculator"></i></div><div class="sec-body"><div class="sec-label">Genel Ortalama</div><div class="sec-value">${genAvg.toFixed(2)} Net</div></div></div></div>
-          <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Toplam Kayıt</div><div class="sec-value">${ex.length} Sonuç</div></div></div></div>
-          <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${bestStudent ? `${bestStudent.name} (${bestStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
-          <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${worstStudent ? `${worstStudent.name} (${worstStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
-          <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neutral h-100"><div class="sec-icon"><i class="fas fa-chart-pie"></i></div><div class="sec-body"><div class="sec-label">Katılım Oranı</div><div class="sec-value">%${partRateS}</div><div class="sec-sub">${attendedCountS} / ${baseCountS} Katılım</div></div></div></div>
-          ${subjClassCardsHtml}
-        </div>
-        ${subjCohenHtml}
+        ${subjRow1Html}
+        ${subjRow2Html}
+        ${subjRow3Html}
         ${subjTrendHtml}
         <div id="subjBoxPlotArea"></div>
         <div class="row">
