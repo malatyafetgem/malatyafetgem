@@ -1219,7 +1219,7 @@ function rAnl(){
     let eTSafe = escapeHtml(eT);
 
     // === TEK SINAV MODU ===
-    let _aExDateRaw = (getEl('aExDate')||{}).value || '';
+    let _aExDateRaw = typeof getStudentExamDateValue === 'function' ? getStudentExamDateValue() : ((getEl('aExDate')||{}).value || '');
     if(_aExDateRaw){
       let[_seDate, _sePub=''] = _aExDateRaw.split('||');
       let curExam = ex.find(e => e.date === _seDate && (e.publisher||'') === _sePub);

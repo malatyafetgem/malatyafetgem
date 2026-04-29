@@ -11,8 +11,8 @@
 <link rel="manifest" href="./manifest.json">
 <title>Sınav Analiz Sistemi</title>
 <script>
-window.SA_APP_VERSION = 'adminlte4-r27';
-window.SA_CACHE_NAME = 'sinav-analizi-adminlte4-r27';
+window.SA_APP_VERSION = 'adminlte4-r31';
+window.SA_CACHE_NAME = 'sinav-analizi-adminlte4-r31';
 window.SA_CACHE_READY = (async function(){
   try {
     const markerKey = 'sinavAnalizi.cacheReadyVersion';
@@ -52,7 +52,7 @@ window.SA_CACHE_READY = (async function(){
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
-<link rel="stylesheet" href="./style.css?v=adminlte4-r27">
+<link rel="stylesheet" href="./style.css?v=adminlte4-r31">
 </head>
 <body class="layout-fixed sidebar-expand-lg sidebar-mini" data-active-pane="anasayfa_genel">
 
@@ -198,8 +198,8 @@ window.SA_CACHE_READY = (async function(){
             <div class="col-sm-6 col-md-4 col-lg-3" id="gStu"><div class="mb-3"><label>Öğrenci Seçin</label><div id="anlStuSearchWrapper"><div class="input-group"><input type="text" id="anlStuInp" class="form-control" placeholder="Ad, soyad veya numara..." onkeyup="anlStuDoSearch()" autocomplete="off"><button class="btn btn-outline-secondary btn-search-clear" onclick="anlStuClear()"><i class="fas fa-times"></i></button></div><div id="anlStuRes" role="listbox"></div></div><div id="anlStuBadge"></div></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gLvl" style="display:none;"><div class="mb-3"><label>Sınıf Seviyesi</label><select id="aLvl" class="form-select" onchange="onLvlChange()"><option value="" disabled selected>Sınıf Seviyesi Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gBr" style="display:none;"><div class="mb-3"><label>Şube</label><select id="aBr" class="form-select" onchange="onBrChange()"><option value="" disabled selected>Şube Seç</option></select></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2" id="gEx"><div class="mb-3"><label>Sınav Türü</label><div class="aex-wrap"><select id="aEx" class="form-select" onchange="onExTypeChange()"><option value="" disabled selected>Sınav Türü Seç</option></select><span id="aExBadge" class="aex-badge" aria-hidden="true"></span></div></div></div>
-            <div class="col-sm-6 col-md-4 col-lg-2" id="gExDate" style="display:none;"><div class="mb-3"><label>Sınav Seç</label><select id="aExDate" class="form-select" onchange="onExDateStudentChange()"><option value="">Tümü</option></select></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gEx"><div class="mb-3"><label>Sınav Türü</label><div class="aex-wrap"><select id="aEx" class="form-select" onchange="onExTypeChange()"><option value="" disabled selected>Sınav Türü Seçiniz</option></select><span id="aExBadge" class="aex-badge" aria-hidden="true"></span></div></div></div>
+            <div class="col-sm-6 col-md-4 col-lg-2" id="gExDate" style="display:none;"><div class="mb-3"><label>Sınav Seç</label><select id="aExDate" class="form-select" onchange="onExDateStudentChange()"><option value="" disabled selected>Sınav Seçiniz</option><option value="__ALL__">Tüm Sınavlar</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gDate" style="display:none;"><div class="mb-3"><label id="lblDate">Sınav Seç</label><select id="aDate" class="form-select" onchange="onDateChange()"><option value="" disabled selected>Sınav Seç</option></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gSub" style="display:none;"><div class="mb-3"><label id="lblSub">Veri</label><select id="aSub" class="form-select" onchange="handleSubChange()"></select></div></div>
             <div class="col-sm-6 col-md-4 col-lg-2" id="gRiskGrade" style="display:none;"><div class="mb-3"><label>Sınıf Seviyesi</label><select id="riskGradeFilter" class="form-select" onchange="onRiskFilterChange(true)"><option value="">Tüm Sınıflar</option></select></div></div>
@@ -422,7 +422,7 @@ window.SA_CACHE_READY = (async function(){
 
 <script>
 (async function loadAppScripts(){
-  const version = window.SA_APP_VERSION || 'adminlte4-r27';
+  const version = window.SA_APP_VERSION || 'adminlte4-r31';
   const scripts = ['app-core.js','app-ui.js','app-analysis.js','app-settings.js'];
   const refreshLocalStyle = () => {
     const current = document.querySelector('link[href*="style.css"]');

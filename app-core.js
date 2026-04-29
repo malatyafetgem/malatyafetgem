@@ -80,10 +80,26 @@ function getAnalysisDateValue(){
   return raw === '__ALL__' ? '' : raw;
 }
 
+function getStudentExamDateValue(){
+  const raw = getSelectValueIfEnabled('aExDate');
+  return raw === '__ALL__' ? '' : raw;
+}
+
 function hasAnalysisDateSelection(){
   const el = getEl('aDate');
   if(!el) return false;
   return !!getSelectValueIfEnabled('aDate');
+}
+
+function hasStudentExamDateSelection(){
+  const el = getEl('aExDate');
+  if(!el) return false;
+  return !!getSelectValueIfEnabled('aExDate');
+}
+
+function isStudentSingleExamSelection(){
+  const raw = getSelectValueIfEnabled('aExDate');
+  return !!raw && raw !== '__ALL__';
 }
 
 function showAnalysisHint(message){
@@ -389,6 +405,25 @@ async function reqAnl() {
   // Risk analizi modu: fetch gerekmez, renderRiskPanel zaten uUI'dan çağrılıyor
   if(aT === 'risk') { if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters(); return; }
 
+  if(aT === 'student'){
+    if(!aNo){
+      showAnalysisHint('Analiz oluşturmak için öğrenci seçin.');
+      return;
+    }
+    if(!eT){
+      showAnalysisHint('Analiz oluşturmak için sınav türünü seçin.');
+      return;
+    }
+    if(!hasStudentExamDateSelection()){
+      showAnalysisHint('Analiz oluşturmak için sınav seçin ya da "Tüm Sınavlar" seçeneğini kullanın.');
+      return;
+    }
+    if(!sub){
+      showAnalysisHint('Analiz oluşturmak için veri türünü seçin.');
+      return;
+    }
+  }
+
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
   if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !lvlF){
     showAnalysisHint('Analiz oluşturmak için sınıf seviyesini seçin.');
@@ -478,6 +513,14 @@ async function reqAnl() {
 
 // ---- reqUI (orig lines 942-942) ----
 async function reqUI() {
+  const typeEl = getEl('aType');
+  const currentType = typeEl ? typeEl.value : '';
+  const previousType = typeEl ? (typeEl.dataset.lastType || '') : '';
+  if(previousType && previousType !== currentType && typeof _resetSel === 'function'){
+    ['aLvl','aBr','aEx','aDate','aExDate','aSub'].forEach(_resetSel);
+    if(getEl('anlRes')) getEl('anlRes').innerHTML = '';
+  }
+  if(typeEl) typeEl.dataset.lastType = currentType;
   uUI();
   if(typeof updateFilterSummary === 'function') updateFilterSummary();
   await reqAnl();

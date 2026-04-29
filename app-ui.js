@@ -953,7 +953,7 @@ function uExamTypes(){
     Object.values(EXAM_META).forEach(m => types.add(m.examType));
   }
   let sortedTypes = [...types].sort(), prev=getEl('aEx').value;
-  getEl('aEx').innerHTML=optionHtml('', 'Sınav Türü Seç', !(prev && sortedTypes.includes(prev)), true)+sortedTypes.map(x=>optionHtml(x, x)).join('');
+  getEl('aEx').innerHTML=optionHtml('', 'Sınav Türü Seçiniz', !(prev && sortedTypes.includes(prev)), true)+sortedTypes.map(x=>optionHtml(x, x)).join('');
   if(sortedTypes.includes(prev)) getEl('aEx').value=prev;
   else if(prev){ getEl('aEx').value=''; }
 }
@@ -972,7 +972,7 @@ function _saveAnalysisSubMemory(){
 function _analysisSubKeys(){
   let aT = getEl('aType') ? getEl('aType').value : '';
   let eT = getEl('aEx') ? getEl('aEx').value : '';
-  let single = (aT === 'student' && getEl('aExDate') && getEl('aExDate').value) ? 'single' : 'all';
+  let single = (aT === 'student' && typeof isStudentSingleExamSelection === 'function' && isStudentSingleExamSelection()) ? 'single' : 'all';
   let lvl = (getEl('aLvl') && getEl('aLvl').value) || '';
   let br = (getEl('aBr') && getEl('aBr').value) || '';
   let primary = `${aT}|${eT || '*'}|${single}|${lvl || '*'}|${br || '*'}`;
@@ -1038,19 +1038,41 @@ function updateFilterSummary(){
 }
 
 function resetAnalysisFilters(){
-  aNo = null;
-  ['anlStuInp','anlStuRes','anlStuBadge','aBadge'].forEach(id => {
-    let el = getEl(id); if(!el) return;
-    if(id.endsWith('Inp')) el.value = '';
-    else if(id.endsWith('Res')) { el.innerHTML = ''; el.style.display = 'none'; }
-    else el.innerHTML = id === 'aBadge' ? '<span class="text-muted">Seçilmedi</span>' : '';
-  });
-  if(getEl('aType')) getEl('aType').value = 'student';
-  ['aLvl','aBr','aEx','aDate','aExDate','aSub','riskGradeFilter','riskBranchFilter','riskExTypeFilter','riskLevelFilter'].forEach(_resetSel);
+  let currentType = getEl('aType') ? (getEl('aType').value || 'student') : 'student';
+  const resetControls = () => {
+    if(currentType === 'student') ['aEx','aExDate','aSub'].forEach(_resetSel);
+    else if(currentType === 'risk') ['riskGradeFilter','riskBranchFilter','riskExTypeFilter','riskLevelFilter'].forEach(_resetSel);
+    else ['aLvl','aBr','aEx','aDate','aSub'].forEach(_resetSel);
+  };
+  if(currentType === 'student'){
+    aNo = null;
+    ['anlStuInp','anlStuRes','anlStuBadge','aBadge'].forEach(id => {
+      let el = getEl(id); if(!el) return;
+      if(id.endsWith('Inp')) el.value = '';
+      else if(id.endsWith('Res')) { el.innerHTML = ''; el.style.display = 'none'; }
+      else el.innerHTML = id === 'aBadge' ? '<span class="text-muted">Seçilmedi</span>' : '';
+    });
+  }
+  resetControls();
+  if(getEl('aType')) getEl('aType').value = currentType;
   if(getEl('anlRes')) getEl('anlRes').innerHTML = '';
   uUI();
+  resetControls();
+  if(currentType === 'student') {
+    uStudentExamDates();
+    resetControls();
+    uSub();
+  } else if(currentType !== 'risk') {
+    uBranches();
+    uExamTypes();
+    resetControls();
+    uExamDates();
+    uSub();
+    _updateGDateVisibility();
+  }
   applyExamColorToFilters();
   updateFilterSummary();
+  if(currentType === 'risk' && typeof renderRiskPanel === 'function') renderRiskPanel();
   reqAnl();
 }
 
@@ -1093,24 +1115,20 @@ function uSub(){
   }
   
   if(aT === 'student' || aT === 'class') {
-    // === Tek-sınav modunda öğrenci analizi varsayılanı 'summary'; toplu modda 'totalNet'; sınıf analizinde 'score' ===
-    let _aExDateRaw = (getEl('aExDate')||{}).value || '';
-    let _isSingleExam = (aT === 'student') && !!_aExDateRaw;
-    let _defaultVal = (aT === 'class') ? 'score' : (_isSingleExam ? 'summary' : 'totalNet');
-    let _selVal = _preferredAnalysisSub(_defaultVal);
-    let o = optionHtml('', 'Veri Seç', !_selVal, true);
-    if(_isSingleExam) o += optionHtml('summary', 'Sınav Özeti', _selVal==='summary');
-    o += optionHtml('totalNet', 'Toplam Net', _selVal==='totalNet') + optionHtml('score', 'Puan', _selVal==='score');
-    if (aT === 'student') { o += optionHtml('rank_c', 'Sınıf Sıralaması', _selVal==='rank_c') + optionHtml('rank_i', 'Kurum Sıralaması', _selVal==='rank_i') + optionHtml('rank_g', 'Genel Sıralama', _selVal==='rank_g'); }
-    [...s].sort().forEach(x=> o += optionHtml(`s_${x}`, `${toTitleCase(x)} Neti`, _selVal==='s_'+x)); getEl('aSub').innerHTML = o;
-    _applyAnalysisSubValue(_defaultVal, _selVal);
+    let _isSingleExam = (aT === 'student') && typeof isStudentSingleExamSelection === 'function' && isStudentSingleExamSelection();
+    let _curVal = (getEl('aSub') || {}).value || '';
+    let o = optionHtml('', 'Veri Seçiniz', !_curVal, true);
+    if(_isSingleExam) o += optionHtml('summary', 'Sınav Özeti', _curVal==='summary');
+    o += optionHtml('totalNet', 'Toplam Net', _curVal==='totalNet') + optionHtml('score', 'Puan', _curVal==='score');
+    if (aT === 'student') { o += optionHtml('rank_c', 'Sınıf Sıralaması', _curVal==='rank_c') + optionHtml('rank_i', 'Kurum Sıralaması', _curVal==='rank_i') + optionHtml('rank_g', 'Genel Sıralama', _curVal==='rank_g'); }
+    [...s].sort().forEach(x=> o += optionHtml(`s_${x}`, `${toTitleCase(x)} Neti`, _curVal==='s_'+x)); getEl('aSub').innerHTML = o;
+    _applyAnalysisSubValue('', _curVal);
   } else if (aT === 'examdetail') {
-    // === FIX: uSub varsayılanı — examdetail için varsayılan 'summary' (Sınav Özeti) ===
-    let prev = _preferredAnalysisSub('summary');
+    let prev = (getEl('aSub') || {}).value || '';
     let _validVals = ['summary','general_summary','list_single','list_all'];
-    let _selVal = _validVals.includes(prev) ? prev : 'summary';
-    getEl('aSub').innerHTML = optionHtml('summary', 'Sınav Özeti (Tek Sınav)', _selVal==='summary') + optionHtml('general_summary', 'Sınav Özeti (Tüm Sınavlar)', _selVal==='general_summary') + optionHtml('list_single', 'Toplu Liste (Tek Sınav)', _selVal==='list_single') + optionHtml('list_all', 'Toplu Liste (Tüm Sınavlar)', _selVal==='list_all');
-    _applyAnalysisSubValue('summary', _selVal);
+    let _selVal = _validVals.includes(prev) ? prev : '';
+    getEl('aSub').innerHTML = optionHtml('', 'Veri Seçiniz', !_selVal, true) + optionHtml('summary', 'Sınav Özeti (Tek Sınav)', _selVal==='summary') + optionHtml('general_summary', 'Sınav Özeti (Tüm Sınavlar)', _selVal==='general_summary') + optionHtml('list_single', 'Toplu Liste (Tek Sınav)', _selVal==='list_single') + optionHtml('list_all', 'Toplu Liste (Tüm Sınavlar)', _selVal==='list_all');
+    _applyAnalysisSubValue('', _selVal);
   } else if (aT === 'subject') {
     let prev = _preferredAnalysisSub(''), opts = [...s].sort().map(x=>optionHtml(x, toTitleCase(x))).join('');
     let ph = optionHtml('', 'Ders Seç', !prev, true);
@@ -1183,6 +1201,7 @@ function onExTypeChange(){
   }
   _rememberAnalysisSub();
   _resetSel('aDate');
+  _resetSel('aSub');
   // Öğrenci modunda yeni sınav seçim dropdown'ı da sıfırlanır
   let _aExDate = getEl('aExDate'); if(_aExDate) _aExDate.value = '';
   uExamDates(); uStudentExamDates(); uSub(); _updateGDateVisibility();
@@ -1197,9 +1216,8 @@ function onExDateStudentChange(){
     let _el = getEl('aExDate'); if(_el) _el.value = '';
     return;
   }
-  // aExDate boş = Tümü (toplu mod); dolu = tek sınav modu
-  // Veri (aSub) listesine 'Sınav Özeti' eklensin/çıkarılsın diye uSub'u tazele
-  _rememberAnalysisSub();
+  // Veri listesi tek sınav/tüm sınav seçimine göre değişir; yeni seçimde veri tekrar seçilir.
+  _resetSel('aSub');
   uSub();
   applyExamColorToFilters();
   reqAnl();
@@ -1213,7 +1231,7 @@ function uStudentExamDates(){
   let aT = getEl('aType') ? getEl('aType').value : '';
   let eT = getEl('aEx')   ? getEl('aEx').value   : '';
   if(aT !== 'student' || !eT){
-    el.innerHTML = optionHtml('', 'Tümü');
+    el.innerHTML = optionHtml('', 'Sınav Seçiniz', true, true) + optionHtml('__ALL__', 'Tüm Sınavlar');
     el.value = '';
     return;
   }
@@ -1231,13 +1249,13 @@ function uStudentExamDates(){
   entries.forEach(x => { let k = x.date+'||'+x.publisher; if(!seen.has(k)){ seen.add(k); unique.push(x); } });
   unique.sort((a,b) => srt(b.date, a.date)); // DESC
   let prev = el.value;
-  let opts = optionHtml('', 'Tümü') + unique.map(x => {
+  let opts = optionHtml('', 'Sınav Seçiniz', !prev, true) + optionHtml('__ALL__', 'Tüm Sınavlar', prev === '__ALL__') + unique.map(x => {
     let pub = x.publisher ? ` (${toTitleCase(x.publisher)})` : '';
     return optionHtml(`${x.date}||${x.publisher}`, `${x.date}${pub}`);
   }).join('');
   el.innerHTML = opts;
-  // Önceki seçim geçerliyse koru, değilse Tümü
-  if(prev && [...el.options].some(o=>o.value===prev)) el.value = prev;
+  // Önceki seçim geçerliyse koru; değilse kullanıcı açık seçim yapsın.
+  if(prev && [...el.options].some(o=>o.value===prev && !o.disabled)) el.value = prev;
   else el.value = '';
 }
 
