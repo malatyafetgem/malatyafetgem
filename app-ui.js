@@ -335,6 +335,7 @@ function xPR(sourceId, title, btn, orientation) {
 
   let sourceEl = getEl(sourceId);
   if(!sourceEl){ return; }
+  let isCompactListPrint = sourceId === 'raporCont' && sourceEl.classList.contains('print-compact-list');
   let orig = btn ? btn.innerHTML : '';
   if(btn){ btn.innerHTML = "<i class='fas fa-spinner fa-spin me-1'></i>"; btn.disabled = true; }
   let winW = isLandscape ? 1200 : 900;
@@ -498,7 +499,7 @@ function xPR(sourceId, title, btn, orientation) {
     } else {
       isFirst = (idx === 0);
     }
-    if(!isFirst){
+    if(!isCompactListPrint && !isFirst){
       blk.style.cssText += ';page-break-before:always;break-before:page;';
     }
     // Bloğun kendisi taşabilir; içerik tek sayfaya zaten sığacak şekilde tasarlandı
@@ -522,7 +523,7 @@ function xPR(sourceId, title, btn, orientation) {
   // .karne-bolum (exam-type-block değilse): her biri yeni sayfa (ilk hariç)
   clone.querySelectorAll('.karne-bolum').forEach((blk, idx) => {
     if(blk.classList.contains('exam-type-block')) return;
-    if(idx > 0) blk.style.cssText += ';page-break-before:always;break-before:page;';
+    if(!isCompactListPrint && idx > 0) blk.style.cssText += ';page-break-before:always;break-before:page;';
     blk.style.cssText += ';page-break-inside:auto;break-inside:auto;';
   });
 
@@ -546,6 +547,11 @@ function xPR(sourceId, title, btn, orientation) {
 
   // Sınav türü palet sabitleri yeni pencerede de class olarak çalışsın diye CSS bloğu üret
   let paletteCss = _XPR_EXAM_PALETTE.map((c,i) => `.exam-color-${i}{--exam-color:${c};}`).join('\n');
+  let printBaseFont = isCompactListPrint ? '8.2px' : (isLandscape ? '10px' : '10.5px');
+  let printPageMargin = isCompactListPrint ? '5mm 4mm' : '8mm 7mm';
+  let printTableFont = isCompactListPrint ? '6.6px' : (isLandscape ? '8px' : '9px');
+  let printTableHeadFont = isCompactListPrint ? '6.4px' : (isLandscape ? '7.5px' : '8.5px');
+  let printTablePadding = isCompactListPrint ? '1px 2px' : '2px 4px';
 
   let printHtml = `<!DOCTYPE html>
 <html lang="tr">
@@ -556,8 +562,8 @@ function xPR(sourceId, title, btn, orientation) {
 ${cssLinks}
 <style>
   *,*::before,*::after{box-sizing:border-box;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  html,body{width:100%;margin:0;padding:0;background:#fff;color:#212529;font-family:'Source Sans Pro',Arial,sans-serif;font-size:${isLandscape?'10px':'10.5px'};}
-  @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:8mm 7mm;}
+  html,body{width:100%;margin:0;padding:0;background:#fff;color:#212529;font-family:'Source Sans Pro',Arial,sans-serif;font-size:${printBaseFont};}
+  @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:${printPageMargin};}
 
   /* Sınav türü paleti (yeni pencerede style.css yok) */
   ${paletteCss}
@@ -580,9 +586,9 @@ ${cssLinks}
   .report-header *{color:#111827 !important;}
 
   /* Tablolar — başlık her sayfada, satır içi kırma yok */
-  .table{width:100% !important;border-collapse:collapse !important;font-size:${isLandscape?'8px':'9px'} !important;margin-bottom:5px;}
-  .table th,.table td{border:1px solid #bbb !important;padding:2px 4px !important;color:#212529 !important;vertical-align:middle !important;}
-  .table thead th{background:#f1f5f9 !important;color:#111827 !important;font-size:${isLandscape?'7.5px':'8.5px'} !important;font-weight:700;border-bottom:2px solid #cbd5e1 !important;}
+  .table{width:100% !important;border-collapse:collapse !important;font-size:${printTableFont} !important;margin-bottom:5px;}
+  .table th,.table td{border:1px solid #bbb !important;padding:${printTablePadding} !important;color:#212529 !important;vertical-align:middle !important;}
+  .table thead th{background:#f1f5f9 !important;color:#111827 !important;font-size:${printTableHeadFont} !important;font-weight:700;border-bottom:2px solid #cbd5e1 !important;}
   .scroll table thead th,.table-responsive table thead th{position:static !important;top:auto !important;z-index:auto !important;}
   thead{display:table-header-group !important;}
   tfoot{display:table-footer-group !important;}
@@ -672,6 +678,22 @@ ${cssLinks}
   .karne-bolum{page-break-inside:auto;break-inside:auto;}
   .student-rapor-wrapper{page-break-inside:auto;break-inside:auto;}
 
+  /* Toplu Liste: mobil yazdırmada gereksiz sayfa kırmalarını ve boşlukları azalt */
+  body.print-compact-list-mode .report-header{padding:4px 6px;margin-bottom:4px;border-radius:3px;}
+  body.print-compact-list-mode .exam-type-block,
+  body.print-compact-list-mode .karne-bolum{padding:3px 4px;margin-bottom:4px;border-left-width:2px !important;border-right-width:0 !important;border-radius:3px;page-break-before:auto !important;break-before:auto !important;}
+  body.print-compact-list-mode .exam-type-block>h5,
+  body.print-compact-list-mode .karne-bolum>h5{font-size:7.8px !important;margin:0 0 3px 0;padding-bottom:2px;}
+  body.print-compact-list-mode .card{margin-bottom:3px;border-radius:3px;}
+  body.print-compact-list-mode .card-header{padding:2px 5px;font-size:7.2px;}
+  body.print-compact-list-mode .card-body{padding:2px 3px;}
+  body.print-compact-list-mode .card-title{font-size:7.6px !important;}
+  body.print-compact-list-mode .avg-row td{font-size:6.4px !important;}
+  body.print-compact-list-mode .mb-4{margin-bottom:5px !important;}
+  body.print-compact-list-mode .mb-3{margin-bottom:4px !important;}
+  body.print-compact-list-mode h4{font-size:8.2px !important;margin:2px 0;}
+  body.print-compact-list-mode h5{font-size:7.8px !important;margin:2px 0;}
+
   /* Gizle */
   .no-print,button:not(.risk-badge),.btn:not(.risk-badge),.scroll-hint,.d-flex.justify-content-end,#riskPanel,
   .app-sidebar,.app-header,.app-main>.overlay{display:none !important;}
@@ -680,7 +702,7 @@ ${cssLinks}
   .app-wrapper,.app-main,.container-fluid{margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;}
 </style>
 </head>
-<body>
+<body class="${isCompactListPrint ? 'print-compact-list-mode' : ''}">
 <div style="padding:0 2px;">${clone.outerHTML}</div>
 <script>
 (function(){
@@ -1044,7 +1066,9 @@ function uSub(){
   let aT=getEl('aType')?getEl('aType').value:'', t=getEl('aEx').value, s=new Set();
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
   let brF  = (aT==='class'||aT==='subject'||aT==='examdetail') ? getBrVal() : '';
-  let dtF  = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aDate') ? getEl('aDate').value : '';
+  let dtF  = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aDate')
+    ? (typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : getEl('aDate').value)
+    : '';
 
   // Ders listesini her zaman EXAM_META'dan al (DB.e yüklenmesine gerek yok)
   Object.values(EXAM_META).forEach(m => {
@@ -1288,15 +1312,17 @@ function uExamDates(){
     dates.push(m.date); if(m.publisher) datePublisherMap[m.date] = m.publisher;
   });
   
-  dates = [...new Set(dates)].sort((a,b)=>srt(b,a)); let prev=getEl('aDate').value;
-  let prefixOpt = (aT === 'class' || aT === 'subject')
-    ? optionHtml('', 'Tüm Sınavlar', !prev)
-    : optionHtml('', 'Sınav Seç', !prev, true);
-  getEl('aDate').innerHTML = prefixOpt + dates.map(x => { let pub = datePublisherMap[x] ? ` (${toTitleCase(datePublisherMap[x])})` : ''; return optionHtml(x, `${x}${pub}`); }).join('');
-  if(dates.includes(prev)) getEl('aDate').value=prev;
-  else if(aT === 'class' || aT === 'subject') getEl('aDate').value='';
-  else if(aT === 'examdetail' && dates.length > 0) getEl('aDate').value = dates[0]; // en yeni sınavı varsayılan seç
-  else getEl('aDate').value = '';
+  dates = [...new Set(dates)].sort((a,b)=>srt(b,a));
+  let dateEl = getEl('aDate'), prev = dateEl.value;
+  let prefixOpt = '';
+  if(aT === 'class' || aT === 'subject') {
+    prefixOpt = optionHtml('', 'Sınav Seçiniz', !prev, true) + optionHtml('__ALL__', 'Tüm Sınavlar', prev === '__ALL__');
+  } else {
+    prefixOpt = optionHtml('', 'Sınav Seç', !prev, true);
+  }
+  dateEl.innerHTML = prefixOpt + dates.map(x => { let pub = datePublisherMap[x] ? ` (${toTitleCase(datePublisherMap[x])})` : ''; return optionHtml(x, `${x}${pub}`); }).join('');
+  if(dates.includes(prev) || (prev === '__ALL__' && (aT === 'class' || aT === 'subject'))) dateEl.value = prev;
+  else dateEl.value = '';
 }
 
 // ---- uUI (orig lines 2111-2172) ----

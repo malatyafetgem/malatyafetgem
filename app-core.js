@@ -67,10 +67,37 @@ function metaIntersectsGrades(meta, grades){
   return !existing.length || wanted.some(g => existing.includes(g));
 }
 
+function getSelectValueIfEnabled(id){
+  const el = getEl(id);
+  if(!el || el.selectedIndex < 0) return '';
+  const opt = el.options[el.selectedIndex];
+  if(opt && opt.disabled) return '';
+  return el.value || '';
+}
+
+function getAnalysisDateValue(){
+  const raw = getSelectValueIfEnabled('aDate');
+  return raw === '__ALL__' ? '' : raw;
+}
+
+function hasAnalysisDateSelection(){
+  const el = getEl('aDate');
+  if(!el) return false;
+  return !!getSelectValueIfEnabled('aDate');
+}
+
+function showAnalysisHint(message){
+  const res = getEl('anlRes');
+  if(res) res.innerHTML = `<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>${escapeHtml(message)}</div>`;
+  if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters();
+}
+
 // ---- checkAuth (orig lines 698-721) ----
 function checkAuth(){
-  showStartup('Oturum kontrol ediliyor...');
   let settled = false;
+  const loaderDelay = setTimeout(() => {
+    if(!settled) showStartup('Oturum kontrol ediliyor...');
+  }, 2500);
   const authTimeout = setTimeout(() => {
     if(settled) return;
     const login = getEl('loginScreen'), app = getEl('mainApp');
@@ -83,6 +110,7 @@ function checkAuth(){
   }, 7000);
   auth.onAuthStateChanged(user=>{
     settled = true;
+    clearTimeout(loaderDelay);
     clearTimeout(authTimeout);
     clearStartup();
     if(user){
@@ -354,12 +382,34 @@ async function reqProfile() {
 
 // ---- reqAnl (orig lines 873-940) ----
 async function reqAnl() {
-  let eT = getEl('aEx').value, dt = getEl('aDate') ? getEl('aDate').value : '', aT = getEl('aType').value, sub = getEl('aSub') ? getEl('aSub').value : '';
+  let eT = getEl('aEx').value, dt = getAnalysisDateValue(), aT = getEl('aType').value, sub = getSelectValueIfEnabled('aSub');
   let needed = [];
   if(typeof updateFilterSummary === 'function') updateFilterSummary();
 
   // Risk analizi modu: fetch gerekmez, renderRiskPanel zaten uUI'dan çağrılıyor
   if(aT === 'risk') { if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters(); return; }
+
+  let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
+  if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !lvlF){
+    showAnalysisHint('Analiz oluşturmak için sınıf seviyesini seçin.');
+    return;
+  }
+  if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !eT){
+    showAnalysisHint('Analiz oluşturmak için sınav türünü seçin.');
+    return;
+  }
+  if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !sub){
+    showAnalysisHint(aT === 'subject' ? 'Analiz oluşturmak için dersi seçin.' : 'Analiz oluşturmak için veri türünü seçin.');
+    return;
+  }
+  if((aT === 'class' || aT === 'subject') && !hasAnalysisDateSelection()){
+    showAnalysisHint('Analiz oluşturmak için sınav seçin ya da "Tüm Sınavlar" seçeneğini kullanın.');
+    return;
+  }
+  if(aT === 'examdetail' && (sub === 'summary' || sub === 'list_single') && !hasAnalysisDateSelection()){
+    showAnalysisHint('Tek sınav analizi için sınav seçin.');
+    return;
+  }
 
   if(!eT){
     if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters();
@@ -369,8 +419,6 @@ async function reqAnl() {
   }
 
   // Hangi batch'lerin yüklenmesi gerektiğini belirle
-  let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
-
   if(aT === 'student'){
     // Öğrenci analizi: öğrenci seçilmeli
     if(!aNo){ getEl('anlRes').innerHTML=''; return; }

@@ -1102,7 +1102,7 @@ body.is-admin button.w-100.admin-only { display:block !important; }
 .home-nav-card.bg-primary { --home-accent: #0d6efd; --home-accent-2: #0a58ca; background: linear-gradient(135deg, #0d6efd, #0a58ca) !important; }
 .home-nav-card.bg-success { --home-accent: #198754; --home-accent-2: #20c997; background: linear-gradient(135deg, #198754, #20c997) !important; }
 .home-nav-card.bg-info { --home-accent: #0dcaf0; --home-accent-2: #0d6efd; background: linear-gradient(135deg, #0dcaf0, #0d6efd) !important; }
-.home-nav-card.bg-warning { --home-accent: #fd7e14; --home-accent-2: #ffc107; background: linear-gradient(135deg, #fd7e14, #ffc107) !important; }
+.home-nav-card.bg-warning { --home-accent: #f97316; --home-accent-2: #c2410c; background: linear-gradient(135deg, #f97316, #c2410c) !important; }
 .home-nav-card .info-box-icon {
   position: relative;
   z-index: 1;
@@ -1132,12 +1132,15 @@ body.is-admin button.w-100.admin-only { display:block !important; }
   font-weight: 800;
   font-size: 1rem;
   letter-spacing: 0;
+  text-shadow: 0 1px 2px rgba(15,23,42,0.28);
 }
 .home-nav-card .progress-description {
-  color: rgba(255,255,255,0.84) !important;
+  color: #fff !important;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 750;
   margin-top: 2px;
+  opacity: 1;
+  text-shadow: 0 1px 2px rgba(15,23,42,0.34);
 }
 .home-nav-card:hover,
 .home-nav-card:focus {
@@ -1170,8 +1173,8 @@ body.is-admin button.w-100.admin-only { display:block !important; }
   align-items: center;
   justify-content: center;
   color: #fff !important;
-  background: linear-gradient(135deg, #0d6efd, #20c997);
-  box-shadow: 0 8px 18px rgba(37,99,235,0.28);
+  background: linear-gradient(135deg, #2563eb, #0891b2);
+  box-shadow: 0 4px 10px rgba(37,99,235,0.18);
 }
 .app-sidebar.sa-sidebar .sidebar-brand .brand-text {
   color: #0f2f66 !important;

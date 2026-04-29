@@ -1693,7 +1693,7 @@ function rAnl(){
     },100);
 
   }else if(aT==='class'){
-    let l=getEl('aLvl').value, b=getBrVal(), dateFilter = getEl('aDate') ? getEl('aDate').value : '';
+    let l=getEl('aLvl').value, b=getBrVal(), dateFilter = typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : (getEl('aDate') ? getEl('aDate').value : '');
     let ex=DB.e.filter(x=>{
       if(x.examType!==eT||x.abs) return false;
       let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false;
@@ -2058,7 +2058,7 @@ function rAnl(){
 
   }else if(aT==='subject'){
     let subj = sb; if(!subj){r.innerHTML='<div class="alert alert-default-info">Lütfen bir ders seçin.</div>';return;}
-    let lvl = getEl('aLvl').value, br = getBrVal(), dateFilterS = getEl('aDate') ? getEl('aDate').value : '';
+    let lvl = getEl('aLvl').value, br = getBrVal(), dateFilterS = typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : (getEl('aDate') ? getEl('aDate').value : '');
     let ex = DB.e.filter(x => x.examType === eT && !x.abs && x.subs[toTitleCase(subj)] && (!dateFilterS || x.date === dateFilterS));
     if(lvl) ex = ex.filter(x => getGrade(x.studentClass) === lvl);
     if(br) ex = ex.filter(x => { let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return m && m[2].toLocaleUpperCase('tr-TR')===br; });
@@ -2319,7 +2319,7 @@ function rAnl(){
     }, 100);
 
   }else if(aT==='examdetail'){
-    let dt=getEl('aDate').value, subSel = sb || 'summary';
+    let dt = typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : getEl('aDate').value, subSel = sb || 'summary';
     if(subSel !== 'general_summary' && subSel !== 'list_all' && !dt){r.innerHTML='<div class="alert alert-default-info">Sınav seçiniz.</div>';return;}
     let lvl = getEl('aLvl') ? getEl('aLvl').value : '', baseExams = DB.e.filter(x => x.examType === eT);
     let targetLvl = lvl; if (!targetLvl && aNo) { let st = getStuMap().get(aNo); if(st) targetLvl = getGrade(st.class); }
@@ -2936,16 +2936,17 @@ function raporFillBranches() {
   DB.s.forEach(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m && (!lvl || m[1] === lvl)) branches.add(m[2].toLocaleUpperCase('tr-TR')); });
   brSel.innerHTML = optionHtml('', 'Tümü') + [...branches].sort().map(x=>optionHtml(x, x)).join('');
   if(prevBr && branches.has(prevBr)) brSel.value = prevBr;
-  if(getEl('rExType') && getEl('rExType').value && lvl) generateRapor();
+  if(getEl('rExType') && getEl('rExType').value && lvl && getEl('rReportType') && getEl('rReportType').value) generateRapor();
 }
 
 // ---- generateRapor (orig lines 3508-3627) ----
 async function generateRapor() {
   let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value;
-  let rType = getEl('rReportType') ? getEl('rReportType').value : 'Karne';
+  let rType = getEl('rReportType') ? getEl('rReportType').value : '';
   let r = getEl('raporRes');
-  if(!eTypeSel) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi ve sınav türü seçin.</div>'; return; }
   if(!lvl) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi seçin.</div>'; return; }
+  if(!eTypeSel) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınav türü seçin.</div>'; return; }
+  if(!rType) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için rapor türü seçin.</div>'; return; }
   
   let students = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(m[1] !== lvl) return false; if(br && m[2].toLocaleUpperCase('tr-TR') !== br) return false; return true; });
   if(!students.length) { showToast('Bu filtreye uygun öğrenci bulunamadı.','warning'); return; }
@@ -2962,7 +2963,7 @@ async function generateRapor() {
   // --- LİSTE MODU ---
   if (rType === 'Liste') {
     let listReportName = safeFileName(`Toplu_Liste_${lvlStr}`);
-    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('raporCont',${jsArg(listReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(listReportName)},this,'landscape')"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont">`;
+    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('raporCont',${jsArg(listReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(listReportName)},this,'landscape')"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont" class="print-compact-list">`;
 
     let typesToProcess =[];
     if (eTypeSel === 'ALL') {
@@ -2974,6 +2975,7 @@ async function generateRapor() {
     }
 
     let validNos = new Set(students.map(s => s.no));
+    let renderedTypeCount = 0;
 
     typesToProcess.forEach(t => {
       // Sınıf seviyesindeki tüm sınavları getir (derecelendirme tüm popülasyon bazında olmalı)
@@ -3052,7 +3054,8 @@ async function generateRapor() {
 
       let _rExColorIdx = (typeof examColorIdx === 'function') ? examColorIdx(t) : 0;
       let _rExLabel    = (typeof toExamLabel === 'function') ? toExamLabel(t) : t;
-      let isFirst = typesToProcess.indexOf(t) === 0;
+      let isFirst = renderedTypeCount === 0;
+      renderedTypeCount++;
 
       html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${isFirst?' exam-type-first':''}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
         <div class="card-header bg-light">
@@ -3070,6 +3073,10 @@ async function generateRapor() {
       </div>`;
     });
     
+    if(!renderedTypeCount){
+      r.innerHTML = '<div class="alert alert-default-warning"><i class="fas fa-info-circle me-2"></i>Bu filtrelere uygun liste verisi bulunamadı.</div>';
+      return;
+    }
     html += `</div>`;
     r.innerHTML = html;
 
