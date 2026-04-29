@@ -38,7 +38,9 @@ const ADMIN_UID="YLozrXC5w4OmD4HRzjlgF80qPCp1";
 
 // ---- checkAuth (orig lines 698-721) ----
 function checkAuth(){
+  const authTimeout = setTimeout(() => { if(getEl('mainApp').style.display==='none') getEl('loginScreen').style.display='flex'; }, 8000);
   auth.onAuthStateChanged(user=>{
+    clearTimeout(authTimeout);
     if(user){
       getEl('loginScreen').style.display='none';
       getEl('mainApp').style.display='';
