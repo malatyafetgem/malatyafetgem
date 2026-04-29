@@ -2,15 +2,209 @@
 html,body{background:#f4f6f8 !important;}
 
 /* ===== GENEL ===== */
+#loader { display:none; position:fixed; inset:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center; flex-direction:column; color:#fff; font-size:1.2em; }
+.loader-spinner { width:3rem; height:3rem; }
 #loginScreen { display:none; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#0d6efd 0%,#0a58ca 50%,#001f3f 100%); }
 .login-card { width:100%; max-width:400px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); border:none; border-radius:10px; overflow:hidden; }
 .login-card .card-header { background:linear-gradient(135deg,#0d6efd,#0a58ca) !important; color:#fff !important; border-radius:10px 10px 0 0 !important; border-bottom:none !important; }
 .login-card .card-header *, .login-card .card-header h3, .login-card .card-header p { color:#fff !important; }
+.login-subtitle { font-size:0.85em; }
+.password-input { border-right:0; }
+.password-toggle { cursor:pointer; background:transparent; border-left:0; }
+.forgot-link { font-size:0.85em; color:#0d6efd; }
+#loginError { display:none; }
+.top-user-email { font-size:0.85em; }
+.home-nav-card .progress-description { font-size:0.8em; }
+.search-wrapper { position:relative; }
+.btn-search-clear { border-color:#ced4da; }
+.settings-toolbar { gap:10px; }
+.settings-search { max-width:250px; }
+.selected-student-pill { font-size:0.8em; }
 #connBadge { font-size:0.78em; padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
+.mb-3 > label,
+.form-label { font-weight: 600; margin-bottom: 0.35rem; color: #1f2937; }
+.form-control,
+.form-select,
+select.form-control {
+  min-height: 38px;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.18);
+}
+.alert-default-info,
+.alert-default-warning {
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.alert-default-info {
+  background: #eef6ff;
+  border-color: #b6d9ff;
+  color: #084298;
+}
+.alert-default-warning {
+  background: #fff8e1;
+  border-color: #ffe08a;
+  color: #664d03;
+}
 .chart-box { height:380px; position:relative; width:100%; }
-.pane { display:none !important; }
-.pane.active-pane { display:block !important; }
+.chart-box-sm { height:200px; }
+.chart-box-xs { height:190px; }
+.chart-box-md { height:220px; }
+.chart-box-lg { height:260px; }
+.chart-box-xl { height:280px; }
+.chart-box-tight { margin:8px 0 10px; }
+.chart-box-top { margin-top:10px; }
+.chart-title { font-size:11px; font-weight:700; color:#4a6fa5; margin-bottom:4px; text-align:left; }
+.table-compact { font-size:0.85em; }
+.table-readable { font-size:0.9em; }
+.table-scroll-compact { max-height:200px; }
+.rank-warning-cell { background:#fff3cd !important; color:#856404 !important; font-weight:700; }
+.card-title-sm { font-size:14px !important; }
+.card-title-md { font-size:15px !important; font-weight:700 !important; }
+.card-title-subtle { font-weight:400; }
+.pane { display:none; }
+.pane.active-pane,
+.pane[aria-hidden="false"] { display:block; }
+.sa-content-header {
+  padding: 10px 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background: #fff;
+  margin-bottom: 15px;
+}
+.sa-breadcrumb {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 1.05rem;
+}
+.sa-breadcrumb-active {
+  font-weight: 600;
+  color: #4a6fa5;
+}
+.sa-footer {
+  font-size: 0.85em;
+}
+.sa-table-scroll-sm {
+  max-height: 300px;
+  overflow-y: auto;
+}
+body[data-active-pane="anasayfa_genel"] #anasayfa_genel,
+body[data-active-pane="anasayfa"] #anasayfa,
+body[data-active-pane="sonuclar"] #sonuclar,
+body[data-active-pane="rapor"] #rapor,
+body[data-active-pane="ayarlar"] #ayarlar { display:block; }
 .scroll { overflow-x:auto; }
+.scroll table thead th,
+.table-responsive table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-clip: padding-box;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+.scroll table thead th:first-child,
+.table-responsive table thead th:first-child {
+  z-index: 4;
+}
+.home-nav-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  min-height: 84px;
+}
+.home-nav-card:hover,
+.home-nav-card:focus {
+  transform: translateY(-2px);
+  filter: saturate(1.05);
+  outline: none;
+}
+.home-nav-card:focus-visible {
+  box-shadow: 0 0 0 0.24rem rgba(13,110,253,0.25) !important;
+}
+
+.analysis-filter-card .card-header {
+  min-height: 52px;
+}
+.filter-summary {
+  border-bottom: 1px solid #edf1f5;
+  background: #fbfcfe;
+  padding: 8px 12px;
+}
+.filter-summary-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid #dbe3ec;
+  background: #fff;
+  color: #26323f;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+.filter-chip small {
+  color: #6c757d;
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+.filter-chip.chip-primary { border-color: rgba(13,110,253,0.28); background: rgba(13,110,253,0.06); }
+.filter-chip.chip-success { border-color: rgba(25,135,84,0.28); background: rgba(25,135,84,0.07); }
+.filter-chip.chip-muted { color: #6c757d; background: #f8f9fa; }
+.filter-reset-btn { margin-left: auto; white-space: nowrap; }
+.methodology-card {
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.methodology-toggle {
+  width: 100%;
+  border: 0;
+  background: #f8fafc;
+  color: #203449;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  text-align: left;
+}
+.methodology-toggle:hover,
+.methodology-toggle:focus-visible {
+  background: #eef6ff;
+  outline: none;
+}
+.methodology-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  padding: 12px;
+  font-size: 0.83rem;
+  color: #475569;
+  line-height: 1.45;
+}
+.risk-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #fff8e1;
+  border: 1px solid #ffe08a;
+  color: #664d03;
+  font-size: 0.8rem;
+}
 
 /* Tablo renkleri */
 .absent-row td { background:rgba(220,53,69,0.07) !important; color:#999 !important; }
@@ -19,17 +213,44 @@ tr.highlight-row td { background-color:rgba(255,193,7,0.35) !important; font-wei
 /* ===== ORTALAMA SATIRI TASARIMI ===== */
 tr.avg-row td { background-color: #e7f1ff !important; color: #0a58ca !important; font-weight: bold !important; border-top: 2px solid #0d6efd !important; font-size: 0.95em; vertical-align: middle !important; }
 tr.avg-row td:first-child { letter-spacing: 0.5px; }
+.avg-label { text-align:right; padding-right:15px !important; }
+.avg-label-sm { text-align:right; padding-right:12px !important; }
+.avg-row-subtotal td { background:#e8f5e9 !important; }
+.avg-row-strong .avg-label,
+.avg-row-strong .avg-label-sm { font-weight:700 !important; }
 
 /* Yetki */
 .admin-only { display:none !important; }
 body.is-admin div.admin-only:not(.pane), body.is-admin span.admin-only, body.is-admin i.admin-only { display:inline-block !important; }
 body.is-admin li.admin-only { display:block !important; }
 body.is-admin button.admin-only { display:inline-block !important; }
-body.is-admin button.btn-block.admin-only { display:block !important; }
+body.is-admin button.w-100.admin-only { display:block !important; }
 
 /* ===== YENİ BİRLEŞTİRİLMİŞ BAŞLIK TASARIMI (Hem Ekran Hem Yazıcı) ===== */
 .report-header { display: flex !important; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0d6efd, #0a58ca) !important; color: #fff !important; padding: 12px 20px; border-radius: 4px 4px 0 0; margin-bottom: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .report-header span, .report-header strong, .report-header i { color: #fff !important; }
+.report-header-tight { margin-bottom:10px !important; }
+.report-title-main { font-size:16px; }
+.report-title-sub { font-size:13px; }
+.report-card { border-top:3px solid #0d6efd; }
+.report-card-info { border-top-color:#17a2b8; }
+.report-card-success { border-top-color:#28a745; }
+.report-card-warning { border-top-color:#ffc107; }
+.report-card-primary { border-top-color:#007bff; }
+.report-card-soft { background:#f4f6f9; }
+.report-card-body { padding-top:5px; }
+.report-card-body-spacious { padding-top:8px; }
+.avoid-break-row { page-break-inside:avoid; break-inside:avoid; }
+.sec-value-compact { font-size:1.05em; }
+.sec-value-small { font-size:0.95em; }
+.sec-unit { font-size:0.62em; font-weight:600; color:#6c757d; }
+.sec-unit-muted { font-size:0.62em; font-weight:600; }
+.sec-inline-summary { font-size:0.55em; font-weight:400; color:#6c757d; letter-spacing:0; }
+.sec-label-note { font-weight:400; color:#6c757d; }
+.sec-sub-strong { font-weight:600; }
+.sec-sub-comparison { color:var(--metric-color, #6c757d); font-weight:600; }
+.comparison-list { margin-top:4px; max-height:80px; overflow-y:auto; }
+.summary-pill { font-size:0.78em; background:#f1f3f5; border-radius:6px; padding:2px 8px; color:#495057; }
 
 /* ===== YAZDIR BUTONU ===== */
 .btn-print { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: #fff !important; border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(13,110,253,0.25); height: calc(1.5em + .5rem + 2px); }
@@ -50,6 +271,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .anlStu-item:last-child { border-bottom:none; }
 .anlStu-item strong { color:#0d6efd; font-weight:600; margin-right:4px; }
 #anlStuBadge { margin-top:4px; min-height:22px; }
+.anlStu-main { flex:1; min-width:0; }
 #sRes { position:absolute; z-index:1050; width:100%; background:#fff; border:1px solid #ced4da; border-radius:0 0 4px 4px; max-height:320px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; }
 #sRes:empty { display:none; }
 .s-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.92em; display:flex; justify-content:space-between; align-items:center; gap:10px; transition:background 0.15s ease; }
@@ -65,6 +287,16 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .preview-box { background: #f8f9fa; border-left: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
 .preview-box.warning { border-left-color: #ffc107; background: #fff3cd; }
 .preview-box.danger { border-left-color: #dc3545; background: #f8d7da; }
+.preview-box.compact { padding:10px; }
+.preview-box.danger-strong { background:#f8d7da; border-color:#dc3545; }
+.preview-count-lg { font-size:1.5em; }
+.preview-count-md { font-size:1.3em; }
+.preview-alert { font-size:0.85em; padding:8px; }
+.preview-error-table { max-height:200px; border:1px solid #f5c6cb; }
+.preview-error-table table { font-size:0.85em; }
+.preview-error-table thead th { background:#f8d7da !important; color:#721c24 !important; }
+.preview-col-row { width:60px; }
+.preview-col-no { width:100px; }
 
 /* ===== TOAST ===== */
 #toastContainer { position: fixed; top: 70px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 350px; }
@@ -79,7 +311,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 
 /* ===== PWA POPUP ===== */
-#pwaInstallPopup { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 99999; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px 20px; display: flex; align-items: center; gap: 14px; max-width: 360px; width: 90%; animation: popupSlideDown 0.4s ease-out; border-left: 5px solid #0d6efd; }
+#pwaInstallPopup { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 99999; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px 20px; display: none; align-items: center; gap: 14px; max-width: 360px; width: 90%; animation: popupSlideDown 0.4s ease-out; border-left: 5px solid #0d6efd; }
 #pwaInstallPopup .pwa-icon { font-size: 2em; flex-shrink: 0; }
 #pwaInstallPopup .pwa-text { flex: 1; }
 #pwaInstallPopup .pwa-text strong { display: block; font-size: 0.95em; color: #0d6efd; margin-bottom: 2px; }
@@ -97,6 +329,17 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 /* ===== EŞLEŞTİRME SİHİRBAZI ===== */
 .wizard-section { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
 .wizard-section h6 { margin-top: 0; margin-bottom: 15px; font-weight: bold; color: #5a7fa8; border-bottom: 2px solid #9ab3d5; padding-bottom: 5px; display: inline-block; }
+.mapping-info { font-size:0.9em; }
+.mapping-footer-actions { gap:6px; }
+.wizard-note { font-size:0.85em; }
+.wizard-subject-note { font-size:0.85em; margin-top:-10px; }
+.wizard-progress { margin-bottom:12px; }
+.wizard-step-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+.wizard-step-label { flex:1; text-align:center; font-size:0.72em; font-weight:700; padding:0 2px; color:#adb5bd; word-break:break-word; line-height:1.3; }
+.wizard-step-label.is-active { color:#4a6fa5; }
+.wizard-step-label.is-complete { color:#28a745; }
+.wizard-progress .progress { height:7px; border-radius:4px; }
+.wizard-progress .progress-bar { border-radius:4px; transition:width 0.3s; }
 .subj-map-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; }
 .subj-map-row select, .subj-map-row input { flex: 1; }
 .subj-map-row .btn-remove { flex: 0 0 auto; }
@@ -106,12 +349,24 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 /* ===== MOBİL ===== */
 @media (max-width: 768px) {
+  .app-content-header { padding: 8px 0.5rem !important; margin-bottom: 10px !important; }
+  .app-content { padding: 0 0.25rem 0.75rem !important; }
+  .breadcrumb { font-size: 0.92rem !important; line-height: 1.25; }
+  .navbar .nav-link { padding-left: 0.5rem; padding-right: 0.5rem; }
+  #connBadge { padding-left: 4px; padding-right: 4px; }
+  #connTxt { display: none; }
   .table-responsive { font-size: 0.8em; }
   .table th, .table td { padding: 0.4rem 0.3rem !important; white-space: nowrap; }
   .table th { font-size: 0.75em; }
   .card-header { padding: 0.5rem 0.75rem; }
   .card-header .card-title { font-size: 0.95em; }
+  .filter-summary { padding: 7px 9px; }
+  .filter-summary-inner { gap: 5px; }
+  .filter-chip { max-width: 100%; font-size: 0.74rem; }
+  .filter-reset-btn { width: 100%; margin-left: 0; }
+  .methodology-body { grid-template-columns: 1fr; font-size: 0.78rem; }
   .info-box { min-height: 70px; }
+  .home-nav-card { min-height: 72px; }
   .info-box-icon { width: 60px; font-size: 1.2rem; }
   .info-box-content { padding: 8px 10px; }
   .info-box-text { font-size: 0.8em; }
@@ -157,14 +412,38 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   margin-top: 10px;
   box-shadow: 0 1px 6px rgba(13,110,253,0.07);
 }
+.stat-limitation {
+  margin: 8px 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #dbe3ec;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.78rem;
+}
 .boxplot-title {
   font-size: 12px; font-weight: 700; color: #3a5a9a;
   margin-bottom: 6px;
   display: flex; align-items: center; gap: 6px;
 }
+.boxplot-title .boxplot-icon-class { color:#28a745; }
+.boxplot-title .boxplot-icon-school { color:#0d6efd; }
+.boxplot-note { font-weight:400; color:#6c757d; font-size:0.85em; }
 
 /* ===== TREND ANALİZİ ===== */
 .trend-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+.trend-card .trend-row { overflow-x:auto; }
+.trend-card .trend-metric { min-width:90px; }
+.trend-card .trend-value { font-size:1.1em; font-weight:700; }
+.trend-metric-value { font-size:1.4em; font-weight:700; color:var(--metric-color, #212529); }
+.trend-r2-value { font-size:0.9em; color:var(--metric-color, #212529); }
+.trend-card .trend-label { font-size:0.75em; }
+.trend-card .trend-indicator-sm { font-size:0.8em; }
+.trend-tone-up { color:#28a745 !important; }
+.trend-tone-down { color:#dc3545 !important; }
+.trend-tone-stable { color:#6c757d !important; }
+.trend-tone-primary { color:#0d6efd !important; }
+.trend-tone-purple { color:#6f42c1 !important; }
 .trend-indicator { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
 .trend-up { background-color: rgba(40, 167, 69, 0.15); color: #28a745; }
 .trend-down { background-color: rgba(220, 53, 69, 0.15); color: #dc3545; }
@@ -212,17 +491,25 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .report-header { background: linear-gradient(135deg, #0d6efd, #0a58ca) !important; color: #fff !important; border-left: 4px solid #001f3f; }
 .report-header span, .report-header strong, .report-header i { color: #fff !important; }
 
-/* Sidebar — AdminLTE v4 light primary */
-.main-sidebar.sidebar-light-primary .brand-link { background: #0d6efd !important; color: #fff !important; border-bottom: 1px solid #0a58ca; }
-.main-sidebar.sidebar-light-primary .brand-link i, .main-sidebar.sidebar-light-primary .brand-link span { color: #fff !important; }
-.main-sidebar.sidebar-light-primary { background: #f8f9fa !important; }
-.main-sidebar.sidebar-light-primary .nav-sidebar .nav-link { color: #212529 !important; }
-.main-sidebar.sidebar-light-primary .nav-sidebar .nav-link:hover { background: #e7f1ff !important; }
-.main-sidebar.sidebar-light-primary .nav-sidebar .nav-link.active { background: #0d6efd !important; color: #fff !important; box-shadow: 0 2px 4px rgba(13,110,253,0.3); }
-.main-sidebar.sidebar-light-primary .nav-sidebar .nav-link.active i { color: #fff !important; }
-.main-sidebar.sidebar-light-primary .user-panel { border-bottom: 1px solid #dee2e6 !important; }
-.main-sidebar.sidebar-light-primary .user-panel .text-white,
-.main-sidebar.sidebar-light-primary .user-panel i { color: #0d6efd !important; }
+/* Sidebar — AdminLTE v4 light theme üzerine proje rengi */
+.app-sidebar.sa-sidebar .sidebar-brand { background: #fff !important; border-bottom: 1px solid #dee2e6; }
+.app-sidebar.sa-sidebar .sidebar-brand .brand-link { display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 56px; padding: 0 1rem; color: #0d6efd !important; text-decoration: none; overflow: hidden; }
+.app-sidebar.sa-sidebar .sidebar-brand .brand-image { flex: 0 0 auto; width: 1.5rem; margin: 0; font-size: 1.35rem; text-align: center; }
+.app-sidebar.sa-sidebar .sidebar-brand .brand-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-sidebar.sa-sidebar .sidebar-brand .brand-link i,
+.app-sidebar.sa-sidebar .sidebar-brand .brand-link span { color: #0d6efd !important; }
+.app-sidebar.sa-sidebar { background: #f8f9fa !important; }
+.app-sidebar.sa-sidebar .sidebar-menu .nav-link { color: #212529 !important; }
+.app-sidebar.sa-sidebar .sidebar-menu .nav-link:hover { background: #e7f1ff !important; }
+.app-sidebar.sa-sidebar .sidebar-menu .nav-link.active { background: #0d6efd !important; color: #fff !important; box-shadow: 0 2px 4px rgba(13,110,253,0.3); }
+.app-sidebar.sa-sidebar .sidebar-menu .nav-link.active i { color: #fff !important; }
+.app-sidebar.sa-sidebar .user-panel { align-items: center !important; gap: 0.7rem; min-height: 74px; margin: 0 !important; padding: 0.9rem 1rem !important; border-bottom: 1px solid #dee2e6 !important; }
+.app-sidebar.sa-sidebar .user-panel .image { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.app-sidebar.sa-sidebar .user-panel .image i { margin-left: 0 !important; line-height: 1; }
+.app-sidebar.sa-sidebar .user-panel .info { min-width: 0; padding-left: 0 !important; display: flex; align-items: center; }
+.app-sidebar.sa-sidebar #sideUserEmail { display: block !important; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; font-size:0.8em; }
+.app-sidebar.sa-sidebar .user-panel .text-white,
+.app-sidebar.sa-sidebar .user-panel i { color: #0d6efd !important; }
 
 /* Inline gri/danger info-box override (AdminLTE v4) */
 .info-box[style*="background:#6c757d"] { background: linear-gradient(135deg, #6c757d, #495057) !important; color: #fff !important; }
@@ -273,6 +560,20 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 /* ===== RİSK UYARI SİSTEMİ ===== */
 #riskPanel { margin-top: 0; margin-bottom: 14px; }
+.risk-panel-card {
+  border-top: 3px solid #e05260;
+  box-shadow: 0 2px 12px rgba(220,53,69,0.10);
+}
+.risk-panel-card-header {
+  background: linear-gradient(135deg,#fff0f2 0%,#fde8eb 100%);
+  padding: 10px 14px;
+}
+.risk-panel-body {
+  padding: 12px 14px;
+}
+.risk-panel-icon {
+  color: #dc3545;
+}
 .risk-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .risk-panel-header h6 { margin: 0; font-weight: 700; color: #842029; font-size: 0.95rem; display: flex; align-items: center; gap: 7px; }
 .risk-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -290,7 +591,9 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .risk-name { font-weight: 700; font-size: 0.92rem; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .risk-class { font-size: 0.78rem; color: #6c757d; margin-bottom: 4px; }
 .risk-badges { display: flex; flex-wrap: wrap; gap: 4px; }
-.risk-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.risk-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; border: 0; font-size: 0.72rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.risk-badge-icon { font-size:0.8em; }
+.risk-badge:focus-visible { outline: 2px solid rgba(13,110,253,0.45); outline-offset: 2px; }
 .rb-trend  { background: rgba(220,53,69,0.12);  color: #842029; }
 .rb-rank   { background: rgba(108,117,125,0.12); color: #495057; }
 .rb-subj   { background: rgba(111,66,193,0.12);  color: #4a1d8a; }
@@ -302,6 +605,38 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 .risk-med  .risk-score-badge span { color: #fd7e14; }
 .risk-low  .risk-score-badge span { color: #856404; }
 .risk-empty { text-align: center; padding: 18px 10px; color: #6c757d; font-size: 0.88rem; }
+.risk-class i { font-size:0.75em; }
+.risk-info-title { font-size:0.78em; font-weight:700; color:#6c757d; margin-bottom:4px; }
+.risk-info-card { border:1px solid #ffc107; border-radius:8px; background:linear-gradient(135deg,#fffdf0,#fff3cc); padding:10px 13px; }
+.risk-info-card.risk-high { border-color:#dc3545; background:linear-gradient(135deg,#fff0f0,#ffd6d8); }
+.risk-info-card.risk-med { border-color:#fd7e14; background:linear-gradient(135deg,#fff8f0,#ffe5cc); }
+.risk-info-card.risk-low { border-color:#ffc107; background:linear-gradient(135deg,#fffdf0,#fff3cc); }
+.risk-info-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+.risk-info-label { font-weight:700; font-size:0.9em; color:#856404; }
+.risk-info-card.risk-high .risk-info-label,
+.risk-info-card.risk-high .risk-info-score strong { color:#dc3545; }
+.risk-info-card.risk-med .risk-info-label,
+.risk-info-card.risk-med .risk-info-score strong { color:#fd7e14; }
+.risk-info-card.risk-low .risk-info-label,
+.risk-info-card.risk-low .risk-info-score strong { color:#856404; }
+.risk-info-score { margin-left:8px; font-size:0.78em; color:#6c757d; }
+.risk-info-badges { display:flex; flex-wrap:wrap; gap:3px; }
+.risk-stat-box {
+  min-height: 64px;
+  color: #fff;
+  cursor: pointer;
+}
+.risk-stat-high { background: linear-gradient(135deg,#dc3545,#b02a37); }
+.risk-stat-med { background: linear-gradient(135deg,#fd7e14,#e06a10); }
+.risk-stat-low { background: linear-gradient(135deg,#ffc107,#d4a000); color: #212529; }
+.risk-stat-low .info-box-text,
+.risk-stat-low .info-box-number,
+.risk-stat-low .info-box-icon { color: #212529 !important; }
+.risk-stat-total { background: linear-gradient(135deg,#0d6efd,#0a58ca); }
+.risk-stat-box:focus-visible {
+  outline: 3px solid rgba(13,110,253,0.35);
+  outline-offset: 2px;
+}
 .risk-summary-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .risk-sum-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
 .rsp-high { background: rgba(220,53,69,0.12);  color: #842029; border: 1px solid rgba(220,53,69,0.25); }
@@ -350,6 +685,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   flex-shrink: 0;
   display: inline-flex; align-items: baseline; gap: 4px;
   padding: 3px 10px; border-radius: 20px;
+  background: rgba(var(--exam-color-rgb, 13,110,253),0.08);
   background: color-mix(in srgb, var(--exam-color, #0d6efd) 12%, transparent);
   color: var(--exam-color, #0d6efd);
   font-weight: 700; font-size: 0.95rem;
@@ -361,6 +697,11 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   display: flex; flex-wrap: wrap; gap: 5px;
   padding-top: 8px; border-top: 1px dashed #e2e6ea;
 }
+.home-stat-card .hsc-grades.hsc-grades-grid {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:4px;
+}
 .home-stat-card .hsc-grade {
   display: inline-flex; align-items: baseline; gap: 4px;
   padding: 2px 9px; border-radius: 14px;
@@ -368,8 +709,10 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   font-size: 0.78rem; color: #495057;
 }
 .home-stat-card .hsc-grade-link {
+  cursor:pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
+.home-stat-card .hsc-arrow { font-size:10px; opacity:0.6; }
 .home-stat-card .hsc-grade-link:hover {
   background: var(--exam-color, #0d6efd);
   border-color: var(--exam-color, #0d6efd);
@@ -395,14 +738,14 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 
 /* ===== SINAV TÜRÜ RENK PALETİ (dinamik — hash ile atanır) ===== */
 /* Sayfada şu an kullanılmayan, orta-düşük doygunlukta tonlar */
-.exam-color-0 { --exam-color: #1e3a8a; } /* deep navy */
-.exam-color-1 { --exam-color: #059669; } /* emerald green */
-.exam-color-2 { --exam-color: #ea580c; } /* vivid orange */
-.exam-color-3 { --exam-color: #be185d; } /* magenta */
-.exam-color-4 { --exam-color: #7c3aed; } /* royal purple */
-.exam-color-5 { --exam-color: #9f1239; } /* bordeaux */
-.exam-color-6 { --exam-color: #0891b2; } /* cyan */
-.exam-color-7 { --exam-color: #a16207; } /* mustard */
+.exam-color-0 { --exam-color: #1e3a8a; --exam-color-rgb: 30,58,138; } /* deep navy */
+.exam-color-1 { --exam-color: #059669; --exam-color-rgb: 5,150,105; } /* emerald green */
+.exam-color-2 { --exam-color: #ea580c; --exam-color-rgb: 234,88,12; } /* vivid orange */
+.exam-color-3 { --exam-color: #be185d; --exam-color-rgb: 190,24,93; } /* magenta */
+.exam-color-4 { --exam-color: #7c3aed; --exam-color-rgb: 124,58,237; } /* royal purple */
+.exam-color-5 { --exam-color: #9f1239; --exam-color-rgb: 159,18,57; } /* bordeaux */
+.exam-color-6 { --exam-color: #0891b2; --exam-color-rgb: 8,145,178; } /* cyan */
+.exam-color-7 { --exam-color: #a16207; --exam-color-rgb: 161,98,7; } /* mustard */
 
 /* ===== ÖĞRENCİ SAYFASI — SINAV TÜRÜ BLOK SARMALAYICISI ===== */
 /* Her sınav türünün başlangıcı/bitişi net görünsün diye çerçeve + iki yanda renkli bar */
@@ -427,11 +770,13 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   gap: 10px; margin-top: 4px !important; margin-bottom: 12px !important;
   padding-bottom: 8px !important;
   color: var(--exam-color, #0d6efd) !important;
+  border-bottom-color: rgba(var(--exam-color-rgb, 13,110,253),0.2) !important;
   border-bottom-color: color-mix(in srgb, var(--exam-color, #0d6efd) 25%, transparent) !important;
 }
 .exam-type-block.karne-bolum > h5 .etb-count {
   font-size: 0.78rem; font-weight: 600;
   padding: 2px 10px; border-radius: 14px;
+  background: rgba(var(--exam-color-rgb, 13,110,253),0.08);
   background: color-mix(in srgb, var(--exam-color, #0d6efd) 12%, transparent);
   color: var(--exam-color, #0d6efd);
   white-space: nowrap;
@@ -475,7 +820,9 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 /* Sınav Türü + Sınav Seçimi dropdown'larının çerçevesi sınav türü rengine döner */
 #anlFilterCard[data-exam-color] #aEx,
 #anlFilterCard[data-exam-color] #aExDate {
+  border-color: var(--exam-color, #0d6efd) !important;
   border-color: color-mix(in srgb, var(--exam-color, #0d6efd) 55%, #ced4da) !important;
+  box-shadow: 0 0 0 2px rgba(var(--exam-color-rgb, 13,110,253),0.08) inset;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--exam-color, #0d6efd) 8%, transparent) inset;
 }
 
@@ -493,6 +840,7 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 #anlRes[data-exam-color] > .card::before { left: 0; }
 #anlRes[data-exam-color] > .card::after  { right: 0; }
 #anlRes[data-exam-color] > .card > .report-header {
+  background: linear-gradient(135deg, var(--exam-color, #0d6efd), #001f3f) !important;
   background: linear-gradient(135deg,
     var(--exam-color, #0d6efd),
     color-mix(in srgb, var(--exam-color, #0d6efd) 65%, #001f3f)) !important;
@@ -507,8 +855,11 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
 /* --- Tablo Başlığı (thead) — Pastel sınav türü rengi + okunabilirlik --- */
 [data-exam-color] table.table > thead > tr > th,
 [data-exam-color] table.table > thead th {
+  background: rgba(var(--exam-color-rgb, 13,110,253),0.14) !important;
   background: color-mix(in srgb, var(--exam-color, #0d6efd) 14%, #ffffff) !important;
+  color: var(--exam-color, #0d6efd) !important;
   color: color-mix(in srgb, var(--exam-color, #0d6efd) 78%, #1a1a1a) !important;
+  border-bottom: 2px solid rgba(var(--exam-color-rgb, 13,110,253),0.25) !important;
   border-bottom: 2px solid color-mix(in srgb, var(--exam-color, #0d6efd) 35%, transparent) !important;
   font-weight: 600;
 }
@@ -532,10 +883,13 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   position: relative;
 }
 .exam-type-block.rapor-exam-block > .card-header {
+  background: rgba(var(--exam-color-rgb, 13,110,253),0.10) !important;
   background: color-mix(in srgb, var(--exam-color, #0d6efd) 10%, #f8f9fa) !important;
+  border-bottom: 1px solid rgba(var(--exam-color-rgb, 13,110,253),0.25) !important;
   border-bottom: 1px solid color-mix(in srgb, var(--exam-color, #0d6efd) 25%, #e9ecef) !important;
 }
 .exam-type-block.rapor-exam-block > .card-header .card-title {
+  color: var(--exam-color, #0d6efd) !important;
   color: color-mix(in srgb, var(--exam-color, #0d6efd) 80%, #1a1a1a) !important;
 }
 
@@ -592,15 +946,23 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   font-size: 12px; font-weight: 700; color: #4a6fa5;
   margin: 8px 0 4px; display: flex; align-items: center; gap: 6px;
 }
+.single-exam-chart-title.dyb-title-offset { margin-top:12px; }
+.dyb-bar { display:flex; height:28px; border-radius:6px; overflow:hidden; font-size:0.75rem; font-weight:600; margin-bottom:10px; }
+.dyb-segment { width:var(--dyb-width, 0%); display:flex; align-items:center; justify-content:center; }
+.dyb-segment.correct { background:#28a745; color:#fff; }
+.dyb-segment.wrong { background:#dc3545; color:#fff; }
+.dyb-segment.blank { background:#e9ecef; color:#6c757d; }
 
 /* Print: renk sistemi yazdırılırken sade tonlar */
 
 /* ===== PRINT — Yeni xPR() fonksiyonu yeni pencere açıp kendi inline stilini yazıyor.
    Burada SADECE tarayıcıdan Ctrl+P ile direkt yazdıranlar için minimum kural. ===== */
 @media print {
-  .no-print, .main-sidebar, .main-header, button, .btn, .scroll-hint { display: none !important; }
+  .no-print, .app-sidebar, .app-header, button:not(.risk-badge), .btn:not(.risk-badge), .scroll-hint { display: none !important; }
   body { background: #fff !important; }
-  .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+  .app-main { margin-left: 0 !important; padding: 0 !important; }
+  .scroll table thead th,
+  .table-responsive table thead th { position: static !important; top: auto !important; z-index: auto !important; }
   .card, .exam-type-block, .karne-bolum, .sec-card, .home-stat-card, .info-box,
   .trend-card, .boxplot-card, .report-header, .print-page-hdr {
     -webkit-print-color-adjust: exact !important;
@@ -631,6 +993,19 @@ body.is-admin button.btn-block.admin-only { display:block !important; }
   display: block;
 }
 .trend-card [title]{ cursor: help; }
+.confidence-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 3px;
+}
+.confidence-high { background: rgba(25,135,84,0.12); color: #0f5132; }
+.confidence-med { background: rgba(253,126,20,0.14); color: #7d3a00; }
+.confidence-low { background: rgba(108,117,125,0.14); color: #495057; }
 
 /* ====== Kart içi mikro açıklama (Türkçe, kullanıcıya yönelik) ====== */
 .sec-card .sec-explain {

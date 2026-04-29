@@ -7,8 +7,9 @@ function rTabS(){
     let safeNo   = escapeHtml(s.no);
     let safeName = escapeHtml(s.name);
     let safeCls  = escapeHtml(s.class);
-    let delMsg   = escapeHtml(`${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?`);
-    return `<tr><td>${idx+1}</td><td>${safeNo}</td><td>${safeName}</td><td>${safeCls}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu('${safeNo}')"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student','${delMsg}','${safeNo}')"><i class='fas fa-trash'></i></button></div></td></tr>`;
+    let noArg    = jsArg(s.no);
+    let delMsgArg= jsArg(`${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?`);
+    return `<tr><td>${idx+1}</td><td>${safeNo}</td><td>${safeName}</td><td>${safeCls}</td><td><div class='btn-group btn-group-sm'><button class='btn btn-warning admin-only' onclick="eStu(${noArg})"><i class='fas fa-edit'></i></button><button class='btn btn-danger admin-only' onclick="cDel('student',${delMsgArg},${noArg})"><i class='fas fa-trash'></i></button></div></td></tr>`;
   }).join('');
 }
 
@@ -31,14 +32,14 @@ function rTabE(){
     let bGrade = (b.grades && b.grades.length > 0) ? Math.min(...b.grades.map(g=>parseInt(g)||99)) : 99;
     return aGrade - bGrade;
   });
-  getEl('tExA').innerHTML=`<table class="table table-sm table-hover text-nowrap"><thead><tr><th>#</th><th>Tarih</th><th>Tür</th><th>Sınıf Seviyesi</th><th>Yayınevi</th><th>Sayı</th><th>İşlem</th></tr></thead><tbody>${u.map((e,idx)=>{ let gl = (e.grades && e.grades.length > 0) ? e.grades.sort().join(', ') : 'Tümü'; return `<tr><td>${idx+1}</td><td>${e.date}</td><td>${e.examType}</td><td>${gl}</td><td>${toTitleCase(e.publisher)||'—'}</td><td>${e.count}</td><td><div class="btn-group btn-group-sm"><button class="btn btn-warning admin-only" onclick="eExam('${e.examBatchId}')" title="Düzenle"><i class='fas fa-edit'></i></button><button class="btn btn-danger admin-only" onclick="cDel('exam','Sınav tamamen silinecek. Onaylıyor musunuz?','${e.examBatchId}')"><i class='fas fa-trash'></i></button></div></td></tr>`; }).join('')}</tbody></table>`;
+  getEl('tExA').innerHTML=`<table class="table table-sm table-hover text-nowrap"><thead><tr><th>#</th><th>Tarih</th><th>Tür</th><th>Sınıf Seviyesi</th><th>Yayınevi</th><th>Sayı</th><th>İşlem</th></tr></thead><tbody>${u.map((e,idx)=>{ let gl = (e.grades && e.grades.length > 0) ? [...e.grades].sort().join(', ') : 'Tümü'; let bIdArg = jsArg(e.examBatchId); return `<tr><td>${idx+1}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(e.examType)}</td><td>${escapeHtml(gl)}</td><td>${escapeHtml(toTitleCase(e.publisher)||'—')}</td><td>${escapeHtml(e.count)}</td><td><div class="btn-group btn-group-sm"><button class="btn btn-warning admin-only" onclick="eExam(${bIdArg})" title="Düzenle"><i class='fas fa-edit'></i></button><button class="btn btn-danger admin-only" onclick="cDel('exam','Sınav tamamen silinecek. Onaylıyor musunuz?',${bIdArg})"><i class='fas fa-trash'></i></button></div></td></tr>`; }).join('')}</tbody></table>`;
 }
 
 // ---- eExam (orig lines 3654-3658) ----
 function eExam(bId){
   let m = EXAM_META[bId]; if(!m) return;
   getEl('eExBatchId').value = bId; getEl('eExDate').value = m.date; getEl('eExType').value = m.examType; getEl('eExPub').value = m.publisher || '';
-  jQuery('#mEditExam').modal('show');
+  showModal('mEditExam');
 }
 
 // ---- svExam (orig lines 3660-3689) ----
@@ -68,16 +69,16 @@ async function svExam(){
     }
     DB.e = DB.e.map(e => e.examBatchId === bId ? {...e, date: newDate, examType: newType, publisher: newPub} : e);
     rTabE(); uDrp(); uStat(); if(aNo) reqProfile(); else if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
-    jQuery('#mEditExam').modal('hide'); showToast('Sınav bilgileri güncellendi.','success');
+    hideModal('mEditExam'); showToast('Sınav bilgileri güncellendi.','success');
   } catch(err){ showToast('Hata: '+err.message,'error'); }
   ld(0);
 }
 
 // ---- oMod (orig lines 3691-3691) ----
-function oMod(id){jQuery('#'+id).modal('show');}
+function oMod(id){showModal(id);}
 
 // ---- cMod (orig lines 3692-3692) ----
-function cMod(id){jQuery('#'+id).modal('hide');}
+function cMod(id){hideModal(id);}
 
 // ---- oModAdd (orig lines 3693-3693) ----
 function oModAdd(){getEl('mSTit').textContent='Öğrenci Ekle';getEl('mSNo').value='';getEl('mSNo').disabled=false;getEl('mSNa').value='';getEl('mSCl').value='';oMod('mStu');}
@@ -157,7 +158,7 @@ async function svStu(){
   } else{ DB.s.push({no:n,name:toTitleCase(nm),class:cc}); }
   
   await database.ref('db_v2/students').set(DB.s); rTabS(); uStat();
-  if(aNo){ let upd=getStuMap().get(aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${upd.name} (${upd.class})</span>`; } }
+  if(aNo){ let upd=getStuMap().get(aNo); if(upd){ getEl('aBadge').innerHTML=`<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(upd.name)} (${escapeHtml(upd.class)})</span>`; let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=`<span class="badge bg-success rounded-pill px-2 py-1 selected-student-pill"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(upd.name)} (${escapeHtml(upd.class)})</span>`; } }
   cMod('mStu'); showToast('Öğrenci bilgileri kaydedildi.', 'success');
 }
 
@@ -184,10 +185,10 @@ async function impDB(e){
 }
 
 // ---- cancelUpload (orig lines 3788-3788) ----
-function cancelUpload() { PENDING_UPLOAD = null; getEl('fStu').value = ''; getEl('fEx').value = ''; wizardStep = 0; jQuery('#mMappings').modal('hide'); jQuery('#mUploadPreview').modal('hide'); }
+function cancelUpload() { PENDING_UPLOAD = null; getEl('fStu').value = ''; getEl('fEx').value = ''; wizardStep = 0; hideModal('mMappings'); hideModal('mUploadPreview'); }
 
 // ---- backToMapping (orig lines 3789-3789) ----
-function backToMapping() { jQuery('#mUploadPreview').modal('hide'); jQuery('#mMappings').modal('show'); }
+function backToMapping() { hideModal('mUploadPreview'); showModal('mMappings'); }
 
 // ---- upl (orig lines 3791-3829) ----
 function upl(e, t) {
@@ -223,7 +224,7 @@ function upl(e, t) {
           if(cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') currentHeaders.push(String(cell.v).trim());
         }
         if(!currentHeaders.length) throw new Error('Başlık satırı bulunamadı (ilk satır boş).');
-        buildMappingUI(); ld(0); jQuery('#mMappings').modal('show');
+        buildMappingUI(); ld(0); showModal('mMappings', {backdrop: 'static'});
       } catch(err) { ld(0); getEl('fStu').value=''; getEl('fEx').value=''; showToast('Hata: ' + (err && err.message ? err.message : 'Bilinmeyen hata'), 'error'); }
     };
     try { rd.readAsArrayBuffer(f); } catch(rErr) { ld(0); e.target.value=''; showToast('Dosya okunamadı: ' + rErr.message, 'error'); }
@@ -232,8 +233,8 @@ function upl(e, t) {
 
 // ---- buildOptions (orig lines 3831-3834) ----
 function buildOptions(headers, selectedGuess, allowEmpty) {
-  let html = allowEmpty ? '<option value="">-- Boş Geç --</option>' : '<option value="">-- Seçiniz --</option>';
-  headers.forEach(h => { let sel = (selectedGuess && selectedGuess !== '' && (h.toLocaleLowerCase('tr-TR') === selectedGuess.toLocaleLowerCase('tr-TR') || h.toLocaleLowerCase('tr-TR').includes(selectedGuess.toLocaleLowerCase('tr-TR')))) ? 'selected' : ''; html += `<option value="${h}" ${sel}>${h}</option>`; }); return html;
+  let html = allowEmpty ? optionHtml('', '-- Boş Geç --') : optionHtml('', '-- Seçiniz --');
+  headers.forEach(h => { let sel = !!(selectedGuess && selectedGuess !== '' && (h.toLocaleLowerCase('tr-TR') === selectedGuess.toLocaleLowerCase('tr-TR') || h.toLocaleLowerCase('tr-TR').includes(selectedGuess.toLocaleLowerCase('tr-TR')))); html += optionHtml(h, h, sel); }); return html;
 }
 
 // ---- top-level (orig lines 3836-3836) ----
@@ -244,16 +245,16 @@ function buildMappingUI() {
   let b = getEl('mMappingsBody'), h = currentHeaders;
   if(currentUploadType === 's') {
     let saved = JSON.parse(localStorage.getItem('map_s') || '{}');
-    b.innerHTML = `<div class="alert alert-info py-2" style="font-size:0.9em;"><i class="fas fa-info-circle mr-1"></i> Excel dosyanızdaki sütunları sistemdeki alanlarla eşleştirin.</div>
-      <div class="wizard-section"><h6><i class="fas fa-id-card mr-1"></i> Temel Alanlar</h6>
-        <div class="form-group"><label>Öğrenci No Sütunu</label><select id="map_s_no" class="form-control">${buildOptions(h, saved.no || 'no')}</select></div>
-        <div class="form-group"><label>Ad Soyad Sütunu</label><select id="map_s_name" class="form-control">${buildOptions(h, saved.name || 'ad')}</select></div>
-        <div class="form-group"><label>Sınıf Sütunu</label><select id="map_s_cls" class="form-control">${buildOptions(h, saved.cls || 'sınıf')}</select></div>
+    b.innerHTML = `<div class="alert alert-info py-2 mapping-info"><i class="fas fa-info-circle me-1"></i> Excel dosyanızdaki sütunları sistemdeki alanlarla eşleştirin.</div>
+      <div class="wizard-section"><h6><i class="fas fa-id-card me-1"></i> Temel Alanlar</h6>
+        <div class="mb-3"><label class="form-label">Öğrenci No Sütunu</label><select id="map_s_no" class="form-select">${buildOptions(h, saved.no || 'no')}</select></div>
+        <div class="mb-3"><label class="form-label">Ad Soyad Sütunu</label><select id="map_s_name" class="form-select">${buildOptions(h, saved.name || 'ad')}</select></div>
+        <div class="mb-0"><label class="form-label">Sınıf Sütunu</label><select id="map_s_cls" class="form-select">${buildOptions(h, saved.cls || 'sınıf')}</select></div>
       </div>`;
-    getEl('mMappingsFooter').innerHTML = `<button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><button class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ml-1"></i></button>`;
+    getEl('mMappingsFooter').innerHTML = `<button type="button" class="btn btn-secondary" onclick="cancelUpload()">İptal</button><button type="button" class="btn btn-primary" onclick="processMappings()">Onayla ve Analiz Et <i class="fas fa-arrow-right ms-1"></i></button>`;
   } else {
     wizardStep = 0; renderWizardStep();
-    getEl('mMappingsFooter').innerHTML = `<button class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpload()">İptal</button><div class="ml-auto d-flex" style="gap:6px;"><button class="btn btn-outline-secondary" id="wizBtnBack" onclick="wizardNav(-1)" style="display:none;"><i class="fas fa-arrow-left mr-1"></i>Geri</button><button class="btn btn-primary" id="wizBtnNext" onclick="wizardNav(1)">İleri <i class="fas fa-arrow-right ml-1"></i></button><button class="btn btn-success" id="wizBtnDone" onclick="processMappings()" style="display:none;">Onayla ve Analiz Et <i class="fas fa-check ml-1"></i></button></div>`;
+    getEl('mMappingsFooter').innerHTML = `<button type="button" class="btn btn-secondary" onclick="cancelUpload()">İptal</button><div class="ms-auto d-flex mapping-footer-actions"><button type="button" class="btn btn-outline-secondary" id="wizBtnBack" onclick="wizardNav(-1)" style="display:none;"><i class="fas fa-arrow-left me-1"></i>Geri</button><button type="button" class="btn btn-primary" id="wizBtnNext" onclick="wizardNav(1)">İleri <i class="fas fa-arrow-right ms-1"></i></button><button type="button" class="btn btn-success" id="wizBtnDone" onclick="processMappings()" style="display:none;">Onayla ve Analiz Et <i class="fas fa-check ms-1"></i></button></div>`;
   }
 }
 
@@ -265,23 +266,26 @@ function renderWizardStep() {
   let h = currentHeaders, saved = {}; try { saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
   let today = new Date().toISOString().split('T')[0], [y,m,d] = today.split('-'), trDate = `${d}.${m}.${y}`, b = getEl('mMappingsBody');
 
-  let progHtml = `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;">${WIZARD_STEPS.map((s,i) => `<div style="flex:1;text-align:center;font-size:0.72em;font-weight:bold;padding:0 2px;color:${i===wizardStep?'#4a6fa5':i<wizardStep?'#28a745':'#adb5bd'};word-break:break-word;line-height:1.3;">${i<wizardStep?'✓ ':''}${s.title}</div>`).join('')}</div><div class="progress" style="height:7px;border-radius:4px;"><div class="progress-bar bg-primary" style="width:${((wizardStep+1)/WIZARD_STEPS.length)*100}%;border-radius:4px;transition:width 0.3s;"></div></div></div>`;
+  let progHtml = `<div class="wizard-progress"><div class="wizard-step-row">${WIZARD_STEPS.map((s,i) => `<div class="wizard-step-label ${i===wizardStep?'is-active':i<wizardStep?'is-complete':''}">${i<wizardStep?'✓ ':''}${s.title}</div>`).join('')}</div><div class="progress"><div class="progress-bar bg-primary wizard-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(((wizardStep+1)/WIZARD_STEPS.length)*100)}"></div></div></div>`;
 
   let stepHtml = '';
   if(wizardStep === 0) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-tag mr-1"></i> Sınav Genel Bilgileri (Zorunlu)</h6>
-      <div class="row"><div class="col-md-4"><div class="form-group"><label>Sınav Türü <small class="text-muted">(Örn: TYT)</small></label><input type="text" id="map_e_type" class="form-control" placeholder="TYT" value="${saved.type||''}"></div></div><div class="col-md-4"><div class="form-group"><label>Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="map_e_date" class="form-control" placeholder="15.04.2024" value="${trDate}"></div></div><div class="col-md-4"><div class="form-group"><label>Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="map_e_pub" class="form-control" placeholder="MEB" value="${saved.pub||''}"></div></div></div></div>`;
+    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-tag me-1"></i> Sınav Genel Bilgileri (Zorunlu)</h6>
+      <div class="row"><div class="col-md-4"><div class="mb-3"><label class="form-label">Sınav Türü <small class="text-muted">(Örn: TYT)</small></label><input type="text" id="map_e_type" class="form-control" placeholder="TYT" value="${escapeHtml(saved.type||'')}"></div></div><div class="col-md-4"><div class="mb-3"><label class="form-label">Tarih <small class="text-muted">(GG.AA.YYYY)</small></label><input type="text" id="map_e_date" class="form-control" placeholder="15.04.2024" value="${escapeHtml(saved.date||trDate)}"></div></div><div class="col-md-4"><div class="mb-3"><label class="form-label">Yayınevi <small class="text-muted">(İsteğe Bağlı)</small></label><input type="text" id="map_e_pub" class="form-control" placeholder="MEB" value="${escapeHtml(saved.pub||'')}"></div></div></div>
+      <div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="map_e_mark_absent" ${saved.markAbsent?'checked':''}><label class="form-check-label" for="map_e_mark_absent">Dosyada olmayan sınıf öğrencilerini <strong>katılmadı</strong> olarak işaretle</label><div class="form-text">Kısmi/filtreli Excel yüklemelerinde bu seçenek kapalı kalmalıdır.</div></div></div>`;
   } else if(wizardStep === 1) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-columns mr-1"></i> Sabit Excel Sütunları</h6>
-      <div class="row"><div class="col-md-4"><div class="form-group"><label>Öğrenci No Sütunu <span class="text-danger">*</span></label><select id="map_e_no" class="form-control">${buildOptions(h, saved.no||'no')}</select></div></div><div class="col-md-4"><div class="form-group"><label>Toplam Net Sütunu <span class="text-danger">*</span></label><select id="map_e_tnet" class="form-control">${buildOptions(h, saved.tnet||'toplam')}</select></div></div><div class="col-md-4"><div class="form-group"><label>Toplam Puan Sütunu <span class="text-danger">*</span></label><select id="map_e_score" class="form-control">${buildOptions(h, saved.score||'puan')}</select></div></div></div></div>`;
+    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-columns me-1"></i> Sabit Excel Sütunları</h6>
+      <div class="row"><div class="col-md-4"><div class="mb-3"><label class="form-label">Öğrenci No Sütunu <span class="text-danger">*</span></label><select id="map_e_no" class="form-select">${buildOptions(h, saved.no||'no')}</select></div></div><div class="col-md-4"><div class="mb-3"><label class="form-label">Toplam Net Sütunu <span class="text-danger">*</span></label><select id="map_e_tnet" class="form-select">${buildOptions(h, saved.tnet||'toplam')}</select></div></div><div class="col-md-4"><div class="mb-3"><label class="form-label">Toplam Puan Sütunu <span class="text-danger">*</span></label><select id="map_e_score" class="form-select">${buildOptions(h, saved.score||'puan')}</select></div></div></div></div>`;
   } else if(wizardStep === 2) {
-    stepHtml = `<div class="wizard-section"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="mb-0 border-0"><i class="fas fa-book-open mr-1"></i> Ders Netleri Eşleştirmesi</h6><button class="btn btn-success btn-sm" onclick="addSubjectRow()"><i class="fas fa-plus mr-1"></i>Ders Ekle</button></div><p class="text-muted" style="font-size:0.85em;margin-top:-10px;">Sadece analize dahil etmek istediğiniz dersleri seçin ve isimlendirin. Eşleştirilmeyenler tabloda — olarak görünür.</p><div id="subjectMapContainer"></div></div>`;
+    stepHtml = `<div class="wizard-section"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="mb-0 border-0"><i class="fas fa-book-open me-1"></i> Ders Netleri Eşleştirmesi</h6><button class="btn btn-success btn-sm" onclick="addSubjectRow()"><i class="fas fa-plus me-1"></i>Ders Ekle</button></div><p class="text-muted wizard-subject-note">Sadece analize dahil etmek istediğiniz dersleri seçin ve isimlendirin. Eşleştirilmeyenler tabloda — olarak görünür.</p><div id="subjectMapContainer"></div></div>`;
   } else if(wizardStep === 3) {
-    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-medal mr-1"></i> Dereceler (İsteğe Bağlı)</h6><p class="text-muted" style="font-size:0.85em;">Sınıf ve Kurum sıralaması artık sistem tarafından otomatik hesaplanmaktadır. Buradan yalnızca İlçe, İl ve Genel sıralamayı Excel'den alabilirsiniz.</p>
-      <div class="row"><div class="col-md-6"><div class="form-group"><label><i class="fas fa-city mr-1"></i>İlçe Sırası Sütunu</label><select id="map_e_dR" class="form-control">${buildOptions(h, saved.dR||'ilçe sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>İlçe Kişi Sayısı Sütunu</label><select id="map_e_dP" class="form-control">${buildOptions(h, saved.dP||'', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label><i class="fas fa-map-marker-alt mr-1"></i>İl Sırası Sütunu</label><select id="map_e_pR" class="form-control">${buildOptions(h, saved.pR||'il sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>İl Kişi Sayısı Sütunu</label><select id="map_e_pP" class="form-control">${buildOptions(h, saved.pP||'', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label><i class="fas fa-globe-europe mr-1"></i>Genel Sırası Sütunu</label><select id="map_e_gR" class="form-control">${buildOptions(h, saved.gR||'genel sıra', true)}</select></div></div><div class="col-md-6"><div class="form-group"><label>Genel Kişi Sayısı Sütunu</label><select id="map_e_gP" class="form-control">${buildOptions(h, saved.gP||'', true)}</select></div></div></div></div>`;
+    stepHtml = `<div class="wizard-section"><h6><i class="fas fa-medal me-1"></i> Dereceler (İsteğe Bağlı)</h6><p class="text-muted wizard-note">Sınıf ve Kurum sıralaması artık sistem tarafından otomatik hesaplanmaktadır. Buradan yalnızca İlçe, İl ve Genel sıralamayı Excel'den alabilirsiniz.</p>
+      <div class="row"><div class="col-md-6"><div class="mb-3"><label class="form-label"><i class="fas fa-city me-1"></i>İlçe Sırası Sütunu</label><select id="map_e_dR" class="form-select">${buildOptions(h, saved.dR||'ilçe sıra', true)}</select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label">İlçe Kişi Sayısı Sütunu</label><select id="map_e_dP" class="form-select">${buildOptions(h, saved.dP||'', true)}</select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>İl Sırası Sütunu</label><select id="map_e_pR" class="form-select">${buildOptions(h, saved.pR||'il sıra', true)}</select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label">İl Kişi Sayısı Sütunu</label><select id="map_e_pP" class="form-select">${buildOptions(h, saved.pP||'', true)}</select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label"><i class="fas fa-globe-europe me-1"></i>Genel Sırası Sütunu</label><select id="map_e_gR" class="form-select">${buildOptions(h, saved.gR||'genel sıra', true)}</select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label">Genel Kişi Sayısı Sütunu</label><select id="map_e_gP" class="form-select">${buildOptions(h, saved.gP||'', true)}</select></div></div></div></div>`;
   }
   
   b.innerHTML = progHtml + stepHtml;
+  let progBar = b.querySelector('.wizard-progress-bar');
+  if(progBar) progBar.style.width = `${((wizardStep+1)/WIZARD_STEPS.length)*100}%`;
   
   if(wizardStep === 2) {
     let savedSubs = []; try { savedSubs = JSON.parse(localStorage.getItem('map_e') || '{}').subs || []; } catch(e){}
@@ -303,19 +307,19 @@ function wizardNav(dir) { saveWizardStepData(); wizardStep = Math.max(0, Math.mi
 // ---- saveWizardStepData (orig lines 3895-3902) ----
 function saveWizardStepData() {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
-  if(wizardStep === 0) { let t = getEl('map_e_type'), d = getEl('map_e_date'), p = getEl('map_e_pub'); if(t) saved.type = t.value; if(d) saved.date = d.value; if(p) saved.pub = p.value; }
+  if(wizardStep === 0) { let t = getEl('map_e_type'), d = getEl('map_e_date'), p = getEl('map_e_pub'), ma = getEl('map_e_mark_absent'); if(t) saved.type = t.value; if(d) saved.date = d.value; if(p) saved.pub = p.value; if(ma) saved.markAbsent = ma.checked; }
   else if(wizardStep === 1) { let no = getEl('map_e_no'), tn = getEl('map_e_tnet'), sc = getEl('map_e_score'); if(no) saved.no = no.value; if(tn) saved.tnet = tn.value; if(sc) saved.score = sc.value; }
   else if(wizardStep === 2) { let rows = document.querySelectorAll('.subj-map-row'), subs = []; rows.forEach(r => { let c = r.querySelector('.map-subj-col').value, n = r.querySelector('.map-subj-name').value.trim(); if(c && n) subs.push({col:c,name:n}); }); saved.subs = subs; }
   else if(wizardStep === 3) { ['dR','dP','pR','pP','gR','gP'].forEach(k => { let el = getEl('map_e_'+k); if(el) saved[k] = el.value; }); ['cR','cP','iR','iP'].forEach(k => { delete saved[k]; }); }
-  localStorage.setItem('map_e', JSON.stringify(saved));
+  try { localStorage.setItem('map_e', JSON.stringify(saved)); } catch(e) {}
 }
 
 // ---- addSubjectRow (orig lines 3904-3910) ----
 function addSubjectRow(selectedCol = '', typedName = '') {
   let div = document.createElement('div'); div.className = 'subj-map-row';
-  let html = `<select class="form-control form-control-sm map-subj-col"><option value="">-- Excel Sütunu Seçin --</option>`;
-  currentHeaders.forEach(h => { let sel = (h === selectedCol) ? 'selected' : ''; html += `<option value="${h}" ${sel}>${h}</option>`; });
-  html += `</select><i class="fas fa-arrow-right text-muted mx-2 "></i><input type="text" class="form-control form-control-sm map-subj-name" placeholder="Sistemde Görünecek Ad (Örn: Türkçe)" value="${toTitleCase(typedName)}"><button class="btn btn-danger btn-sm btn-remove" onclick="this.parentElement.remove()" title="Sil"><i class="fas fa-trash"></i></button>`;
+  let html = `<select class="form-select form-select-sm map-subj-col">${optionHtml('', '-- Excel Sütunu Seçin --')}`;
+  currentHeaders.forEach(h => { html += optionHtml(h, h, h === selectedCol); });
+  html += `</select><i class="fas fa-arrow-right text-muted mx-2 "></i><input type="text" class="form-control form-control-sm map-subj-name" placeholder="Sistemde Görünecek Ad (Örn: Türkçe)" value="${escapeHtml(toTitleCase(typedName))}"><button class="btn btn-danger btn-sm btn-remove" onclick="this.parentElement.remove()" title="Sil"><i class="fas fa-trash"></i></button>`;
   div.innerHTML = html; getEl('subjectMapContainer').appendChild(div);
 }
 
@@ -325,7 +329,7 @@ function processMappings() {
   if(currentUploadType === 's') {
     let cNo = getEl('map_s_no').value, cName = getEl('map_s_name').value, cCls = getEl('map_s_cls').value;
     if(!cNo || !cName || !cCls) { showToast('Lütfen tüm temel alanları eşleştirin.', 'warning'); return; }
-    localStorage.setItem('map_s', JSON.stringify({no: cNo, name: cName, cls: cCls}));
+    try { localStorage.setItem('map_s', JSON.stringify({no: cNo, name: cName, cls: cCls})); } catch(e) {}
 
     let newStus = [], existingNos = [], invalidRows = [];
     d.forEach((r, i) => {
@@ -337,11 +341,11 @@ function processMappings() {
     if(newStus.length === 0 && existingNos.length === 0) { showToast('Geçerli veri bulunamadı.', 'error'); return; }
 
     previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Öğrenci Listesi Analizi</h5>
-      <div class="row"><div class="col-md-4"><div class="preview-box"><strong>Eklenecek Yeni:</strong><br><span class="text-success" style="font-size:1.5em;">${newStus.length} Kişi</span></div></div>
-      <div class="col-md-4"><div class="preview-box warning"><strong>Zaten Kayıtlı (Atlanacak):</strong><br><span class="text-warning" style="font-size:1.5em;">${existingNos.length} Kişi</span></div></div>
-      <div class="col-md-4"><div class="preview-box danger"><strong>Hatalı/Eksik Satır:</strong><br><span class="text-danger" style="font-size:1.5em;">${invalidRows.length} Satır</span></div></div></div>`;
-    if(existingNos.length > 0) previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Zaten Olan Numaralar:</strong> ${existingNos.slice(0,20).join(', ')}${existingNos.length>20?'...':''}</div>`;
-    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;"><table class="table table-sm table-striped mb-0" style="font-size:0.85em;"><thead style="background-color: #f8d7da; color: #721c24;"><tr><th style="width: 60px;">Satır</th><th>Okunan Veri</th><th>Hata Nedeni</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.data}</td><td class="text-danger">${err.reason}</td></tr>`).join('')}</tbody></table></div>`;
+      <div class="row"><div class="col-md-4"><div class="preview-box"><strong>Eklenecek Yeni:</strong><br><span class="text-success preview-count-lg">${newStus.length} Kişi</span></div></div>
+      <div class="col-md-4"><div class="preview-box warning"><strong>Zaten Kayıtlı (Atlanacak):</strong><br><span class="text-warning preview-count-lg">${existingNos.length} Kişi</span></div></div>
+      <div class="col-md-4"><div class="preview-box danger"><strong>Hatalı/Eksik Satır:</strong><br><span class="text-danger preview-count-lg">${invalidRows.length} Satır</span></div></div></div>`;
+    if(existingNos.length > 0) previewHtml += `<div class="alert alert-warning mt-2 preview-alert"><strong>Sistemde Zaten Olan Numaralar:</strong> ${existingNos.slice(0,20).map(escapeHtml).join(', ')}${existingNos.length>20?'...':''}</div>`;
+    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3 preview-error-table"><table class="table table-sm table-striped mb-0"><thead><tr><th class="preview-col-row">Satır</th><th>Okunan Veri</th><th>Hata Nedeni</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${escapeHtml(err.rowNum)}</strong></td><td>${escapeHtml(err.data)}</td><td class="text-danger">${escapeHtml(err.reason)}</td></tr>`).join('')}</tbody></table></div>`;
     PENDING_UPLOAD = { type: 's', data: newStus };
 
   } else {
@@ -362,6 +366,7 @@ function processMappings() {
     if(subsMap.length === 0) { showToast('En az bir ders neti eşleştirmelisiniz (Adım 3).', 'warning'); return; }
 
     saveWizardStepData(); let finalSaved = {}; try { finalSaved = JSON.parse(localStorage.getItem('map_e') || '{}'); } catch(e){}
+    let markAbsent = !!finalSaved.markAbsent;
     let cRank = { cR: '', cP: '', iR: '', iP: '', dR: finalSaved.dR||'', dP: finalSaved.dP||'', pR: finalSaved.pR||'', pP: finalSaved.pP||'', gR: finalSaved.gR||'', gP: finalSaved.gP||'' };
 
     let gradesFound = new Set();
@@ -387,21 +392,35 @@ function processMappings() {
     validResults.filter(x=>!x.abs).forEach(x => { if(!clsGroups[x.studentClass]) clsGroups[x.studentClass] = []; clsGroups[x.studentClass].push(x); let gr = getGrade(x.studentClass); if(!instGroups[gr]) instGroups[gr] = []; instGroups[gr].push(x); });
     Object.values(clsGroups).forEach(arr => { arr.sort((a,b) => (b.score||0) - (a.score||0)); arr.forEach((r, idx) => { r.cR = String(idx+1); r.cP = String(arr.length); }); });
     Object.values(instGroups).forEach(arr => { arr.sort((a,b) => (b.score||0) - (a.score||0)); arr.forEach((r, idx) => { r.iR = String(idx+1); r.iP = String(arr.length); }); });
-    let absentCount = 0; DB.s.forEach(s => { if(cl.has(s.class) && !sn.has(s.no)) { validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', dR:'-', dP:'-', pR:'-', pP:'-', gR:'-', gP:'-', abs:true, subs:{} }); absentCount++; } });
+    let absentCount = 0, notInFileCount = 0;
+    DB.s.forEach(s => {
+      if(cl.has(s.class) && !sn.has(s.no)) {
+        if(markAbsent) {
+          validResults.push({ examBatchId:bId, studentNo:s.no, studentClass:s.class, date:eDate, examType:eType, publisher:toTitleCase(ePub), totalNet:0, score:0, cR:'-', cP:'-', iR:'-', iP:'-', dR:'-', dP:'-', pR:'-', pP:'-', gR:'-', gP:'-', abs:true, subs:{} });
+          absentCount++;
+        } else {
+          notInFileCount++;
+        }
+      }
+    });
     if(validResults.length === 0) { showToast('Sisteme eklenecek geçerli bir sınav sonucu bulunamadı.', 'error'); return; }
-    let overwriteWarning = existsId ? `<div class="alert alert-danger mt-3"><strong><i class="fas fa-exclamation-triangle mr-2"></i>DİKKAT!</strong> Sistemde <b>${eDate}</b> tarihli bir <b>${eType}</b> sınavı zaten var. Onaylarsanız, eski veriler tamamen silinip bu dosyadaki verilerle değiştirilecektir!</div>` : '';
-    previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Sınav Analizi: <strong>${eType}</strong> - ${eDate} <small class="text-muted">(${toTitleCase(ePub)||'Yayınevi Yok'})</small></h5>
-      <div class="row"><div class="col-md-3"><div class="preview-box" style="padding:10px;"><strong>Geçerli Sonuç:</strong><br><span class="text-success" style="font-size:1.3em;">${validResults.length - absentCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box warning" style="padding:10px;" title="Sınıf listesinde olup dosyada bulunmayanlar. Katılmadı olarak işaretlenecek."><strong>Katılmadı:</strong><br><span class="text-warning" style="font-size:1.3em;">${absentCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box danger" style="padding:10px;" title="Dosyada olan ama sistemde kaydı olmayanlar."><strong>Sistemde Yok:</strong><br><span class="text-danger" style="font-size:1.3em;">${missingStus.length} Kişi</span></div></div><div class="col-md-3"><div class="preview-box danger" style="padding:10px; background:#f8d7da; border-color:#dc3545;" title="Excel hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger" style="font-size:1.3em;">${invalidRows.length} Satır</span></div></div></div>${overwriteWarning}`;
-    if(missingStus.length > 0) previewHtml += `<div class="alert alert-warning mt-2" style="font-size:0.85em; padding:8px;"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.slice(0,20).join(', ')}${missingStus.length>20?'...':''}</div>`;
-    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3" style="max-height: 200px; border: 1px solid #f5c6cb;"><table class="table table-sm table-striped mb-0" style="font-size:0.85em;"><thead style="background-color: #f8d7da; color: #721c24;"><tr><th style="width: 60px;">Satır</th><th style="width: 100px;">Öğrenci No</th><th>Hata Nedeni (Yüklenmeyecek)</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${err.rowNum}</strong></td><td>${err.no}</td><td class="text-danger">${err.reason}</td></tr>`).join('')}</tbody></table></div>`;
-    PENDING_UPLOAD = { type: 'e', existsId: existsId, bId: bId, bD: eDate, bT: eType, bPub: toTitleCase(ePub), newResults: validResults, subjects: Array.from(subjectsFound), grades: Array.from(gradesFound) };
+    let overwriteWarning = existsId ? `<div class="alert alert-danger mt-3"><strong><i class="fas fa-exclamation-triangle me-2"></i>DİKKAT!</strong> Sistemde <b>${eDate}</b> tarihli bir <b>${eType}</b> sınavı zaten var. Onaylarsanız, eski veriler tamamen silinip bu dosyadaki verilerle değiştirilecektir!</div>` : '';
+    let missingFromFileLabel = markAbsent ? 'Katılmadı:' : 'Dosyada Yok:';
+    let missingFromFileClass = markAbsent ? 'text-warning' : 'text-muted';
+    let missingFromFileTitle = markAbsent ? 'Sınıf listesinde olup dosyada bulunmayanlar. Katılmadı olarak işaretlenecek.' : 'Sınıf listesinde olup dosyada bulunmayanlar. Devamsız sayılmayacak ve kayıt oluşturulmayacak.';
+    let missingFromFileCount = markAbsent ? absentCount : notInFileCount;
+    previewHtml = `<h5 class="text-primary border-bottom pb-2 mb-3">Sınav Analizi: <strong>${escapeHtml(eType)}</strong> - ${escapeHtml(eDate)} <small class="text-muted">(${escapeHtml(toTitleCase(ePub)||'Yayınevi Yok')})</small></h5>
+      <div class="row"><div class="col-md-3"><div class="preview-box compact"><strong>Geçerli Sonuç:</strong><br><span class="text-success preview-count-md">${validResults.length - absentCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box compact ${markAbsent?'warning':''}" title="${missingFromFileTitle}"><strong>${missingFromFileLabel}</strong><br><span class="${missingFromFileClass} preview-count-md">${missingFromFileCount} Kişi</span></div></div><div class="col-md-3"><div class="preview-box compact danger" title="Dosyada olan ama sistemde kaydı olmayanlar."><strong>Sistemde Yok:</strong><br><span class="text-danger preview-count-md">${missingStus.length} Kişi</span></div></div><div class="col-md-3"><div class="preview-box compact danger danger-strong" title="Excel hataları."><strong>Hatalı Satır:</strong><br><span class="text-danger preview-count-md">${invalidRows.length} Satır</span></div></div></div>${overwriteWarning}`;
+    if(missingStus.length > 0) previewHtml += `<div class="alert alert-warning mt-2 preview-alert"><strong>Sistemde Bulunamayan Numaralar (Atlanacak):</strong> ${missingStus.slice(0,20).map(escapeHtml).join(', ')}${missingStus.length>20?'...':''}</div>`;
+    if(invalidRows.length > 0) previewHtml += `<div class="table-responsive mt-3 preview-error-table"><table class="table table-sm table-striped mb-0"><thead><tr><th class="preview-col-row">Satır</th><th class="preview-col-no">Öğrenci No</th><th>Hata Nedeni (Yüklenmeyecek)</th></tr></thead><tbody>${invalidRows.map(err => `<tr><td><strong>${escapeHtml(err.rowNum)}</strong></td><td>${escapeHtml(err.no)}</td><td class="text-danger">${escapeHtml(err.reason)}</td></tr>`).join('')}</tbody></table></div>`;
+    PENDING_UPLOAD = { type: 'e', existsId: existsId, bId: bId, bD: eDate, bT: eType, bPub: toTitleCase(ePub), newResults: validResults, subjects: Array.from(subjectsFound), grades: Array.from(gradesFound), markAbsent: markAbsent, omittedStudents: notInFileCount };
   }
-  getEl('uploadPreviewBody').innerHTML = previewHtml; jQuery('#mMappings').modal('hide'); jQuery('#mUploadPreview').modal('show');
+  getEl('uploadPreviewBody').innerHTML = previewHtml; hideModal('mMappings'); showModal('mUploadPreview', {backdrop: 'static'});
 }
 
 // ---- confirmUpload (orig lines 3991-4001) ----
 async function confirmUpload() {
-  if(!PENDING_UPLOAD) return cancelUpload(); jQuery('#mUploadPreview').modal('hide'); ld(1, 'Veriler buluta gönderiliyor, lütfen bekleyin...');
+  if(!PENDING_UPLOAD) return cancelUpload(); hideModal('mUploadPreview'); ld(1, 'Veriler buluta gönderiliyor, lütfen bekleyin...');
   try {
     if(PENDING_UPLOAD.type === 's') { DB.s = DB.s.concat(PENDING_UPLOAD.data); await database.ref('db_v2/students').set(DB.s); rTabS(); uStat(); showToast(`${PENDING_UPLOAD.data.length} yeni öğrenci sisteme başarıyla eklendi.`, 'success'); } 
     else if (PENDING_UPLOAD.type === 'e') {
@@ -413,10 +432,33 @@ async function confirmUpload() {
 }
 
 // ---- top-level (orig lines 4003-4007) ----
+const APP_CACHE_NAME = 'sinav-analizi-adminlte4-r22';
+
 window.addEventListener('load', function(){
   checkAuth();
-  document.body.addEventListener('click', function(e){ if(!document.body.classList.contains('sidebar-open')) return; var sidebar = document.querySelector('.main-sidebar'); var toggleBtn = document.querySelector('[data-widget="pushmenu"]'); if(sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)){ document.body.classList.remove('sidebar-open'); document.body.classList.add('sidebar-collapse'); } });
-  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW kayıtlı:', reg.scope)).catch(err => console.error('SW hatası:', err)); }
+  document.body.addEventListener('click', function(e){
+    if(!document.body.classList.contains('sidebar-open')) return;
+    var sidebar = document.querySelector('.app-sidebar');
+    var toggleBtn = document.querySelector('[data-lte-toggle="sidebar"]');
+    if(sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)){
+      if(typeof closeSidebarIfOpen === 'function') closeSidebarIfOpen();
+      else {
+        document.body.classList.remove('sidebar-open');
+        document.body.classList.add('sidebar-collapse');
+        document.querySelectorAll('.sidebar-overlay,.sidebar-backdrop').forEach(el => el.remove());
+      }
+    }
+  });
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('./sw.js?v=adminlte4-r22', { scope: './' })
+      .then(reg => { console.log('SW kayıtlı:', reg.scope); reg.update(); })
+      .catch(err => console.error('SW hatası:', err));
+  }
+  if (window.caches) {
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key.startsWith('sinav-analizi-') && key !== APP_CACHE_NAME).map(key => caches.delete(key))))
+      .catch(err => console.warn('Eski önbellek temizlenemedi:', err));
+  }
 });
 
 // ---- top-level (orig lines 4009-4009) ----
@@ -439,3 +481,5 @@ function closePwaPopup() { const popup = document.getElementById('pwaInstallPopu
 
 // ---- triggerInstall (orig lines 4018-4018) ----
 function triggerInstall(e) { e.preventDefault(); closePwaPopup(); if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.then(choice => { if (choice.outcome === 'accepted') showToast('Uygulama yükleniyor...', 'info'); deferredInstallPrompt = null; document.getElementById('installBtnWrapper').style.display = 'none'; }); }
+
+

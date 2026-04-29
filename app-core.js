@@ -25,7 +25,7 @@ const auth = firebase.auth();
 
 // ---- uConn (orig lines 689-693) ----
 function uConn(online){
-  const d=getEl('connDot'),t=getEl('connTxt'),b=getEl('connBadge');if(!d)return;
+  const d=document.getElementById('connDot'),t=document.getElementById('connTxt'),b=document.getElementById('connBadge');if(!d||!t||!b)return;
   if(online){d.textContent='🟢';t.textContent='Bağlı';b.className='nav-link text-success';}
   else{d.textContent='🔴';t.textContent='Çevrimdışı';b.className='nav-link text-danger';}
 }
@@ -41,23 +41,34 @@ function checkAuth(){
   auth.onAuthStateChanged(user=>{
     if(user){
       getEl('loginScreen').style.display='none';
-      getEl('mainApp').style.display='block';
+      getEl('mainApp').style.display='';
       if(getEl('userEmail'))getEl('userEmail').textContent=user.email;
       if(getEl('sideUserEmail'))getEl('sideUserEmail').textContent=user.email;
       document.body.classList.remove('is-admin');
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
-      init(); showPwaPopupIfReady();
       
       // Yenileme sonrası mevcut URL hash'ini oku ve o sekmede kal
       setTimeout(() => { 
-        let hash = window.location.hash.replace('#', '');
-        let validPanes = ['anasayfa_genel', 'anasayfa', 'sonuclar', 'rapor', 'ayarlar'];
-        let targetPane = validPanes.includes(hash) ? hash : 'anasayfa_genel';
+        let targetPane = typeof paneFromLocation === 'function' ? paneFromLocation() : (window.location.hash.replace('#', '') || 'anasayfa_genel');
+        if(targetPane === 'ayarlar' && !document.body.classList.contains('is-admin')) targetPane = 'anasayfa_genel';
         
         // History'yi güncelle ve sekmeyi aktif et
-        window.history.replaceState({ pane: targetPane }, '', '#' + targetPane);
+        if(typeof setPaneHistory === 'function') {
+          setPaneHistory(targetPane, 'replace');
+        } else {
+          let base = window.location.protocol === 'file:' ? window.location.href.split('#')[0] : (window.location.pathname + window.location.search);
+          try { window.history.replaceState({ pane: targetPane }, '', targetPane === 'anasayfa_genel' ? base : base + '#' + targetPane); } catch(e) {}
+        }
         executeTabSwitch(targetPane, true); // UI'ı bu sekmeye geçir
+        if(typeof ensurePaneVisibility === 'function') ensurePaneVisibility(targetPane);
       }, 100);
+      init().catch(err => {
+        console.error('Başlatma hatası:', err);
+        if(typeof showToast === 'function') showToast('Veriler yüklenirken hata oluştu. Menü ve sayfa geçişleri açık tutuldu.', 'error');
+        if(typeof ensurePaneVisibility === 'function') ensurePaneVisibility();
+        ld(0);
+      });
+      showPwaPopupIfReady();
 
     }else{
       getEl('loginScreen').style.display='flex';
@@ -73,13 +84,13 @@ function login(){
   const err=getEl('loginError'),btn=getEl('btnLogin');
   err.style.display='none';
   if(!em||!pa){err.textContent='E-posta ve şifre gerekli.';err.style.display='block';return;}
-  const orgHTML='<i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap';
-  btn.innerHTML='<span class="spinner-border spinner-border-sm mr-2"></span>Giriş yapılıyor...';btn.disabled=true;
+  const orgHTML='<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Giriş yapılıyor...';btn.disabled=true;
   auth.signInWithEmailAndPassword(em,pa).then(()=>{btn.innerHTML=orgHTML;btn.disabled=false;}).catch(e=>{
     btn.innerHTML=orgHTML;btn.disabled=false;
     err.className='alert alert-danger mt-3 mb-0';err.style.display='block';
-    if(e.code.includes('user-not-found')||e.code.includes('wrong-password')||e.code.includes('invalid-credential')) err.innerHTML='<i class="fas fa-exclamation-circle mr-2"></i>Hatalı e-posta veya şifre.';
-    else err.innerHTML='<i class="fas fa-times-circle mr-2"></i>Hata: '+e.message;
+    if(e.code.includes('user-not-found')||e.code.includes('wrong-password')||e.code.includes('invalid-credential')) err.innerHTML='<i class="fas fa-exclamation-circle me-2"></i>Hatalı e-posta veya şifre.';
+    else err.innerHTML='<i class="fas fa-times-circle me-2"></i>Hata: '+escapeHtml(e.message);
   });
 }
 
@@ -98,7 +109,7 @@ function openForgotPassword(e) {
   e.preventDefault();
   let em = getEl('loginEmail').value.trim();
   if(em) getEl('forgotEmail').value = em;
-  getEl('forgotMsg').innerHTML = ''; jQuery('#mForgot').modal('show');
+  getEl('forgotMsg').innerHTML = ''; showModal('mForgot');
 }
 
 // ---- sendPasswordReset (orig lines 753-765) ----
@@ -106,13 +117,13 @@ function sendPasswordReset() {
   let em = getEl('forgotEmail').value.trim(), msg = getEl('forgotMsg');
   if(!em) { msg.innerHTML = '<span class="text-danger">E-posta adresi gerekli.</span>'; return; }
   auth.sendPasswordResetEmail(em).then(() => {
-    msg.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>Sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin.</span>';
-    setTimeout(() => jQuery('#mForgot').modal('hide'), 3000);
+    msg.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin.</span>';
+    setTimeout(() => hideModal('mForgot'), 3000);
   }).catch(err => {
     let errMsg = 'Bir hata oluştu.';
     if(err.code === 'auth/user-not-found') errMsg = 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.';
     else if(err.code === 'auth/invalid-email') errMsg = 'Geçersiz e-posta adresi.';
-    msg.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle mr-1"></i>${errMsg}</span>`;
+    msg.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${errMsg}</span>`;
   });
 }
 
@@ -128,7 +139,54 @@ function applyTheme(){
 function toggleTheme(){ /* no-op: dark mode removed */ }
 
 // ---- top-level (orig lines 775-775) ----
-const getEl=i=>document.getElementById(i);
+function getEl(i){return document.getElementById(i);}
+
+function cleanupModalState(){
+  if(document.querySelector('.modal.show')) return;
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+}
+
+function getModal(id, options) {
+  const el = getEl(id);
+  if(!el || !window.bootstrap || !window.bootstrap.Modal) return null;
+  return window.bootstrap.Modal.getOrCreateInstance(el, options || {});
+}
+
+function showModal(id, options) {
+  const el = getEl(id);
+  const modal = getModal(id, options);
+  if(modal) {
+    modal.show();
+    return;
+  }
+  if(!el) return;
+  el.style.display = 'block';
+  el.removeAttribute('aria-hidden');
+  el.setAttribute('aria-modal', 'true');
+  el.classList.add('show');
+  document.body.classList.add('modal-open');
+}
+
+function hideModal(id) {
+  const el = getEl(id);
+  const modal = getModal(id);
+  if(modal) {
+    modal.hide();
+    setTimeout(cleanupModalState, 200);
+    return;
+  }
+  if(!el) return;
+  el.classList.remove('show');
+  el.setAttribute('aria-hidden', 'true');
+  el.removeAttribute('aria-modal');
+  el.style.display = 'none';
+  cleanupModalState();
+}
+
+document.addEventListener('hidden.bs.modal', cleanupModalState);
 
 // ---- top-level (orig lines 776-776) ----
 let DB = { s: [], e: [] };
@@ -160,7 +218,7 @@ function showToast(message, type = 'info', duration = 4000) {
   const icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
   const toast = document.createElement('div');
   toast.className = `toast-item ${type}`;
-  toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span><span class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></span>`;
+  toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${escapeHtml(message)}</span><span class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></span>`;
   container.appendChild(toast);
   setTimeout(() => { toast.style.animation = 'slideOutRight 0.3s ease-out forwards'; setTimeout(() => toast.remove(), 300); }, duration);
 }
@@ -202,10 +260,12 @@ async function init(){
     let sData = snap.val(); DB.s = sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : [];
     _stuMapCache = null; // Map index'i yenile
     rTabS(); 
+    if(getEl('rapor') && getEl('rapor').classList.contains('active-pane') && typeof raporInit === 'function') raporInit();
   });
 
   database.ref('db_v2/examMeta').on('value', async snap => {
     EXAM_META = snap.val() || {}; uDrp(); rTabE(); uStat();
+    if(getEl('rapor') && getEl('rapor').classList.contains('active-pane') && typeof raporInit === 'function') raporInit();
     if(getEl('sonuclar').classList.contains('active-pane')) reqAnl();
     if(aNo) reqProfile();
     // examResults'i examMeta ile paralel cek — panel diger bolumlerle birlikte acilsin
@@ -250,11 +310,17 @@ async function reqProfile() {
 async function reqAnl() {
   let eT = getEl('aEx').value, dt = getEl('aDate') ? getEl('aDate').value : '', aT = getEl('aType').value, sub = getEl('aSub') ? getEl('aSub').value : '';
   let needed = [];
+  if(typeof updateFilterSummary === 'function') updateFilterSummary();
 
   // Risk analizi modu: fetch gerekmez, renderRiskPanel zaten uUI'dan çağrılıyor
-  if(aT === 'risk') return;
+  if(aT === 'risk') { if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters(); return; }
 
-  if(!eT){ getEl('anlRes').innerHTML=''; return; }
+  if(!eT){
+    if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters();
+    if(typeof rAnl === 'function') rAnl();
+    else getEl('anlRes').innerHTML='';
+    return;
+  }
 
   // Hangi batch'lerin yüklenmesi gerektiğini belirle
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
@@ -317,7 +383,11 @@ async function reqAnl() {
 }
 
 // ---- reqUI (orig lines 942-942) ----
-async function reqUI() { uUI(); await reqAnl(); }
+async function reqUI() {
+  uUI();
+  if(typeof updateFilterSummary === 'function') updateFilterSummary();
+  await reqAnl();
+}
 
 // ---- normTR (orig lines 1030-1030) ----
 function normTR(s){return String(s||'').toLocaleLowerCase('tr-TR').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');}
@@ -418,6 +488,19 @@ function escapeHtml(str){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#x27;')
     .replace(/\//g,'&#x2F;');
+}
+
+function jsArg(value){
+  return escapeHtml(JSON.stringify(String(value ?? '')));
+}
+
+function optionHtml(value, label, selected = false, disabled = false){
+  return `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}>${escapeHtml(label)}</option>`;
+}
+
+function safeFileName(value, fallback = 'rapor'){
+  let s = String(value || fallback).trim().replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_');
+  return (s || fallback).slice(0, 120);
 }
 
 // ---- buildStuMap: O(1) öğrenci araması için Map index ----

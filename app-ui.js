@@ -2,6 +2,63 @@
 
 // ---- top-level (orig lines 944-944) ----
 let currentPane = 'anasayfa_genel';
+const VALID_PANES = ['anasayfa_genel', 'anasayfa', 'sonuclar', 'rapor', 'ayarlar'];
+
+function normalizePaneId(id) {
+  id = String(id || '').replace(/^#/, '');
+  return VALID_PANES.includes(id) ? id : 'anasayfa_genel';
+}
+
+function paneFromLocation() {
+  let hashPane = String(window.location.hash || '').replace('#', '');
+  return normalizePaneId(hashPane || currentPane || 'anasayfa_genel');
+}
+
+function routeBase() {
+  if(window.location.protocol === 'file:') return window.location.href.split('#')[0];
+  return window.location.pathname + window.location.search;
+}
+
+function setPaneHistory(id, mode) {
+  id = normalizePaneId(id);
+  let url = id === 'anasayfa_genel' ? routeBase() : routeBase() + '#' + id;
+  try {
+    if(mode === 'push') window.history.pushState({ pane: id }, '', url);
+    else window.history.replaceState({ pane: id }, '', url);
+  } catch(err) {
+    // file:// ve eski WebView davranışlarında history yazılamazsa hash yeterli.
+    if(id === 'anasayfa_genel') {
+      if(window.location.hash) window.location.hash = '';
+    } else if(window.location.hash.replace('#', '') !== id) {
+      window.location.hash = id;
+    }
+  }
+}
+
+function ensurePaneVisibility(preferredId) {
+  let main = getEl('mainApp');
+  if(main && main.style.display === 'none') return;
+  let id = normalizePaneId(preferredId || paneFromLocation());
+  if(id === 'ayarlar' && !document.body.classList.contains('is-admin')) id = 'anasayfa_genel';
+  let active = document.querySelector('.pane.active-pane');
+  let visible = active && active.getAttribute('aria-hidden') !== 'true' && active.style.display !== 'none';
+  if(!active || !visible || active.id !== id) executeTabSwitch(id, true);
+}
+
+function handlePaneTaskError(id, err) {
+  console.error('Sekme hazırlanırken hata:', id, err);
+  if(typeof showToast === 'function') showToast('Sayfa hazırlanırken bir hata oluştu. İçerik paneli açık tutuldu.', 'warning');
+  ensurePaneVisibility(id);
+}
+
+function runPaneTask(id, fn) {
+  try {
+    let result = fn();
+    if(result && typeof result.catch === 'function') result.catch(err => handlePaneTaskError(id, err));
+  } catch(err) {
+    handlePaneTaskError(id, err);
+  }
+}
 
 // ---- top-level (orig lines 945-970) ----
 window.addEventListener('popstate', function(e) {
@@ -23,71 +80,118 @@ window.addEventListener('popstate', function(e) {
     }
     // Diğer sayfalardayken → Ana sayfaya dön
     executeTabSwitch('anasayfa_genel', true);
-    window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
+    setPaneHistory('anasayfa_genel', 'replace');
     return;
   }
   // Masaüstü: normal popstate davranışı
-  let targetPane = (e.state && e.state.pane) ? e.state.pane : 'anasayfa_genel';
+  let targetPane = (e.state && e.state.pane) ? e.state.pane : paneFromLocation();
   executeTabSwitch(targetPane, true);
+});
+
+window.addEventListener('hashchange', function() {
+  let loginVisible = getEl('loginScreen') && getEl('loginScreen').style.display !== 'none';
+  if(loginVisible) return;
+  executeTabSwitch(paneFromLocation(), true);
 });
 
 // ---- sTab (orig lines 972-977) ----
 function sTab(id, el) {
-  try { if (window.event && window.event.preventDefault) window.event.preventDefault(); } catch(e){}
-  if (id === currentPane) return false;
+  try {
+    if (window.event && window.event.preventDefault) window.event.preventDefault();
+    if (window.event) window.event.returnValue = false;
+  } catch(e){}
   executeTabSwitch(id, false);
   return false;
 }
 
+function closeSidebarIfOpen() {
+  if(window.innerWidth >= 992) return;
+  const toggleBtn = document.querySelector('[data-lte-toggle="sidebar"]');
+  if(document.body.classList.contains('sidebar-open') && toggleBtn) {
+    try {
+      toggleBtn.click();
+      return;
+    } catch(e) {}
+  }
+  document.body.classList.remove('sidebar-open');
+  document.body.classList.add('sidebar-collapse');
+  document.querySelectorAll('.sidebar-overlay,.sidebar-backdrop').forEach(el => el.remove());
+}
+
 // ---- executeTabSwitch (orig lines 979-1019) ----
 function executeTabSwitch(id, isPopState) {
-  if(id === 'ayarlar' && !document.body.classList.contains('is-admin')) return;
+  id = normalizePaneId(id);
+  if(id === 'ayarlar' && !document.body.classList.contains('is-admin')) id = 'anasayfa_genel';
+  let targetPane = getEl(id);
+  if(!targetPane) {
+    id = 'anasayfa_genel';
+    targetPane = getEl(id);
+  }
+  if(!targetPane) return false;
+
+  if(currentPane === id && targetPane.classList.contains('active-pane') && !isPopState) {
+    closeSidebarIfOpen();
+    document.body.setAttribute('data-active-pane', id);
+    setTimeout(() => ensurePaneVisibility(id), 0);
+    return false;
+  }
 
   if (!isPopState) {
       let isMobile = window.innerWidth < 768;
       if (id === 'anasayfa_genel') {
           // Ana sayfaya dönerken history'yi temizle (back tuşu uygulamadan çıksın)
-          window.history.replaceState({ pane: 'anasayfa_genel' }, '', window.location.pathname);
+          setPaneHistory('anasayfa_genel', 'replace');
       } else if (isMobile) {
           // Mobilde her alt sayfaya geçişte yeni history kaydı oluştur
           // Böylece geri tuşu ana sayfaya geri döner
-          window.history.pushState({ pane: id }, '', '#' + id);
+          setPaneHistory(id, 'push');
       } else if (currentPane === 'anasayfa_genel') {
-          window.history.pushState({pane: id}, '', '#' + id);
+          setPaneHistory(id, 'push');
       } else {
-          window.history.replaceState({pane: id}, '', '#' + id);
+          setPaneHistory(id, 'replace');
       }
   }
   currentPane = id;
+  document.body.setAttribute('data-active-pane', id);
 
-  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active-pane')); 
-  getEl(id).classList.add('active-pane');
-  document.querySelectorAll('.nav-sidebar .nav-link').forEach(x=>x.classList.remove('active')); 
+  document.querySelectorAll('.pane').forEach(x=>{
+    x.classList.remove('active-pane');
+    x.setAttribute('aria-hidden', 'true');
+    x.style.display = 'none';
+  });
+  targetPane.classList.add('active-pane');
+  targetPane.setAttribute('aria-hidden', 'false');
+  targetPane.style.display = 'block';
+  document.querySelectorAll('.sidebar-menu .nav-link').forEach(x=>x.classList.remove('active')); 
   
   let matchLink = document.getElementById('nav-' + id);
+  if(matchLink && !matchLink.classList.contains('nav-link')) matchLink = matchLink.querySelector('.nav-link');
   if (matchLink) matchLink.classList.add('active');
 
   const titles={anasayfa_genel:'Ana Sayfa',anasayfa:'Öğrenci',sonuclar:'Sonuçlar & Analizler',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
   if(getEl('breadcrumb')) getEl('breadcrumb').textContent = titles[id] || id;
 
-  if(id==='anasayfa_genel'){uStat();}
-  if(id==='anasayfa'){if(aNo)reqProfile();}
-  if(id==='sonuclar')reqUI();
-  if(id==='rapor')raporInit();
-  if(id==='ayarlar'){rTabS();rTabE();}
+  if(id==='anasayfa_genel' && typeof uStat === 'function') runPaneTask(id, () => uStat());
+  if(id==='anasayfa' && aNo && typeof reqProfile === 'function') runPaneTask(id, () => reqProfile());
+  if(id==='sonuclar' && typeof reqUI === 'function') runPaneTask(id, () => reqUI());
+  if(id==='rapor' && typeof raporInit === 'function') runPaneTask(id, () => raporInit());
+  if(id==='ayarlar') runPaneTask(id, () => {
+    if(typeof rTabS === 'function')rTabS();
+    if(typeof rTabE === 'function')rTabE();
+  });
   
-  if(window.innerWidth < 992){
-      document.body.classList.remove('sidebar-open');
-      document.body.classList.add('sidebar-collapse');
-  }
+  closeSidebarIfOpen();
+  setTimeout(() => ensurePaneVisibility(id), 0);
 }
+
+window.addEventListener('load', () => setTimeout(() => ensurePaneVisibility(), 250));
 
 // ---- sAct (orig lines 1021-1028) ----
 async function sAct(no,clr=false){
   aNo=no; if(clr){let st=getStuMap().get(no); getEl('sInp').value=st?(st.name+' ('+st.class+')'):'';getEl('sRes').innerHTML='';getEl('sRes').style.display='none';}
   let s=getStuMap().get(aNo);
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>';
-  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
+  getEl('aBadge').innerHTML=s?`<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>';
+  let ab=getEl('anlStuBadge'); if(ab)ab.innerHTML=s?`<span class="badge bg-success rounded-pill px-2 py-1 selected-student-pill"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
   getEl('homeArea').innerHTML='';
   if(no) await reqProfile(); if(getEl('sonuclar').classList.contains('active-pane')) reqUI(); 
 }
@@ -232,7 +336,18 @@ function xPR(sourceId, title, btn, orientation) {
   let sourceEl = getEl(sourceId);
   if(!sourceEl){ return; }
   let orig = btn ? btn.innerHTML : '';
-  if(btn){ btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-1'></i>"; btn.disabled = true; }
+  if(btn){ btn.innerHTML = "<i class='fas fa-spinner fa-spin me-1'></i>"; btn.disabled = true; }
+  let winW = isLandscape ? 1200 : 900;
+  let printWin = window.open('', '_blank', `width=${winW},height=820,scrollbars=yes`);
+  if(!printWin){
+    if(typeof showToast === 'function') showToast('Açılır pencere engellendi! Tarayıcıdan izin verin.', 'warning', 6000);
+    if(btn){ btn.innerHTML = orig; btn.disabled = false; }
+    return;
+  }
+  try {
+    printWin.document.write('<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Rapor hazırlanıyor</title></head><body style="font-family:Arial,sans-serif;padding:20px;">Rapor hazırlanıyor...</body></html>');
+    printWin.document.close();
+  } catch(e){}
 
   // Canvas → PNG
   let canvasMap = [];
@@ -257,8 +372,17 @@ function xPR(sourceId, title, btn, orientation) {
     cv.parentElement.replaceChild(img, cv);
   });
 
+  // Etkileşimli risk düğmelerini yazdırmada statik etikete çevir.
+  clone.querySelectorAll('button.risk-badge').forEach(btn => {
+    let span = document.createElement('span');
+    span.className = btn.className;
+    span.innerHTML = btn.innerHTML;
+    span.setAttribute('title', btn.getAttribute('title') || '');
+    btn.parentElement.replaceChild(span, btn);
+  });
+
   // Yazdırılmaması gerekenleri at
-  clone.querySelectorAll('.no-print, .d-flex.justify-content-end, .scroll-hint, button, .btn').forEach(el => el.remove());
+  clone.querySelectorAll('.no-print, .d-flex.justify-content-end, .scroll-hint, button:not(.risk-badge), .btn:not(.risk-badge)').forEach(el => el.remove());
   clone.querySelectorAll('.report-header').forEach(el => el.style.display = 'flex');
 
   // ── SINAV TÜRÜ RENKLERİNİ INLINE YAZ ───────────────────────────────
@@ -389,7 +513,7 @@ function xPR(sourceId, title, btn, orientation) {
       let hdr = document.createElement('div');
       hdr.className = 'report-header print-page-hdr';
       hdr.style.cssText = 'margin:0 0 8px 0;';
-      hdr.innerHTML = `<span style="font-size:14px;"><i class="fas fa-user-graduate" style="margin-right:6px;"></i><strong>${stuName}</strong></span><span style="font-size:11px;">Sınıf: ${stuClass} &nbsp;|&nbsp; ${new Date().toLocaleDateString('tr-TR')}</span>`;
+      hdr.innerHTML = `<span style="font-size:14px;"><i class="fas fa-user-graduate" style="margin-right:6px;"></i><strong>${escapeHtml(stuName)}</strong></span><span style="font-size:11px;">Sınıf: ${escapeHtml(stuClass)} &nbsp;|&nbsp; ${new Date().toLocaleDateString('tr-TR')}</span>`;
       blk.insertBefore(hdr, blk.firstChild);
     }
   });
@@ -458,6 +582,7 @@ ${cssLinks}
   .table{width:100% !important;border-collapse:collapse !important;font-size:${isLandscape?'8px':'9px'} !important;margin-bottom:5px;}
   .table th,.table td{border:1px solid #bbb !important;padding:2px 4px !important;color:#212529 !important;vertical-align:middle !important;}
   .table thead th{background:#475569 !important;color:#fff !important;font-size:${isLandscape?'7.5px':'8.5px'} !important;font-weight:700;}
+  .scroll table thead th,.table-responsive table thead th{position:static !important;top:auto !important;z-index:auto !important;}
   thead{display:table-header-group !important;}
   tfoot{display:table-footer-group !important;}
   tbody tr{page-break-inside:avoid !important;break-inside:avoid !important;}
@@ -527,7 +652,7 @@ ${cssLinks}
   .rb-subj{background:rgba(111,66,193,0.12) !important;color:#4a1d8a !important;}
 
   /* Sınav türü blok başlığı (üst sayfada öğrenci adı) — sınav rengiyle */
-  .print-page-hdr{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--exam-color,#334155),color-mix(in srgb,var(--exam-color,#334155) 70%, #000)) !important;color:#fff !important;padding:6px 12px;border-radius:4px;}
+  .print-page-hdr{display:flex !important;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--exam-color,#334155),#111827) !important;color:#fff !important;padding:6px 12px;border-radius:4px;}
   .print-page-hdr *{color:#fff !important;}
 
   /* Tipografi */
@@ -547,28 +672,46 @@ ${cssLinks}
   .student-rapor-wrapper{page-break-inside:auto;break-inside:auto;}
 
   /* Gizle */
-  .no-print,button,.btn,.scroll-hint,.d-flex.justify-content-end,#riskPanel,
-  .main-sidebar,.main-header,.content-wrapper>.overlay{display:none !important;}
+  .no-print,button:not(.risk-badge),.btn:not(.risk-badge),.scroll-hint,.d-flex.justify-content-end,#riskPanel,
+  .app-sidebar,.app-header,.app-main>.overlay{display:none !important;}
 
   /* Tam genişlik */
-  .wrapper,.content-wrapper,.container-fluid{margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;}
+  .app-wrapper,.app-main,.container-fluid{margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;}
 </style>
 </head>
 <body>
 <div style="padding:0 2px;">${clone.outerHTML}</div>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},500);});<\/script>
+<script>
+(function(){
+  var printed=false;
+  function doPrint(){ if(printed) return; printed=true; window.print(); }
+  function waitImages(){
+    return Promise.all(Array.prototype.slice.call(document.images).map(function(img){
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(resolve){ img.onload=resolve; img.onerror=resolve; });
+    }));
+  }
+  function waitFonts(){
+    return document.fonts && document.fonts.ready ? document.fonts.ready.catch(function(){}) : Promise.resolve();
+  }
+  window.addEventListener('load',function(){
+    Promise.all([waitImages(), waitFonts()]).then(function(){ setTimeout(doPrint, 250); });
+    setTimeout(doPrint, 2500);
+  });
+})();
+<\/script>
 </body>
 </html>`;
 
-  let winW = isLandscape ? 1200 : 900;
-  let printWin = window.open('', '_blank', `width=${winW},height=820,scrollbars=yes`);
-  if(!printWin){
-    if(typeof showToast === 'function') showToast('Açılır pencere engellendi! Tarayıcıdan izin verin.', 'warning', 6000);
+  try {
+    printWin.document.open();
+    printWin.document.write(printHtml);
+    printWin.document.close();
+  } catch(err) {
+    if(typeof showToast === 'function') showToast('Yazdırma penceresi hazırlanamadı: ' + err.message, 'error', 6000);
     if(btn){ btn.innerHTML = orig; btn.disabled = false; }
     return;
   }
-  printWin.document.write(printHtml);
-  printWin.document.close();
   if(btn){ btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -580,8 +723,11 @@ function debounceSearch(){clearTimeout(searchDebounceTimer);searchDebounceTimer=
 function sSearch(){
   let v=getEl('sInp').value.trim(),r=getEl('sRes'); if(!v){r.innerHTML='';r.style.display='none';return;}
   let trm=normTR(v).split(/\s+/), m=DB.s.filter(x=>{let txt=normTR(x.no+' '+x.name+' '+x.class);return trm.every(t=>txt.includes(t));});
-  if(!m.length){r.innerHTML='<div class="s-item text-muted">Bulunamadı.</div>';r.style.display='block';return;}
-  let h=''; m.slice(0,20).forEach(x=>h+=`<div class="s-item" onclick="if(event.target.closest('button'))return;sAct('${x.no}',true);"><div class="s-info"><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div><div class="s-actions"><button class="btn btn-sm btn-warning admin-only" onclick="event.stopPropagation();eStu('${x.no}')"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger admin-only" onclick="event.stopPropagation();cDel('student','${x.no} silinsin mi?','${x.no}')"><i class="fas fa-trash"></i></button></div></div>`);
+  if(!m.length){r.innerHTML='<div class="s-item text-muted" role="status">Bulunamadı.</div>';r.style.display='block';return;}
+  let h=''; m.slice(0,20).forEach(x=>{
+    let noArg = jsArg(x.no), delMsgArg = jsArg(`${x.no} silinsin mi?`);
+    h+=`<div class="s-item" role="option" tabindex="0" onclick="if(event.target.closest('button'))return;sAct(${noArg},true);" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sAct(${noArg},true);}"><div class="s-info"><strong>${escapeHtml(x.no)}</strong> — ${escapeHtml(x.name)} <span class="text-muted">(${escapeHtml(x.class)})</span></div><div class="s-actions"><button class="btn btn-sm btn-warning admin-only" onclick="event.stopPropagation();eStu(${noArg})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger admin-only" onclick="event.stopPropagation();cDel('student',${delMsgArg},${noArg})"><i class="fas fa-trash"></i></button></div></div>`;
+  });
   r.innerHTML=h; r.style.display='block';
 }
 
@@ -595,15 +741,15 @@ function anlStuDoSearch(){clearTimeout(anlDebounceTimer);anlDebounceTimer=setTim
 function execAnlStuSearch(){
   let v=getEl('anlStuInp').value.trim(), res=getEl('anlStuRes'); if(!v){res.style.display='none';res.innerHTML='';return;}
   let trm=normTR(v).split(/\s+/), m=DB.s.filter(x=>{let txt=normTR(x.no+' '+x.name+' '+x.class);return trm.every(t=>txt.includes(t));});
-  if(!m.length){res.innerHTML='<div class="anlStu-item text-muted">Bulunamadı.</div>';res.style.display='block';return;}
-  res.innerHTML=m.slice(0,20).map(x=>`<div class="anlStu-item" onclick="anlStuSelect('${x.no}')"><div style="flex:1; min-width:0;"><strong>${x.no}</strong> — ${x.name} <span class="text-muted">(${x.class})</span></div></div>`).join(''); res.style.display='block';
+  if(!m.length){res.innerHTML='<div class="anlStu-item text-muted" role="status">Bulunamadı.</div>';res.style.display='block';return;}
+  res.innerHTML=m.slice(0,20).map(x=>`<div class="anlStu-item" role="option" tabindex="0" onclick="anlStuSelect(${jsArg(x.no)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();anlStuSelect(${jsArg(x.no)});}"><div class="anlStu-main"><strong>${escapeHtml(x.no)}</strong> — ${escapeHtml(x.name)} <span class="text-muted">(${escapeHtml(x.class)})</span></div></div>`).join(''); res.style.display='block';
 }
 
 // ---- anlStuSelect (orig lines 1907-1911) ----
 function anlStuSelect(no){
   getEl('anlStuRes').style.display='none'; let s=getStuMap().get(no); if(s) getEl('anlStuInp').value=s.name+' ('+s.class+')'; aNo = no;
-  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge badge-success badge-pill px-2 py-1" style="font-size:0.8em;"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
-  getEl('aBadge').innerHTML=s?`<span class="badge badge-success badge-pill px-3 py-2"><i class="fas fa-check-circle mr-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
+  let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge bg-success rounded-pill px-2 py-1 selected-student-pill"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
+  getEl('aBadge').innerHTML=s?`<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'<span class="text-muted">Seçilmedi</span>'; reqUI(); 
 }
 
 // ---- anlStuClear (orig lines 1912-1912) ----
@@ -660,16 +806,16 @@ function uStat(){
     const label = toExamLabel(t);
     const gradeKeys = Object.keys(info.grades).sort((a,b)=> Number(a)-Number(b));
     const gradesHtml = gradeKeys.length
-      ? gradeKeys.map(gr => `<span class="hsc-grade hsc-grade-link" style="cursor:pointer;" onclick="goToAnaliz('${t.replace(/'/g,"\\'")}','${gr}')" title="${label} — ${gr}. Sınıf analizine git"><strong>${gr}. Sınıf:</strong> ${info.grades[gr]} <small>Sınav</small> <i class="fas fa-arrow-right" style="font-size:10px;opacity:0.6;"></i></span>`).join('')
+      ? gradeKeys.map(gr => `<span class="hsc-grade hsc-grade-link" onclick="goToAnaliz(${jsArg(t)},${jsArg(gr)})" title="${escapeHtml(label)} — ${escapeHtml(gr)}. Sınıf analizine git"><strong>${escapeHtml(gr)}. Sınıf:</strong> ${escapeHtml(info.grades[gr])} <small>Sınav</small> <i class="fas fa-arrow-right hsc-arrow"></i></span>`).join('')
       : '<span class="hsc-empty">Sınıf bilgisi yok</span>';
     
     h += `<div class="col-md-4 col-sm-6 col-12 mb-3">
       <div class="home-stat-card exam-color-${colorIdx}">
         <div class="hsc-head">
-          <span class="hsc-title"><i class="${ic[colorIdx % ic.length]}"></i>${label}</span>
-          <span class="hsc-count" style="font-weight: bold;">${info.total} Sınav</span>
+          <span class="hsc-title"><i class="${ic[colorIdx % ic.length]}"></i>${escapeHtml(label)}</span>
+          <span class="hsc-count">${info.total} Sınav</span>
         </div>
-        <div class="hsc-grades" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;">${gradesHtml}</div>
+        <div class="hsc-grades hsc-grades-grid">${gradesHtml}</div>
       </div>
     </div>`;
   });
@@ -743,7 +889,7 @@ function uBranches(){
     branches.add(m[2].toLocaleUpperCase('tr-TR'));
   });
   let sorted = [...branches].sort();
-  brSel.innerHTML = `<option value="" disabled${prev?'':' selected'}>Şube Seç</option><option value="__ALL__"${prev==='__ALL__'?' selected':''}>Tümü</option>`+sorted.map(x=>`<option value="${x}"${prev===x?' selected':''}>${x}</option>`).join('');
+  brSel.innerHTML = optionHtml('', 'Şube Seç', !prev, true) + optionHtml('__ALL__', 'Tümü', prev==='__ALL__') + sorted.map(x=>optionHtml(x, x, prev===x)).join('');
   if(prev==='__ALL__' || sorted.includes(prev)) brSel.value = prev;
   else brSel.value = '';
 }
@@ -785,9 +931,139 @@ function uExamTypes(){
     Object.values(EXAM_META).forEach(m => types.add(m.examType));
   }
   let sortedTypes = [...types].sort(), prev=getEl('aEx').value;
-  getEl('aEx').innerHTML='<option value="" disabled' + (prev && sortedTypes.includes(prev) ? '' : ' selected') + '>Sınav Türü Seç</option>'+sortedTypes.map(x=>`<option value="${x}">${x}</option>`).join('');
+  getEl('aEx').innerHTML=optionHtml('', 'Sınav Türü Seç', !(prev && sortedTypes.includes(prev)), true)+sortedTypes.map(x=>optionHtml(x, x)).join('');
   if(sortedTypes.includes(prev)) getEl('aEx').value=prev;
   else if(prev){ getEl('aEx').value=''; }
+}
+
+// ---- analysis filter memory ----
+const ANALYSIS_SUB_STORAGE_KEY = 'sinavAnalizi.analysisSubMemory.v1';
+const ANALYSIS_SUB_MEMORY = (() => {
+  try { return JSON.parse(localStorage.getItem(ANALYSIS_SUB_STORAGE_KEY) || '{}') || {}; }
+  catch(e) { return {}; }
+})();
+
+function _saveAnalysisSubMemory(){
+  try { localStorage.setItem(ANALYSIS_SUB_STORAGE_KEY, JSON.stringify(ANALYSIS_SUB_MEMORY)); } catch(e){}
+}
+
+function _analysisSubKeys(){
+  let aT = getEl('aType') ? getEl('aType').value : '';
+  let eT = getEl('aEx') ? getEl('aEx').value : '';
+  let single = (aT === 'student' && getEl('aExDate') && getEl('aExDate').value) ? 'single' : 'all';
+  let lvl = (getEl('aLvl') && getEl('aLvl').value) || '';
+  let br = (getEl('aBr') && getEl('aBr').value) || '';
+  let primary = `${aT}|${eT || '*'}|${single}|${lvl || '*'}|${br || '*'}`;
+  return [
+    primary,
+    `${aT}|${eT || '*'}|${single}|${lvl || '*'}|*`,
+    `${aT}|${eT || '*'}|${single}|*|*`,
+    `${aT}|${eT || '*'}|*|*|*`,
+    `${aT}|*|${single}|*|*`,
+    `${aT}|*|*|*|*`,
+    `${aT}|${eT}|${single}`,
+    `${aT}|${eT}`,
+    `${aT}|*|${single}`,
+    `${aT}|*`
+  ];
+}
+
+function _rememberAnalysisSub(value){
+  let el = getEl('aSub');
+  let val = value !== undefined ? value : (el ? el.value : '');
+  if(!val) return;
+  let keys = _analysisSubKeys();
+  if(keys.length) ANALYSIS_SUB_MEMORY[keys[0]] = val;
+  _saveAnalysisSubMemory();
+}
+
+function _preferredAnalysisSub(defaultVal){
+  let el = getEl('aSub');
+  let cur = el ? el.value : '';
+  if(cur) return cur;
+  for(let k of _analysisSubKeys()){
+    if(ANALYSIS_SUB_MEMORY[k]) return ANALYSIS_SUB_MEMORY[k];
+  }
+  return defaultVal || '';
+}
+
+function _applyAnalysisSubValue(defaultVal, preferredOverride){
+  let el = getEl('aSub'); if(!el) return '';
+  let preferred = preferredOverride !== undefined ? preferredOverride : _preferredAnalysisSub(defaultVal);
+  let options = [...el.options];
+  let validPreferred = preferred && options.some(o => o.value === preferred && !o.disabled);
+  let validDefault = defaultVal && options.some(o => o.value === defaultVal && !o.disabled);
+  if(validPreferred) el.value = preferred;
+  else if(validDefault) el.value = defaultVal;
+  else if(options.length && options[0].disabled) options[0].selected = true;
+  else if(options.length) el.value = options[0].value;
+  if(validPreferred) _rememberAnalysisSub(el.value);
+  return el.value;
+}
+
+function _selectedOptionText(id){
+  let el = getEl(id);
+  if(!el || el.selectedIndex < 0) return '';
+  let opt = el.options[el.selectedIndex];
+  if(!opt || opt.disabled) return '';
+  return (opt.textContent || '').trim();
+}
+
+function updateFilterSummary(){
+  let box = getEl('filterSummary'); if(!box) return;
+  let aTEl = getEl('aType');
+  let aT = aTEl ? aTEl.value : '';
+  let chips = [];
+  let add = (label, value, tone) => {
+    if(!value) return;
+    chips.push(`<span class="filter-chip ${tone || ''}"><small>${escapeHtml(label)}</small>${escapeHtml(value)}</span>`);
+  };
+
+  add('Analiz', _selectedOptionText('aType'), 'chip-primary');
+  if(aT === 'student') {
+    let st = aNo ? getStuMap().get(aNo) : null;
+    add('Öğrenci', st ? `${st.name} (${st.class})` : 'Öğrenci seçilmedi', st ? 'chip-success' : 'chip-muted');
+    add('Sınav', _selectedOptionText('aEx'));
+    add('Tarih', _selectedOptionText('aExDate'));
+    add('Veri', _selectedOptionText('aSub'));
+  } else if(aT === 'risk') {
+    add('Sınıf', _selectedOptionText('riskGradeFilter'));
+    add('Şube', _selectedOptionText('riskBranchFilter'));
+    add('Sınav', _selectedOptionText('riskExTypeFilter'));
+    add('Risk', _selectedOptionText('riskLevelFilter'));
+  } else {
+    add('Sınıf', _selectedOptionText('aLvl'));
+    add('Şube', _selectedOptionText('aBr'));
+    add('Sınav', _selectedOptionText('aEx'));
+    add('Tarih', _selectedOptionText('aDate'));
+    add(aT === 'subject' ? 'Ders' : 'Veri', _selectedOptionText('aSub'));
+  }
+
+  box.innerHTML = `<div class="filter-summary-inner">${chips.join('')}<button type="button" class="btn btn-sm btn-outline-secondary filter-reset-btn" onclick="resetAnalysisFilters()"><i class="fas fa-rotate-left me-1"></i>Sıfırla</button></div>`;
+}
+
+function resetAnalysisFilters(){
+  aNo = null;
+  ['anlStuInp','anlStuRes','anlStuBadge','aBadge'].forEach(id => {
+    let el = getEl(id); if(!el) return;
+    if(id.endsWith('Inp')) el.value = '';
+    else if(id.endsWith('Res')) { el.innerHTML = ''; el.style.display = 'none'; }
+    else el.innerHTML = id === 'aBadge' ? '<span class="text-muted">Seçilmedi</span>' : '';
+  });
+  if(getEl('aType')) getEl('aType').value = 'student';
+  ['aLvl','aBr','aEx','aDate','aExDate','aSub','riskGradeFilter','riskBranchFilter','riskExTypeFilter','riskLevelFilter'].forEach(_resetSel);
+  if(getEl('anlRes')) getEl('anlRes').innerHTML = '';
+  uUI();
+  applyExamColorToFilters();
+  updateFilterSummary();
+  reqAnl();
+}
+
+function onRiskFilterChange(rebuild){
+  if(rebuild) _populateRiskFilterDropdowns();
+  renderRiskPanel();
+  applyExamColorToFilters();
+  updateFilterSummary();
 }
 
 // ---- uSub (orig lines 1988-2043) ----
@@ -823,33 +1099,32 @@ function uSub(){
   }
   
   if(aT === 'student' || aT === 'class') {
-    let _prev = getEl('aSub').value;
     // === Tek-sınav modunda öğrenci analizi varsayılanı 'summary'; toplu modda 'totalNet'; sınıf analizinde 'score' ===
     let _aExDateRaw = (getEl('aExDate')||{}).value || '';
     let _isSingleExam = (aT === 'student') && !!_aExDateRaw;
     let _defaultVal = (aT === 'class') ? 'score' : (_isSingleExam ? 'summary' : 'totalNet');
-    if(_prev === 'summary' && !_isSingleExam) _prev = '';
-    let _selVal = _prev || _defaultVal;
-    let o = `<option value="" disabled${_selVal?'':' selected'}>Veri Seç</option>`;
-    if(_isSingleExam) o += `<option value="summary"${_selVal==='summary'?' selected':''}>Sınav Özeti</option>`;
-    o += `<option value="totalNet"${_selVal==='totalNet'?' selected':''}>Toplam Net</option><option value="score"${_selVal==='score'?' selected':''}>Puan</option>`;
-    if (aT === 'student') { o += `<option value="rank_c"${_selVal==='rank_c'?' selected':''}>Sınıf Sıralaması</option><option value="rank_i"${_selVal==='rank_i'?' selected':''}>Kurum Sıralaması</option><option value="rank_g"${_selVal==='rank_g'?' selected':''}>Genel Sıralama</option>`; }
-    [...s].sort().forEach(x=> o += `<option value="s_${x}"${_selVal==='s_'+x?' selected':''}>${toTitleCase(x)} Neti</option>`); getEl('aSub').innerHTML = o;
-    if(_selVal) { let _opt=[...getEl('aSub').options].find(o=>o.value===_selVal); if(_opt) getEl('aSub').value=_selVal; }
+    let _selVal = _preferredAnalysisSub(_defaultVal);
+    let o = optionHtml('', 'Veri Seç', !_selVal, true);
+    if(_isSingleExam) o += optionHtml('summary', 'Sınav Özeti', _selVal==='summary');
+    o += optionHtml('totalNet', 'Toplam Net', _selVal==='totalNet') + optionHtml('score', 'Puan', _selVal==='score');
+    if (aT === 'student') { o += optionHtml('rank_c', 'Sınıf Sıralaması', _selVal==='rank_c') + optionHtml('rank_i', 'Kurum Sıralaması', _selVal==='rank_i') + optionHtml('rank_g', 'Genel Sıralama', _selVal==='rank_g'); }
+    [...s].sort().forEach(x=> o += optionHtml(`s_${x}`, `${toTitleCase(x)} Neti`, _selVal==='s_'+x)); getEl('aSub').innerHTML = o;
+    _applyAnalysisSubValue(_defaultVal, _selVal);
   } else if (aT === 'examdetail') {
     // === FIX: uSub varsayılanı — examdetail için varsayılan 'summary' (Sınav Özeti) ===
-    let prev = getEl('aSub').value;
+    let prev = _preferredAnalysisSub('summary');
     let _validVals = ['summary','general_summary','list_single','list_all'];
     let _selVal = _validVals.includes(prev) ? prev : 'summary';
-    getEl('aSub').innerHTML = `<option value="summary"${_selVal==='summary'?' selected':''}>Sınav Özeti (Tek Sınav)</option><option value="general_summary"${_selVal==='general_summary'?' selected':''}>Sınav Özeti (Tüm Sınavlar)</option><option value="list_single"${_selVal==='list_single'?' selected':''}>Toplu Liste (Tek Sınav)</option><option value="list_all"${_selVal==='list_all'?' selected':''}>Toplu Liste (Tüm Sınavlar)</option>`;
-    getEl('aSub').value = _selVal;
+    getEl('aSub').innerHTML = optionHtml('summary', 'Sınav Özeti (Tek Sınav)', _selVal==='summary') + optionHtml('general_summary', 'Sınav Özeti (Tüm Sınavlar)', _selVal==='general_summary') + optionHtml('list_single', 'Toplu Liste (Tek Sınav)', _selVal==='list_single') + optionHtml('list_all', 'Toplu Liste (Tüm Sınavlar)', _selVal==='list_all');
+    _applyAnalysisSubValue('summary', _selVal);
   } else if (aT === 'subject') {
-    let prev = getEl('aSub').value, opts = [...s].sort().map(x=>`<option value="${x}">${toTitleCase(x)}</option>`).join('');
-    let ph = `<option value="" disabled${prev?'':' selected'}>Ders Seç</option>`;
-    getEl('aSub').innerHTML = opts ? (ph + opts) : '<option value="" disabled selected>Ders bulunamadı</option>';
-    if([...s].includes(prev)) getEl('aSub').value = prev;
+    let prev = _preferredAnalysisSub(''), opts = [...s].sort().map(x=>optionHtml(x, toTitleCase(x))).join('');
+    let ph = optionHtml('', 'Ders Seç', !prev, true);
+    getEl('aSub').innerHTML = opts ? (ph + opts) : optionHtml('', 'Ders bulunamadı', true, true);
+    _applyAnalysisSubValue('', prev);
   } else {
-    getEl('aSub').innerHTML='<option value="" disabled selected>Veri Seç</option>'+[...s].sort().map(x=>`<option value="${x}">${toTitleCase(x)}</option>`).join('');
+    getEl('aSub').innerHTML=optionHtml('', 'Veri Seç', true, true)+[...s].sort().map(x=>optionHtml(x, toTitleCase(x))).join('');
+    _applyAnalysisSubValue('');
   }
 }
 
@@ -876,7 +1151,8 @@ function _resetSel(id){
 // ---- onLvlChange (orig lines 2064-2067) ----
 function onLvlChange(){
   let _prevEx = getEl('aEx') ? getEl('aEx').value : '';
-  _resetSel('aBr'); _resetSel('aDate'); _resetSel('aSub');
+  _rememberAnalysisSub();
+  _resetSel('aBr'); _resetSel('aDate');
   uBranches(); uExamTypes();
   // Önceki sınav türü yeni filtreden sonra hâlâ geçerliyse koru
   if(_prevEx && [...getEl('aEx').options].some(o => o.value === _prevEx)) {
@@ -890,7 +1166,8 @@ function onLvlChange(){
 // ---- onBrChange (orig lines 2068-2071) ----
 function onBrChange(){
   let _prevEx = getEl('aEx') ? getEl('aEx').value : '';
-  _resetSel('aDate'); _resetSel('aSub');
+  _rememberAnalysisSub();
+  _resetSel('aDate');
   uExamTypes();
   // Önceki sınav türü yeni filtreden sonra hâlâ geçerliyse koru
   if(_prevEx && [...getEl('aEx').options].some(o => o.value === _prevEx)) {
@@ -910,7 +1187,8 @@ function onExTypeChange(){
     getEl('aEx').value = '';
     return;
   }
-  _resetSel('aDate'); _resetSel('aSub');
+  _rememberAnalysisSub();
+  _resetSel('aDate');
   // Öğrenci modunda yeni sınav seçim dropdown'ı da sıfırlanır
   let _aExDate = getEl('aExDate'); if(_aExDate) _aExDate.value = '';
   uExamDates(); uStudentExamDates(); uSub(); _updateGDateVisibility();
@@ -927,6 +1205,7 @@ function onExDateStudentChange(){
   }
   // aExDate boş = Tümü (toplu mod); dolu = tek sınav modu
   // Veri (aSub) listesine 'Sınav Özeti' eklensin/çıkarılsın diye uSub'u tazele
+  _rememberAnalysisSub();
   uSub();
   applyExamColorToFilters();
   reqAnl();
@@ -940,7 +1219,7 @@ function uStudentExamDates(){
   let aT = getEl('aType') ? getEl('aType').value : '';
   let eT = getEl('aEx')   ? getEl('aEx').value   : '';
   if(aT !== 'student' || !eT){
-    el.innerHTML = '<option value="">Tümü</option>';
+    el.innerHTML = optionHtml('', 'Tümü');
     el.value = '';
     return;
   }
@@ -958,9 +1237,9 @@ function uStudentExamDates(){
   entries.forEach(x => { let k = x.date+'||'+x.publisher; if(!seen.has(k)){ seen.add(k); unique.push(x); } });
   unique.sort((a,b) => srt(b.date, a.date)); // DESC
   let prev = el.value;
-  let opts = '<option value="">Tümü</option>' + unique.map(x => {
+  let opts = optionHtml('', 'Tümü') + unique.map(x => {
     let pub = x.publisher ? ` (${toTitleCase(x.publisher)})` : '';
-    return `<option value="${x.date}||${x.publisher}">${x.date}${pub}</option>`;
+    return optionHtml(`${x.date}||${x.publisher}`, `${x.date}${pub}`);
   }).join('');
   el.innerHTML = opts;
   // Önceki seçim geçerliyse koru, değilse Tümü
@@ -972,6 +1251,7 @@ function uStudentExamDates(){
 function applyExamColorToFilters(){
   let aT = getEl('aType') ? getEl('aType').value : '';
   let eT = getEl('aEx')   ? getEl('aEx').value   : '';
+  let riskET = (getEl('riskExTypeFilter')||{}).value || '';
   let filter = getEl('anlFilterCard');
   let res    = getEl('anlRes');
   let risk   = getEl('riskPanel');
@@ -985,8 +1265,9 @@ function applyExamColorToFilters(){
     if(aExWrap && el === aExWrap) el.removeAttribute('data-active');
   });
 
-  if(!eT) return;
-  let idx = (typeof examColorIdx === 'function') ? examColorIdx(eT) : 0;
+  let activeType = aT === 'risk' ? riskET : eT;
+  if(!activeType) return;
+  let idx = (typeof examColorIdx === 'function') ? examColorIdx(activeType) : 0;
 
   [filter, res].forEach(el => {
     if(!el) return;
@@ -995,15 +1276,13 @@ function applyExamColorToFilters(){
   });
   // Risk paneli sadece risk modunda ve riskExTypeFilter doluysa renk alır
   if(risk){
-    let riskET = (getEl('riskExTypeFilter')||{}).value || '';
     if(aT === 'risk' && riskET){
-      let rIdx = (typeof examColorIdx === 'function') ? examColorIdx(riskET) : 0;
-      risk.classList.add('exam-color-'+rIdx);
-      risk.setAttribute('data-exam-color', String(rIdx));
+      risk.classList.add('exam-color-'+idx);
+      risk.setAttribute('data-exam-color', String(idx));
     }
   }
   // Dropdown yan badge
-  if(aExWrap){
+  if(aExWrap && aT !== 'risk'){
     aExWrap.classList.add('exam-color-'+idx);
     aExWrap.setAttribute('data-active','1');
   }
@@ -1011,7 +1290,7 @@ function applyExamColorToFilters(){
 
 // ---- onDateChange (orig lines 2076-2079) ----
 function onDateChange(){
-  _resetSel('aSub');
+  _rememberAnalysisSub();
   uSub(); _updateGDateVisibility(); reqAnl();
 }
 
@@ -1039,13 +1318,14 @@ function uExamDates(){
     dates.push(m.date); if(m.publisher) datePublisherMap[m.date] = m.publisher;
   });
   
-  dates = [...new Set(dates)].sort(srt); let prev=getEl('aDate').value;
-  let placeholderOpt = `<option value="" disabled${prev?'':' selected'}>Sınav Seç</option>`;
-  let allOpt = (aT === 'class' || aT === 'subject') ? '<option value="">Tüm Sınavlar</option>' : '';
-  getEl('aDate').innerHTML = placeholderOpt + allOpt + dates.map(x => { let pub = datePublisherMap[x] ? ` (${toTitleCase(datePublisherMap[x])})` : ''; return `<option value="${x}">${x}${pub}</option>`; }).join('');
+  dates = [...new Set(dates)].sort((a,b)=>srt(b,a)); let prev=getEl('aDate').value;
+  let prefixOpt = (aT === 'class' || aT === 'subject')
+    ? optionHtml('', 'Tüm Sınavlar', !prev)
+    : optionHtml('', 'Sınav Seç', !prev, true);
+  getEl('aDate').innerHTML = prefixOpt + dates.map(x => { let pub = datePublisherMap[x] ? ` (${toTitleCase(datePublisherMap[x])})` : ''; return optionHtml(x, `${x}${pub}`); }).join('');
   if(dates.includes(prev)) getEl('aDate').value=prev;
   else if(aT === 'class' || aT === 'subject') getEl('aDate').value='';
-  else if(aT === 'examdetail' && dates.length > 0) getEl('aDate').value = dates[dates.length - 1]; // en son sınavı varsayılan seç
+  else if(aT === 'examdetail' && dates.length > 0) getEl('aDate').value = dates[0]; // en yeni sınavı varsayılan seç
 }
 
 // ---- uUI (orig lines 2111-2172) ----
@@ -1059,7 +1339,7 @@ function uUI(){
   getEl('gBr').style.display=(t==='class'||t==='subject'||t==='examdetail')?'block':'none';
 
   // Risk modunda sınav türü, tarih, veri filtrelerini gizle
-  let aExWrapper = getEl('aEx') ? getEl('aEx').closest('.form-group').parentElement : null;
+  let aExWrapper = getEl('aEx') ? getEl('aEx').closest('.mb-3')?.parentElement : null;
   if(aExWrapper) aExWrapper.style.display = isRisk ? 'none' : '';
   getEl('gDate').style.display = isRisk ? 'none' : (t==='student' ? 'none' : 'block');
   getEl('gSub').style.display = isRisk ? 'none' : 'block';
@@ -1099,20 +1379,28 @@ function uUI(){
     if(t==='class'){
       let l=new Set(),b=new Set(); DB.s.forEach(s=>{let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);if(m){l.add(m[1]);b.add(m[2].toLocaleUpperCase('tr-TR'));}});
       let _pL=getEl('aLvl').value, _pB=getEl('aBr').value;
-      getEl('aLvl').innerHTML=`<option value="" disabled${_pL?'':' selected'}>Sınıf Seviyesi Seç</option>`+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
+      getEl('aLvl').innerHTML=optionHtml('', 'Sınıf Seviyesi Seç', !_pL, true)+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>optionHtml(x, `${x}. Sınıf`)).join('');
       if(_pL && [...l].includes(_pL)) getEl('aLvl').value=_pL;
     } else if (t==='examdetail' || t==='subject') {
       let l=new Set(); DB.s.forEach(s=>{ let m=s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m) l.add(m[1]); });
       let _pL=getEl('aLvl').value;
-      getEl('aLvl').innerHTML=`<option value="" disabled${_pL?'':' selected'}>Sınıf Seviyesi Seç</option>`+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
+      getEl('aLvl').innerHTML=optionHtml('', 'Sınıf Seviyesi Seç', !_pL, true)+[...l].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>optionHtml(x, `${x}. Sınıf`)).join('');
       if(_pL && [...l].includes(_pL)) getEl('aLvl').value=_pL;
     }
-    uBranches(); uExamTypes(); uExamDates(); uSub();
+    uBranches(); uExamTypes(); uExamDates(); uSub(); uStudentExamDates();
   } else {
     // Risk modunda filtre dropdown'larını doldur
     _populateRiskFilterDropdowns();
     renderRiskPanel();
   }
+  let aExSel = getEl('aEx');
+  if(aExSel) {
+    let locked = (t === 'student' && !aNo);
+    aExSel.disabled = locked;
+    aExSel.title = locked ? 'Önce öğrenci seçin' : '';
+  }
+  applyExamColorToFilters();
+  updateFilterSummary();
 }
 
 // ---- _populateRiskFilterDropdowns (orig lines 2174-2220) ----
@@ -1123,7 +1411,7 @@ function _populateRiskFilterDropdowns() {
     let prevG = gradeEl.value;
     let grades = new Set();
     DB.s.forEach(s => { let m = s.class.match(/^(\d+)/); if(m) grades.add(m[1]); });
-    gradeEl.innerHTML = '<option value="">Tüm Sınıflar</option>' + [...grades].sort((a,b)=>parseInt(a)-parseInt(b)).map(g=>`<option value="${g}">${g}. Sınıf</option>`).join('');
+    gradeEl.innerHTML = optionHtml('', 'Tüm Sınıflar') + [...grades].sort((a,b)=>parseInt(a)-parseInt(b)).map(g=>optionHtml(g, `${g}. Sınıf`)).join('');
     if(prevG && [...grades].includes(prevG)) gradeEl.value = prevG;
   }
   // Şube (sınıf seviyesine göre filtreli)
@@ -1133,7 +1421,7 @@ function _populateRiskFilterDropdowns() {
     let gradeF = getEl('riskGradeFilter') ? getEl('riskGradeFilter').value : '';
     let branches = new Set();
     DB.s.forEach(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m && (!gradeF||m[1]===gradeF)) branches.add(m[2].toLocaleUpperCase('tr-TR')); });
-    branchEl.innerHTML = '<option value="">Tüm Şubeler</option>' + [...branches].sort().map(b=>`<option value="${b}">${b} Şubesi</option>`).join('');
+    branchEl.innerHTML = optionHtml('', 'Tüm Şubeler') + [...branches].sort().map(b=>optionHtml(b, `${b} Şubesi`)).join('');
     if(prevB && [...branches].includes(prevB)) branchEl.value = prevB;
   }
   // Sınav Türü — mevcut risk sonuçlarından veya seçili sınıf/şubeye uygun EXAM_META'dan
@@ -1159,7 +1447,7 @@ function _populateRiskFilterDropdowns() {
       });
       allTypes = [...typesFromMeta].sort();
     }
-    exTypeEl.innerHTML = '<option value="">Tüm Sınav Türleri</option>' + allTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+    exTypeEl.innerHTML = optionHtml('', 'Tüm Sınav Türleri') + allTypes.map(t=>optionHtml(t, t)).join('');
     if(prevET && allTypes.includes(prevET)) exTypeEl.value = prevET;
   }
 }
@@ -1172,6 +1460,7 @@ function handleSubChange(){
     let _sub = getEl('aSub'); if(_sub) { _sub.value = ''; if(_sub.options.length && _sub.options[0].disabled) _sub.options[0].selected = true; }
     return;
   }
+  _rememberAnalysisSub(sub);
   if(t === 'examdetail') { 
     getEl('gDate').style.display = (sub === 'general_summary' || sub === 'list_all') ? 'none' : 'block'; 
     uExamDates(); 

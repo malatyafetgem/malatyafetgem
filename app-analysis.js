@@ -129,7 +129,7 @@ function _homogeneityLabel(cv){
  */
 function _explain(txt){
   if(!txt) return '';
-  return `<div class="sec-explain" title="${String(txt).replace(/"/g,'&quot;')}">${txt}</div>`;
+  return `<div class="sec-explain" title="${escapeHtml(txt)}">${escapeHtml(txt)}</div>`;
 }
 
 // Trend kartı için minimum sınav sayısı (regresyonun anlamlı olması için).
@@ -140,9 +140,8 @@ const _TREND_MIN_N = 3;
  * Az sayıda sınavda (n=3-4) sabit 0.30 eşiği çok katı olur;
  * büyük n'lerde (n≥10) 0.25 yeterince seçici kalır.
  *
- * Pedagojik gerekçe: az veriyle düşük R² kaçınılmazdır —
- * n=3'te R²>0.30 zorlamak gerçek trendi gizler.
- * APA (2019) simülasyonlarına göre n<6 için 0.15 kabul edilebilir.
+ * Pedagojik gerekçe: az veriyle düşük R² beklenebilir; bu nedenle küçük
+ * örneklemde eşik daha temkinli, büyük örneklemde daha seçici tutulur.
  *
  * @param {number} n  Sınav sayısı
  * @returns {number}  Kullanılacak R² eşiği
@@ -153,6 +152,13 @@ function _adaptiveR2(n){
   if(n <= 6)  return 0.20;
   if(n <= 9)  return 0.25;
   return 0.30; // n≥10 için standart eşik
+}
+
+function _sampleConfidence(n){
+  if(n >= 10) return { cls:'confidence-high', label:'Güven yüksek', note:'Örneklem güçlü' };
+  if(n >= 5) return { cls:'confidence-med', label:'Güven orta', note:'Dikkatli yorum' };
+  if(n >= 3) return { cls:'confidence-low', label:'Güven düşük', note:'Az veri' };
+  return { cls:'confidence-low', label:'Yetersiz veri', note:'Trend kurulmaz' };
 }
 
 // ============================================================
@@ -421,7 +427,7 @@ function renderRiskPanel() {
   let risks = (_riskCache && _riskCache.results) ? _riskCache.results : calcRiskScores();
   // Veri yoksa içeriği temizle ama paneli gizleme (uUI yönetiyor)
   if(!risks.length) {
-    let listEl2 = getEl('riskList'); if(listEl2) listEl2.innerHTML = '<div class="risk-empty"><i class="fas fa-info-circle mr-2"></i>Henüz yeterli sınav verisi bulunmuyor.</div>';
+    let listEl2 = getEl('riskList'); if(listEl2) listEl2.innerHTML = '<div class="risk-empty"><i class="fas fa-info-circle me-2"></i>Henüz yeterli sınav verisi bulunmuyor.</div>';
     ['riskCardHigh','riskCardMed','riskCardLow','riskCardTotal'].forEach(id => { let el=getEl(id); if(el) el.textContent='0'; });
     let badge = getEl('riskTotalBadge'); if(badge) badge.textContent = '';
     return;
@@ -467,7 +473,7 @@ function renderRiskPanel() {
 
   let listEl = getEl('riskList');
   if(!filtered.length) {
-    listEl.innerHTML = `<div class="risk-empty"><i class="fas fa-filter mr-2"></i>Seçili filtreye uyan riskli öğrenci bulunamadı.</div>`;
+    listEl.innerHTML = `<div class="risk-empty"><i class="fas fa-filter me-2"></i>Seçili filtreye uyan riskli öğrenci bulunamadı.</div>`;
     return;
   }
 
@@ -478,17 +484,15 @@ function renderRiskPanel() {
     let topFlags = r.flags.filter(f => { let k=f.type+'|'+f.examType; if(seen.has(k)) return false; seen.add(k); return true; })
                           .sort((a,b) => RISK_SEV_W[b.severity]-RISK_SEV_W[a.severity]).slice(0,4);
     let badgesHtml = topFlags.map(f => {
-      // XSS: escapeHtml zaten calcRiskScores'da uygulandı; title attr için tekrar encode
       let safeTitle = escapeHtml(f.detail);
-      let safeToast = escapeHtml(f.detail).replace(/'/g,'&#x27;');
-      return `<span class="risk-badge rb-${f.type}" title="${safeTitle}" onclick="showToast('${safeToast}', 'warning', 4000)" style="cursor:pointer;"><i class="fas ${typeIcon[f.type]}" style="font-size:0.8em;"></i>${typeLabel[f.type]}</span>`;
+      let typeKey = (typeLabel[f.type] && typeIcon[f.type]) ? f.type : 'trend';
+      return `<button type="button" class="risk-badge rb-${escapeHtml(typeKey)}" title="${safeTitle}" onclick="showToast(${jsArg(f.detail)}, 'warning', 4000)"><i class="fas ${typeIcon[typeKey]} risk-badge-icon"></i>${escapeHtml(typeLabel[typeKey])}</button>`;
     }).join('');
-    // r.name ve r.cls zaten escapeHtml ile güvende (calcRiskScores)
     return `<div class="risk-card risk-${r.level}">
       <div class="risk-avatar"><i class="fas ${levelIcon[r.level]}"></i></div>
       <div class="risk-body">
-        <div class="risk-name">${r.name}</div>
-        <div class="risk-class"><i class="fas fa-school mr-1" style="font-size:0.75em;"></i>${r.cls} &nbsp;·&nbsp; ${r.examTypes.join(', ')}</div>
+        <div class="risk-name">${escapeHtml(r.name)}</div>
+        <div class="risk-class"><i class="fas fa-school me-1"></i>${escapeHtml(r.cls)} &nbsp;·&nbsp; ${r.examTypes.map(escapeHtml).join(', ')}</div>
         <div class="risk-badges">${badgesHtml}</div>
       </div>
       <div class="risk-score-badge">
@@ -508,6 +512,8 @@ function setRiskLevel(level) {
   if(level === '') { el.value = ''; }
   else { el.value = (el.value === level) ? '' : level; }
   renderRiskPanel();
+  if(typeof applyExamColorToFilters === 'function') applyExamColorToFilters();
+  if(typeof updateFilterSummary === 'function') updateFilterSummary();
 }
 
 // ---- goToStudent (orig lines 1351-1356) ----
@@ -777,9 +783,6 @@ function buildRiskInfoCards(stuNo, examType, stuClass) {
   if(!stuRisk) return '';
 
   const levelLabel = { high:'Yüksek Risk', med:'Orta Risk', low:'Düşük Risk' };
-  const levelColor = { high:'#dc3545', med:'#fd7e14', low:'#856404' };
-  const levelBg    = { high:'linear-gradient(135deg,#fff0f0,#ffd6d8)', med:'linear-gradient(135deg,#fff8f0,#ffe5cc)', low:'linear-gradient(135deg,#fffdf0,#fff3cc)' };
-  const levelBorder= { high:'#dc3545', med:'#fd7e14', low:'#ffc107' };
   const typeIcon   = { trend:'fa-chart-line', rank:'fa-sort-amount-up', subj:'fa-book', abs:'fa-calendar-times' };
   const typeLabel  = { trend:'Düşüş Trendi', rank:'Sıra Gerileme', subj:'Ders Düşüşü', abs:'Devamsızlık' };
 
@@ -789,31 +792,27 @@ function buildRiskInfoCards(stuNo, examType, stuClass) {
 
   let badgesHtml = examFlags.map(f => {
     let safeTitle = escapeHtml(f.detail);
-    let safeToast = escapeHtml(f.detail).replace(/'/g,'&#x27;');
-    return `<span class="risk-badge rb-${f.type}" title="${safeTitle}" onclick="showToast('${safeToast}', 'warning', 4000)" style="font-size:0.72rem;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;font-weight:600;margin:2px;cursor:pointer;">
-       <i class="fas ${typeIcon[f.type]}" style="font-size:0.75em;"></i>${typeLabel[f.type]}
-     </span>`;
+    let typeKey = (typeLabel[f.type] && typeIcon[f.type]) ? f.type : 'trend';
+    return `<button type="button" class="risk-badge rb-${escapeHtml(typeKey)}" title="${safeTitle}" onclick="showToast(${jsArg(f.detail)}, 'warning', 4000)">
+       <i class="fas ${typeIcon[typeKey]} risk-badge-icon"></i>${escapeHtml(typeLabel[typeKey])}
+     </button>`;
   }).join('');
 
-  let col = levelColor[stuRisk.level];
-  let bg  = levelBg[stuRisk.level];
-  let brd = levelBorder[stuRisk.level];
-
-  let cardInner = `<div style="border:1px solid ${brd};border-radius:8px;background:${bg};padding:10px 13px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+  let cardInner = `<div class="risk-info-card risk-${stuRisk.level}">
+    <div class="risk-info-head">
       <div>
-        <span style="font-weight:700;font-size:0.9em;color:${col};">
-          <i class="fas fa-exclamation-triangle mr-1"></i>${levelLabel[stuRisk.level]}
+        <span class="risk-info-label">
+          <i class="fas fa-exclamation-triangle me-1"></i>${levelLabel[stuRisk.level]}
         </span>
-        <span style="margin-left:8px;font-size:0.78em;color:#6c757d;">Risk Puanı: <strong style="color:${col};">${stuRisk.score.toFixed(1)}</strong></span>
+        <span class="risk-info-score">Risk Puanı: <strong>${stuRisk.score.toFixed(1)}</strong></span>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:3px;">${badgesHtml}</div>
+      <div class="risk-info-badges">${badgesHtml}</div>
     </div>
   </div>`;
 
   return `<div class="row mb-2">
     <div class="col-12 mb-2">
-      <div style="font-size:0.78em;font-weight:700;color:#6c757d;margin-bottom:4px;"><i class="fas fa-shield-alt mr-1"></i>Risk Analizi</div>
+      <div class="risk-info-title"><i class="fas fa-shield-alt me-1"></i>Risk Analizi</div>
       ${cardInner}
     </div>
   </div>`;
@@ -834,7 +833,7 @@ function buildKarneExamCards(summary, examType, metricLabel) {
   //         bilimsel olarak regresyon/eğim anlamsızdır (bkz. Konuşma — kart matrisi).
   let trendHtml = '';
   if(trend) {
-    let tColor = trend.trendClass==='trend-up' ? '#28a745' : (trend.trendClass==='trend-down' ? '#dc3545' : '#6c757d');
+    let trendTone = trend.trendClass==='trend-up' ? 'trend-tone-up' : (trend.trendClass==='trend-down' ? 'trend-tone-down' : 'trend-tone-stable');
     let tSign  = trend.totalChange > 0 ? '+' : '';
     let sSign  = trend.slope > 0 ? '+' : '';
 
@@ -846,44 +845,45 @@ function buildKarneExamCards(summary, examType, metricLabel) {
 
     // EWMA: Son sınavlara daha fazla ağırlık verilen ortalama (kısa-vadeli momentum)
     let ewmaVal = trend.ewmaVal !== null && trend.ewmaVal !== undefined ? trend.ewmaVal.toFixed(1) : null;
+    let conf = _sampleConfidence(trend.count || 0);
 
     // Sürpriz Payı — regresyon doğrusundan kalıntıların RMSE'si (Standart Hata).
     let consHtml = '';
     if(consistency){
-      consHtml = `<div class="col border-right mb-1" title="Sınav sonuçlarının trend doğrusundan ortalama sapması (Standart Hata / RMSE). Düşük değer = trend güvenilir, sürpriz az." style="min-width:90px;">
-        <div style="font-size:1.1em;font-weight:bold;color:#6f42c1;">±${consistency.sd.toFixed(2)}</div>
-        <div class="small text-muted" style="font-size:0.75em;">Sürpriz Payı</div>
+      consHtml = `<div class="col border-right mb-1 trend-metric" title="Sınav sonuçlarının trend doğrusundan ortalama sapması (Standart Hata / RMSE). Düşük değer = trend güvenilir, sürpriz az.">
+        <div class="trend-value trend-tone-purple">±${consistency.sd.toFixed(2)}</div>
+        <div class="small text-muted trend-label">Sürpriz Payı</div>
         <div class="x-small text-muted">${consistency.label}</div>
         <div class="x-small text-muted">(Standart Hata / RMSE)</div>
       </div>`;
     }
 
-    trendHtml = `<div class="trend-card mt-2 mb-1"><div class="row flex-nowrap align-items-center text-center" style="overflow-x:auto;">
-      <div class="col border-right mb-1" title="${r2Tooltip}" style="min-width:90px;">
-        <span class="trend-indicator ${trend.trendClass}" style="font-size:0.8em;"><i class="fas ${trend.trendIcon} mr-1"></i>${trend.trendText}</span>
-        <div class="small text-muted mt-1" style="font-size:0.75em;"><strong>Genel Yön (Trend)</strong></div>
-        ${r2Pct !== null ? `<div class="x-small mt-1" style="color:${tColor};"><strong>%${r2Pct}</strong> doğruluk payıyla (R²: ${(r2Pct/100).toFixed(2)})</div>` : ''}
+    trendHtml = `<div class="trend-card mt-2 mb-1"><div class="row flex-nowrap align-items-center text-center trend-row">
+      <div class="col border-right mb-1 trend-metric" title="${r2Tooltip}">
+        <span class="trend-indicator trend-indicator-sm ${trend.trendClass}"><i class="fas ${trend.trendIcon} me-1"></i>${trend.trendText}</span>
+        <div class="small text-muted mt-1 trend-label"><strong>Genel Yön (Trend)</strong></div>
+        ${r2Pct !== null ? `<div class="x-small mt-1 ${trendTone}"><strong>%${r2Pct}</strong> doğruluk payıyla (R²: ${(r2Pct/100).toFixed(2)})</div>` : ''}
       </div>
-      <div class="col border-right mb-1" title="İlk sınavdan son sınava kadar regresyon doğrusunun toplam değişimi" style="min-width:90px;">
-        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${tSign}${trend.totalChange.toFixed(1)}</div>
-        <div class="small text-muted" style="font-size:0.75em;"><strong>Toplam ${metricLabel} Değişimi</strong></div>
+      <div class="col border-right mb-1 trend-metric" title="İlk sınavdan son sınava kadar regresyon doğrusunun toplam değişimi">
+        <div class="trend-value ${trendTone}">${tSign}${trend.totalChange.toFixed(1)}</div>
+        <div class="small text-muted trend-label"><strong>Toplam ${metricLabel} Değişimi</strong></div>
         <div class="x-small text-muted">Süreç Boyunca</div>
       </div>
-      <div class="col border-right mb-1" title="Her yeni sınavda beklenen ortalama değişim (regresyon eğimi)" style="min-width:90px;">
-        <div style="font-size:1.1em;font-weight:bold;color:${tColor};">${sSign}${trend.slope.toFixed(2)}</div>
-        <div class="small text-muted" style="font-size:0.75em;"><strong>Sınav Başı Değişim</strong></div>
+      <div class="col border-right mb-1 trend-metric" title="Her yeni sınavda beklenen ortalama değişim (regresyon eğimi)">
+        <div class="trend-value ${trendTone}">${sSign}${trend.slope.toFixed(2)}</div>
+        <div class="small text-muted trend-label"><strong>Sınav Başı Değişim</strong></div>
         <div class="x-small text-muted">(Regresyon Analizi)</div>
       </div>
       ${consHtml}
-      <div class="col border-right mb-1" title="Son sınavlara daha fazla ağırlık verilerek hesaplanan ortalama (EWMA, α=0.5)" style="min-width:90px;">
-        <div style="font-size:1.1em;font-weight:bold;color:#0d6efd;">${ewmaVal !== null ? ewmaVal : '—'}</div>
-        <div class="small text-muted" style="font-size:0.75em;"><strong>Güncel Performans</strong></div>
+      <div class="col border-right mb-1 trend-metric" title="Son sınavlara daha fazla ağırlık verilerek hesaplanan ortalama (EWMA, α=0.5)">
+        <div class="trend-value trend-tone-primary">${ewmaVal !== null ? ewmaVal : '—'}</div>
+        <div class="small text-muted trend-label"><strong>Güncel Performans</strong></div>
         <div class="x-small text-muted">(Ağırlıklı / EWMA)</div>
       </div>
-      <div class="col mb-1" title="Bu sınav türünde katıldığı sınav sayısı" style="min-width:90px;">
-        <div style="font-size:1.1em;font-weight:bold;">${trend.count}</div>
-        <div class="small text-muted" style="font-size:0.75em;"><strong>Katıldığı Sınav</strong></div>
-        <div class="x-small text-muted">Trend hesabına dahil</div>
+      <div class="col mb-1 trend-metric" title="Bu sınav türünde katıldığı sınav sayısı">
+        <div class="trend-value">${trend.count}</div>
+        <div class="small text-muted trend-label"><strong>Katıldığı Sınav</strong></div>
+        <div class="confidence-chip ${conf.cls}" title="${escapeHtml(conf.note)}"><i class="fas fa-shield-alt"></i>${escapeHtml(conf.label)}</div>
       </div>
     </div></div>`;
   }
@@ -945,14 +945,17 @@ function rH(){
   let grp={}; combined.forEach(e=>{(grp[e.examType]=grp[e.examType]||[]).push(e);});
   let typs=Object.keys(grp).sort(); function abbrevSub(name, shorten){ return shorten?name.substring(0,3):toTitleCase(name); }
   let stGrade = getGrade(s.class);
+  let stuNameSafe = escapeHtml(s.name);
+  let stuClassSafe = escapeHtml(s.class);
+  let stuReportName = safeFileName(`${s.name}_Karne`);
 
-  let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXLMul('kCont','${s.name}_Karne')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('kCont','${s.name}_Karne',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-  <div id="kCont" class="card shadow-sm" style="border-top:3px solid #0d6efd;">
+  let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('kCont',${jsArg(stuReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('kCont',${jsArg(stuReportName)},this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+  <div id="kCont" class="card shadow-sm report-card">
     <div class="report-header">
-      <span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${s.name}</strong> — Karne Özeti</span>
-      <span style="font-size:13px;">Sınıf: ${s.class} | ${new Date().toLocaleDateString('tr-TR')}</span>
+      <span class="report-title-main"><i class="fas fa-user-graduate me-2"></i><strong>${stuNameSafe}</strong> — Karne Özeti</span>
+      <span class="report-title-sub">Sınıf: ${stuClassSafe} | ${new Date().toLocaleDateString('tr-TR')}</span>
     </div>
-    <div class="card-body" style="padding-top:5px;">`;
+    <div class="card-body report-card-body">`;
 
   let typsIdx = 0;
   typs.forEach(t=>{
@@ -969,13 +972,13 @@ function rH(){
     let _examCount = el.filter(e=>!e.abs).length;
     let _examColorIdx = (typeof examColorIdx === 'function') ? examColorIdx(t) : 0;
     let _examLabel = (typeof toExamLabel === 'function') ? toExamLabel(t) : t;
-    h+=`<div class="karne-bolum exam-type-block exam-color-${_examColorIdx}${isFirstType?' exam-type-first':''}" data-stu-name="${s.name.replace(/"/g,'&quot;')}" data-stu-class="${s.class}"><h5 class="mt-3 mb-2 text-primary border-bottom pb-2"><span>${_examLabel} Sınavları</span><span class="etb-count no-print">${_examCount} Sınav</span></h5>${cardsHtml}${riskCardsHtml}<div id="${bpKarneId}"></div><div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrevSub(x,shorten)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th></tr></thead><tbody>`;
+    h+=`<div class="karne-bolum exam-type-block exam-color-${_examColorIdx}${isFirstType?' exam-type-first':''}" data-stu-name="${stuNameSafe}" data-stu-class="${stuClassSafe}"><h5 class="mt-3 mb-2 text-primary border-bottom pb-2"><span>${escapeHtml(_examLabel)} Sınavları</span><span class="etb-count no-print">${_examCount} Sınav</span></h5>${cardsHtml}${riskCardsHtml}<div id="${bpKarneId}"></div><div class="scroll-hint"><i class="fas fa-arrows-alt-h me-1"></i>Tabloyu kaydırın</div><div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${escapeHtml(t)}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${escapeHtml(toTitleCase(x))}">${escapeHtml(abbrevSub(x,shorten))}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th></tr></thead><tbody>`;
     
     let kIdx = 1;
     el.forEach(e=>{
       let pub = e.publisher || '—', sNo = e.abs ? '—' : kIdx++;
-      if(e.abs) h+=`<tr class="absent-row"><td>${sNo}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td><td colspan="${sb.length+4}" class="text-center font-weight-bold">🔴 Katılmadı</td></tr>`;
-      else h+=`<tr><td>${sNo}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td></tr>`;
+      if(e.abs) h+=`<tr class="absent-row"><td>${sNo}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(toTitleCase(pub))}</td><td colspan="${sb.length+4}" class="text-center fw-bold">Katılmadı</td></tr>`;
+      else h+=`<tr><td>${sNo}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(toTitleCase(pub))}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${escapeHtml(e.cR||'—')}/${escapeHtml(e.cP||'—')}</td><td>${escapeHtml(e.iR||'—')}/${escapeHtml(e.iP||'—')}</td></tr>`;
     });
     
     let attended = el.filter(e => !e.abs);
@@ -991,12 +994,12 @@ function rH(){
       let avgSubs = sb.map(x => { let v = attended.filter(e => e.subs[x] !== undefined).map(e => e.subs[x].net); return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'; });
       let avgNet = (attended.reduce((a,e)=>a+e.totalNet,0)/attended.length).toFixed(2), avgScore = (attended.reduce((a,e)=>a+e.score,0)/attended.length).toFixed(2);
       
-      h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
-      h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Sınıf Ortalama (${s.class})</td>${clsAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNet}</td><td>${clsAvgScore}</td><td colspan="2">—</td></tr>`;
-      h += `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="3" class="avg-label">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="3" class="avg-label">Sınıf Ortalama (${stuClassSafe})</td>${clsAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNet}</td><td>${clsAvgScore}</td><td colspan="2">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td></tr>`;
     }
 
-    h+=`</tbody></table></div><div class="chart-box avoid-break" style="margin:8px 0 10px 0; height:200px;"><div style="font-size:11px;font-weight:bold;color:#4a6fa5;margin-bottom:4px;text-align:left;">${t} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div>`;
+    h+=`</tbody></table></div><div class="chart-box chart-box-sm chart-box-tight avoid-break"><div class="chart-title">${escapeHtml(t)} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div>`;
   });
 
   h+=`</div></div>`;
@@ -1071,7 +1074,7 @@ function buildSingleExamCards(stu, examType, curExam, prevExam, stGrade){
       <div class="sec-icon"><i class="fas ${icon}"></i></div>
       <div class="sec-body">
         <div class="sec-label">Önceki Sınava Fark</div>
-        <div class="sec-value">${sign}${dN.toFixed(2)} <small style="font-size:0.62em;font-weight:600;color:#6c757d;">net</small></div>
+        <div class="sec-value">${sign}${dN.toFixed(2)} <small class="sec-unit">net</small></div>
         <div class="sec-sub">Puan: ${signS}${dS.toFixed(2)} · ${prevExam.date}${_pubP}</div>
       </div></div></div>`;
   } else {
@@ -1139,8 +1142,10 @@ function buildStuBoxPlots(stuNo, examType, stuClass, stuGrade, sb) {
   // 1. SİSTEMDE O SINAV TÜRÜNDEN TOPLAM KAÇ TANE YAPILDIĞINI BUL
   let totalExamsOfType = new Set(Object.values(EXAM_META).filter(m => m.examType === examType).map(m => m.date)).size;
   
-  // 2. 10'DAN AZ SINAV VARSA KUTU GRAFİĞİNİ HİÇ OLUŞTURMA
-  if(totalExamsOfType < 10) return '';
+  // 2. 10'dan az sınavda dağılım grafiği gösterilir gibi yapılmaz; kullanıcıya sınır açıkça söylenir.
+  if(totalExamsOfType < 10) {
+    return `<div class="stat-limitation no-print"><i class="fas fa-circle-info me-1"></i>Dağılım/kutu grafiği için bu sınav türünde en az 10 sınav gerekir. Şu an ${totalExamsOfType} sınav var.</div>`;
+  }
 
   // Öğrencinin kendi değeri (tüm sınavlardaki net ortalaması)
   let getVal = (e) => {
@@ -1183,9 +1188,9 @@ function buildStuBoxPlots(stuNo, examType, stuClass, stuGrade, sb) {
   if(!clsBP && !insBP) return '';
 
   let cols2 = (clsBP && insBP) ? 'col-md-6' : 'col-12';
-  return `<div class="row mt-2 avoid-break" style="page-break-inside:avoid;">
-    ${clsBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar mr-1" style="color:#28a745;"></i>Sınıf İçi Dağılım <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— kırmızı = bu öğrenci</span></div>${clsBP}</div></div>` : ''}
-    ${insBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar mr-1" style="color:#0d6efd;"></i>Okul İçi Dağılım <span style="font-weight:400;color:#6c757d;font-size:0.85em;">— kırmızı = bu öğrenci</span></div>${insBP}</div></div>` : ''}
+  return `<div class="row mt-2 avoid-break avoid-break-row">
+    ${clsBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar me-1 boxplot-icon-class"></i>Sınıf İçi Dağılım <span class="boxplot-note">— kırmızı = bu öğrenci</span></div>${clsBP}</div></div>` : ''}
+    ${insBP ? `<div class="${cols2}"><div class="boxplot-card"><div class="boxplot-title"><i class="fas fa-chart-bar me-1 boxplot-icon-school"></i>Okul İçi Dağılım <span class="boxplot-note">— kırmızı = bu öğrenci</span></div>${insBP}</div></div>` : ''}
   </div>`;
 }
 
@@ -1195,17 +1200,23 @@ function rAnl(){
   if(aT === 'risk') return; // Risk analizi renderRiskPanel tarafından yönetilir
   if(c.a){ c.a.destroy(); c.a=null; } clearTimeout(chartTimer); 
   if(!eT){
-    if(aT === 'class') { r.innerHTML='<div class="alert alert-default-info"><i class="fas fa-info-circle mr-2"></i>Lütfen Sınıf Seviyesi ve Sınav Türü seçiniz.</div>'; }
-    else { r.innerHTML='<div class="alert alert-default-info">Sınav verisi yok.</div>'; }
+    let missing = [];
+    if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && getEl('aLvl') && !getEl('aLvl').value) missing.push('sınıf seviyesini');
+    if(aT === 'student' && !aNo) missing.push('öğrenciyi');
+    missing.push('sınav türünü');
+    r.innerHTML=`<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Lütfen ${missing.join(' ve ')} seçiniz.</div>`;
     return;
   }
   // (placeholder kept; user must explicitly choose data type)
   if(aT==='examdetail' && !sb) { return; }
 
   if(aT==='student'){
-    let no=aNo;if(!no){r.innerHTML='<div class="alert alert-default-info"><i class="fas fa-hand-point-up mr-2"></i>Lütfen bir öğrenci seçin.</div>';return;}
-    let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=getStuMap().get(no); if(!st){r.innerHTML='<div class="alert alert-default-warning"><i class="fas fa-exclamation-circle mr-2"></i>Öğrenci verisi bulunamadı.</div>';return;}
+    let no=aNo;if(!no){r.innerHTML='<div class="alert alert-default-info"><i class="fas fa-hand-point-up me-2"></i>Lütfen bir öğrenci seçin.</div>';return;}
+    let ex=DB.e.filter(x=>x.studentNo===no&&x.examType===eT&&!x.abs).sort((a,b)=>srt(a.date,b.date)), st=getStuMap().get(no); if(!st){r.innerHTML='<div class="alert alert-default-warning"><i class="fas fa-exclamation-circle me-2"></i>Öğrenci verisi bulunamadı.</div>';return;}
     let stGrade=getGrade(st.class);
+    let stNameSafe = escapeHtml(st.name);
+    let stClassSafe = escapeHtml(st.class);
+    let eTSafe = escapeHtml(eT);
 
     // === TEK SINAV MODU ===
     let _aExDateRaw = (getEl('aExDate')||{}).value || '';
@@ -1213,7 +1224,7 @@ function rAnl(){
       let[_seDate, _sePub=''] = _aExDateRaw.split('||');
       let curExam = ex.find(e => e.date === _seDate && (e.publisher||'') === _sePub);
       if(!curExam){
-        r.innerHTML = `<div class="alert alert-warning"><i class="fas fa-info-circle mr-2"></i>Seçilen sınav için bu öğrencinin verisi bulunamadı.</div>`;
+        r.innerHTML = `<div class="alert alert-warning"><i class="fas fa-info-circle me-2"></i>Seçilen sınav için bu öğrencinin verisi bulunamadı.</div>`;
         return;
       }
       let curIdx = ex.indexOf(curExam);
@@ -1221,6 +1232,9 @@ function rAnl(){
       let subjects = Object.keys(curExam.subs || {}).sort();
       let _pubLbl  = curExam.publisher ? ` (${toTitleCase(curExam.publisher)})` : '';
       let _exLabel = (typeof toExamLabel==='function') ? toExamLabel(eT) : eT;
+      let _pubLblSafe = escapeHtml(_pubLbl);
+      let _exLabelSafe = escapeHtml(_exLabel);
+      let curExamDateSafe = escapeHtml(curExam.date);
 
       // ==================== SINAV ÖZETİ (summary) ====================
       if(sb === 'summary' || sb === ''){
@@ -1316,27 +1330,27 @@ function rAnl(){
           let dIns = (net !== null && insA !== null) ? (net - insA) : null;
           let fmt = v => v === null ? '—' : (v>0?'+':'') + v.toFixed(2);
           let cls = v => v === null ? '' : (v > 0 ? 'text-success' : (v < 0 ? 'text-danger' : ''));
-          return `<tr><td>${i+1}</td><td>${toTitleCase(s)}</td><td>${dog}</td><td>${yan}</td><td><strong>${net===null?'—':net.toFixed(2)}</strong></td><td>${clsA===null?'—':clsA.toFixed(2)}</td><td class="${cls(dCls)} font-weight-bold">${fmt(dCls)}</td><td>${insA===null?'—':insA.toFixed(2)}</td><td class="${cls(dIns)} font-weight-bold">${fmt(dIns)}</td></tr>`;
+          return `<tr><td>${i+1}</td><td>${toTitleCase(s)}</td><td>${dog}</td><td>${yan}</td><td><strong>${net===null?'—':net.toFixed(2)}</strong></td><td>${clsA===null?'—':clsA.toFixed(2)}</td><td class="${cls(dCls)} fw-bold">${fmt(dCls)}</td><td>${insA===null?'—':insA.toFixed(2)}</td><td class="${cls(dIns)} fw-bold">${fmt(dIns)}</td></tr>`;
         }).join('');
         // Toplam Net satırı (vurgulu)
         let _tnStu = curExam.totalNet, _tnCls = clsVals[clsVals.length-1], _tnIns = insVals[insVals.length-1];
         let _dTC = (_tnStu!==null&&_tnCls!==null)?(_tnStu-_tnCls):null, _dTI = (_tnStu!==null&&_tnIns!==null)?(_tnStu-_tnIns):null;
         let _fmtT = v => v===null?'—':(v>0?'+':'')+v.toFixed(2);
         let _clsT = v => v===null?'':(v>0?'text-success':(v<0?'text-danger':''));
-        rowsSE += `<tr class="avg-row" style="font-weight:bold;"><td><strong>Σ</strong></td><td>Toplam Net</td><td>—</td><td>—</td><td><strong>${_tnStu!==null&&_tnStu!==undefined?_tnStu.toFixed(2):'—'}</strong></td><td>${_tnCls!==null?_tnCls.toFixed(2):'—'}</td><td class="${_clsT(_dTC)} font-weight-bold">${_fmtT(_dTC)}</td><td>${_tnIns!==null?_tnIns.toFixed(2):'—'}</td><td class="${_clsT(_dTI)} font-weight-bold">${_fmtT(_dTI)}</td></tr>`;
+        rowsSE += `<tr class="avg-row avg-row-strong"><td><strong>Σ</strong></td><td>Toplam Net</td><td>—</td><td>—</td><td><strong>${_tnStu!==null&&_tnStu!==undefined?_tnStu.toFixed(2):'—'}</strong></td><td>${_tnCls!==null?_tnCls.toFixed(2):'—'}</td><td class="${_clsT(_dTC)} fw-bold">${_fmtT(_dTC)}</td><td>${_tnIns!==null?_tnIns.toFixed(2):'—'}</td><td class="${_clsT(_dTI)} fw-bold">${_fmtT(_dTI)}</td></tr>`;
 
-        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Tek_Sinav',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Tek_Sinav',this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
         <div id="pS" class="card shadow-sm">
           <div class="report-header">
-            <span style="font-size:16px;"><i class="fas fa-file-alt mr-2"></i><strong>${st.name}</strong> — ${_exLabel} (${curExam.date}${_pubLbl})</span>
-            <span style="font-size:13px;">Sınıf: ${st.class}</span>
+            <span class="report-title-main"><i class="fas fa-file-alt me-2"></i><strong>${stNameSafe}</strong> — ${_exLabelSafe} (${curExamDateSafe}${_pubLblSafe})</span>
+            <span class="report-title-sub">Sınıf: ${stClassSafe}</span>
           </div>
-          <div class="card-body" style="padding-top:8px;">
+          <div class="card-body report-card-body-spacious">
             <div class="single-exam-cards">${cardsHtml}</div>
             ${seExtraCardsHtml}
             ${riskHtml}
             <div class="single-exam-chart-title"><i class="fas fa-chart-bar"></i>Ders Bazlı Net Karşılaştırması</div>
-            <div class="chart-box avoid-break" style="height:280px;"><canvas id="cA"></canvas></div>
+            <div class="chart-box chart-box-xl avoid-break"><canvas id="cA"></canvas></div>
             ${totalNetTrendCard}
             ${buildSubjectSparklines(no, eT, curExam, subjects)}
             <div class="table-responsive mt-3"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Ders</th><th>D</th><th>Y</th><th>Net</th><th>Sınıf Ort.</th><th>Sınıf Fark</th><th>Kurum Ort.</th><th>Kurum Fark</th></tr></thead><tbody>${rowsSE}</tbody></table></div>
@@ -1402,7 +1416,7 @@ function rAnl(){
         let card2 = `<div class="col-md-3 col-sm-6"><div class="sec-card ${dCls}">
           <div class="sec-icon"><i class="fas ${dIcon}"></i></div>
           <div class="sec-body"><div class="sec-label">Önceki Sınava Fark</div>
-          <div class="sec-value">${delta!==null?dSign+delta.toFixed(2):'—'} <small style="font-size:0.62em;font-weight:600;color:#6c757d;">net</small></div>
+          <div class="sec-value">${delta!==null?dSign+delta.toFixed(2):'—'} <small class="sec-unit">net</small></div>
           <div class="sec-sub">${prevNet!==null?'Önceki: '+prevNet.toFixed(2):'Önceki veri yok'}</div>
           </div></div></div>`;
 
@@ -1413,14 +1427,14 @@ function rAnl(){
         let card3 = `<div class="col-md-3 col-sm-6"><div class="sec-card ${_fCs}">
           <div class="sec-icon"><i class="fas fa-users"></i></div>
           <div class="sec-body"><div class="sec-label">Sınıf Karşılaştırma</div>
-          <div class="sec-value">${clsA!==null?clsA.toFixed(2):'—'} <small style="font-size:0.62em;font-weight:600;">ort</small></div>
+          <div class="sec-value">${clsA!==null?clsA.toFixed(2):'—'} <small class="sec-unit-muted">ort</small></div>
           <div class="sec-sub">Fark: ${_fC!==null?(_fC>0?'+':'')+_fC.toFixed(2):'—'}${clsZ!==null?' · Z: '+clsZ.toFixed(2):''}${clsPerc!==null?' · Top %'+(100-clsPerc):''}</div>
           </div></div></div>`;
 
         let card4 = `<div class="col-md-3 col-sm-6"><div class="sec-card ${_fIs}">
           <div class="sec-icon"><i class="fas fa-school"></i></div>
           <div class="sec-body"><div class="sec-label">Kurum Karşılaştırma</div>
-          <div class="sec-value">${insA!==null?insA.toFixed(2):'—'} <small style="font-size:0.62em;font-weight:600;">ort</small></div>
+          <div class="sec-value">${insA!==null?insA.toFixed(2):'—'} <small class="sec-unit-muted">ort</small></div>
           <div class="sec-sub">Fark: ${_fI!==null?(_fI>0?'+':'')+_fI.toFixed(2):'—'}${insZ!==null?' · Z: '+insZ.toFixed(2):''}${insPerc!==null?' · Top %'+(100-insPerc):''}</div>
           </div></div></div>`;
 
@@ -1428,11 +1442,11 @@ function rAnl(){
         let dybBar = '';
         if(dog!==null && yan!==null && sn.total){
           let pD=Math.round(dog/sn.total*100), pY=Math.round(yan/sn.total*100), pB=100-pD-pY;
-          dybBar = `<div class="single-exam-chart-title" style="margin-top:12px;"><i class="fas fa-tasks"></i>Doğru / Yanlış / Boş Dağılımı</div>
-          <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;font-size:0.75rem;font-weight:600;margin-bottom:10px;">
-            <div style="width:${pD}%;background:#28a745;color:#fff;display:flex;align-items:center;justify-content:center;">${dog} D (${pD}%)</div>
-            <div style="width:${pY}%;background:#dc3545;color:#fff;display:flex;align-items:center;justify-content:center;">${yan} Y (${pY}%)</div>
-            <div style="width:${pB}%;background:#e9ecef;color:#6c757d;display:flex;align-items:center;justify-content:center;">${bos!==null?bos:'?'} B (${pB}%)</div>
+          dybBar = `<div class="single-exam-chart-title dyb-title-offset"><i class="fas fa-tasks"></i>Doğru / Yanlış / Boş Dağılımı</div>
+          <div class="dyb-bar">
+            <div class="dyb-segment correct" style="--dyb-width:${pD}%;">${dog} D (${pD}%)</div>
+            <div class="dyb-segment wrong" style="--dyb-width:${pY}%;">${yan} Y (${pY}%)</div>
+            <div class="dyb-segment blank" style="--dyb-width:${pB}%;">${bos!==null?bos:'?'} B (${pB}%)</div>
           </div>`;
         }
 
@@ -1441,15 +1455,15 @@ function rAnl(){
 
         // Tek ders çubuk grafik (öğrenci vs sınıf vs kurum — sadece bu ders)
         let singleBarHtml = `<div class="single-exam-chart-title"><i class="fas fa-chart-bar"></i>${subjKey} — Karşılaştırma</div>
-          <div class="chart-box avoid-break" style="height:220px;"><canvas id="cA"></canvas></div>`;
+          <div class="chart-box chart-box-md avoid-break"><canvas id="cA"></canvas></div>`;
 
-        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Ders',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Ders',this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
         <div id="pS" class="card shadow-sm">
           <div class="report-header">
-            <span style="font-size:16px;"><i class="fas fa-book-open mr-2"></i><strong>${st.name}</strong> — ${subjKey} (${curExam.date}${_pubLbl})</span>
-            <span style="font-size:13px;">Sınıf: ${st.class} | ${_exLabel}</span>
+            <span class="report-title-main"><i class="fas fa-book-open me-2"></i><strong>${stNameSafe}</strong> — ${escapeHtml(subjKey)} (${curExamDateSafe}${_pubLblSafe})</span>
+            <span class="report-title-sub">Sınıf: ${stClassSafe} | ${_exLabelSafe}</span>
           </div>
-          <div class="card-body" style="padding-top:8px;">
+          <div class="card-body report-card-body-spacious">
             <div class="row">${card1}${card2}${card3}${card4}</div>
             ${dybBar}
             ${singleBarHtml}
@@ -1511,7 +1525,7 @@ function rAnl(){
 
         let card1 = `<div class="col-md-3 col-sm-6"><div class="sec-card">
           <div class="sec-icon"><i class="fas fa-star"></i></div>
-          <div class="sec-body"><div class="sec-label">${ls}</div>
+          <div class="sec-body"><div class="sec-label">${escapeHtml(ls)}</div>
           <div class="sec-value">${fmtV(curVal)}</div>
           <div class="sec-sub">${curExam.date}${_pubLbl}</div>
           </div></div></div>`;
@@ -1531,29 +1545,29 @@ function rAnl(){
         let card3 = `<div class="col-md-3 col-sm-6"><div class="sec-card ${_fCs2}">
           <div class="sec-icon"><i class="fas fa-users"></i></div>
           <div class="sec-body"><div class="sec-label">Sınıf ${isRank?'Sıra':'Karşılaştırma'}</div>
-          <div class="sec-value">${clsA!==null?fmtV(clsA):'—'} <small style="font-size:0.62em;font-weight:600;">ort</small></div>
+          <div class="sec-value">${clsA!==null?fmtV(clsA):'—'} <small class="sec-unit-muted">ort</small></div>
           <div class="sec-sub">${!isRank&&_fC!==null?'Fark: '+(_fC>0?'+':'')+_fC.toFixed(2):''}${clsZ!==null?' · Z: '+clsZ.toFixed(2):''}${clsPerc!==null?' · Top %'+(100-clsPerc):''}</div>
           </div></div></div>`;
 
         let card4 = `<div class="col-md-3 col-sm-6"><div class="sec-card ${_fIs2}">
           <div class="sec-icon"><i class="fas fa-school"></i></div>
           <div class="sec-body"><div class="sec-label">Kurum ${isRank?'Sıra':'Karşılaştırma'}</div>
-          <div class="sec-value">${insA!==null?fmtV(insA):'—'} <small style="font-size:0.62em;font-weight:600;">ort</small></div>
+          <div class="sec-value">${insA!==null?fmtV(insA):'—'} <small class="sec-unit-muted">ort</small></div>
           <div class="sec-sub">${!isRank&&_fI!==null?'Fark: '+(_fI>0?'+':'')+_fI.toFixed(2):''}${insZ!==null?' · Z: '+insZ.toFixed(2):''}${insPerc!==null?' · Top %'+(100-insPerc):''}</div>
           </div></div></div>`;
 
         let trendCard = _buildSingleMetricSparkline(no, eT, curExam, sb, ls);
 
-        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Veri',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
+        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Veri',this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
         <div id="pS" class="card shadow-sm">
           <div class="report-header">
-            <span style="font-size:16px;"><i class="fas fa-chart-line mr-2"></i><strong>${st.name}</strong> — ${ls} (${curExam.date}${_pubLbl})</span>
-            <span style="font-size:13px;">Sınıf: ${st.class} | ${_exLabel}</span>
+            <span class="report-title-main"><i class="fas fa-chart-line me-2"></i><strong>${stNameSafe}</strong> — ${escapeHtml(ls)} (${curExamDateSafe}${_pubLblSafe})</span>
+            <span class="report-title-sub">Sınıf: ${stClassSafe} | ${_exLabelSafe}</span>
           </div>
-          <div class="card-body" style="padding-top:8px;">
+          <div class="card-body report-card-body-spacious">
             <div class="row">${card1}${card2}${card3}${card4}</div>
-            <div class="single-exam-chart-title"><i class="fas fa-chart-line"></i>${ls} — Sınav Trend</div>
-            <div class="chart-box avoid-break" style="height:280px;"><canvas id="cA"></canvas></div>
+            <div class="single-exam-chart-title"><i class="fas fa-chart-line"></i>${escapeHtml(ls)} — Sınav Trend</div>
+            <div class="chart-box chart-box-xl avoid-break"><canvas id="cA"></canvas></div>
             ${trendCard}
           </div>
         </div>`;
@@ -1591,7 +1605,7 @@ function rAnl(){
       } else { dfStr = '-'; }
       let pub = e.publisher || '—';
       let nDisplay = n === null ? '—' : (isRank ? n : n.toFixed(2));
-      rows+=`<tr><td>${i+1}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td><td>${nDisplay}</td><td class="${cl} font-weight-bold">${dfStr}</td></tr>`; dD.push(n);
+      rows+=`<tr><td>${i+1}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td><td>${nDisplay}</td><td class="${cl} fw-bold">${dfStr}</td></tr>`; dD.push(n);
       if(!isRank){
         let cn=DB.e.filter(x=>x.date===e.date&&x.examType===eT&&x.studentClass===st.class&&!x.abs).map(getVal).filter(v=>v!==null);
         clsArr.push(cn.length?(cn.reduce((a,b)=>a+b,0)/cn.length):null);
@@ -1610,7 +1624,7 @@ function rAnl(){
       let displayStu = isRank ? Math.round(stuAvg) : stuAvg.toFixed(2);
       let displayCls = clsAvg !== null ? (isRank ? Math.round(clsAvg) : clsAvg.toFixed(2)) : '—';
       let displayGen = genAvg !== null ? (isRank ? Math.round(genAvg) : genAvg.toFixed(2)) : '—';
-      avgRowHtml = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Öğrenci Ortalama</td><td>${displayStu}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Sınıf Ortalama (${st.class})</td><td>${displayCls}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">Kurum Ortalama (${stGrade}. Sınıflar)</td><td>${displayGen}</td><td>—</td></tr>`;
+      avgRowHtml = `<tr class="avg-row"><td colspan="3" class="avg-label">Öğrenci Ortalama</td><td>${displayStu}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Sınıf Ortalama (${stClassSafe})</td><td>${displayCls}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${stGrade}. Sınıflar)</td><td>${displayGen}</td><td>—</td></tr>`;
     }
 
     // sb'ye göre görünen metrik etiketi — istatistik kartlarında ve trend bloğunda kullanılır
@@ -1652,17 +1666,17 @@ function rAnl(){
       </div>`;
     }
 
-    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-    <div id="pS" class="card shadow-sm" style="border-top:3px solid #17a2b8;">
+    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pS','Ogrenci_Analizi',this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+    <div id="pS" class="card shadow-sm report-card report-card-info">
       <div class="report-header">
-        <span style="font-size:16px;"><i class="fas fa-chart-line mr-2"></i><strong>${st.name}</strong> — Analiz (${ls})</span>
-        <span style="font-size:13px;">Sınıf: ${st.class} | ${eT}</span>
+        <span class="report-title-main"><i class="fas fa-chart-line me-2"></i><strong>${stNameSafe}</strong> — Analiz (${escapeHtml(ls)})</span>
+        <span class="report-title-sub">Sınıf: ${stClassSafe} | ${eTSafe}</span>
       </div>
-      <div class="card-body" style="padding-top:5px;">
+      <div class="card-body report-card-body">
         ${karneCardsHtml}${stuRiskHtml}${perfHtml}
         <div id="stuBoxPlotArea"></div>
         <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tS"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th><th>${valHeader}</th><th>Değişim</th></tr></thead><tbody>${rows}${avgRowHtml}</tbody></table></div>
-        <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+        <div class="chart-box chart-box-top avoid-break"><canvas id="cA"></canvas></div>
       </div>
     </div>`;
     r.innerHTML=h;
@@ -1708,11 +1722,11 @@ function rAnl(){
     let classAvgRows = '', sortedClasses = [...cs].sort();
     sortedClasses.forEach(clsName => {
       let clsExams = ex.filter(x => x.studentClass === clsName), clsVals = clsExams.map(x => { if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; });
-      if(clsVals.length > 0) { let clsAvg = (clsVals.reduce((a,b)=>a+b,0)/clsVals.length).toFixed(2); classAvgRows += `<tr class="avg-row"><td colspan="4" style="text-align:right; padding-right:15px;">${clsName} Ortalama</td><td>${clsAvg}</td></tr>`; }
+      if(clsVals.length > 0) { let clsAvg = (clsVals.reduce((a,b)=>a+b,0)/clsVals.length).toFixed(2); classAvgRows += `<tr class="avg-row"><td colspan="4" class="avg-label">${clsName} Ortalama</td><td>${clsAvg}</td></tr>`; }
     });
     
     let clsAvgRow = classAvgRows, lvlLabel = lvlForAvg ? `${lvlForAvg}. Sınıflar` : 'Tüm Sınıflar';
-    if (allVals.length > 0) { let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2); clsAvgRow += `<tr class="avg-row"><td colspan="4" style="text-align:right; padding-right:15px;">Kurum Ortalama (${lvlLabel})</td><td>${genAvg}</td></tr>`; }
+    if (allVals.length > 0) { let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2); clsAvgRow += `<tr class="avg-row"><td colspan="4" class="avg-label">Kurum Ortalama (${lvlLabel})</td><td>${genAvg}</td></tr>`; }
     let clsLabel=''; {let lv=getEl('aLvl').value,br=getBrVal(); if(lv&&br)clsLabel=lv+br; else if(lv)clsLabel=lv+'. Sınıflar'; else if(br)clsLabel=br; else clsLabel='Hepsi';}
     
     let clsPerfHtml = '';
@@ -1758,7 +1772,7 @@ function rAnl(){
       //   arasında yapay varyans farkı oluşur (sınav sayısı Cohen's d'yi etkiler).
       //   Öğrenci başına ortalama, ölçeği eşitler ve gerçek grup farkını yansıtır.
       // Minimum n≥10 öğrenci: küçük örneklemlerde Cohen's d güvenilir değildir
-      //   (SE büyür, d kolayca ±∞ alır). 10 öğrenci APA'nın önerdiği alt sınırdır.
+      //   (standart hata büyür, etki büyüklüğü kolayca aşırı oynar).
       let cohenHtml = '';
       if(showCompCards && sd.length >= 2) {
         // Her şube için öğrenci başına ortalama
@@ -1783,7 +1797,7 @@ function rAnl(){
             if(dC === null || !isFinite(dC)) return null;
             let lC = _cohenLabel(dC);
             let colC = Math.abs(dC) >= 0.8 ? '#dc3545' : (Math.abs(dC) >= 0.5 ? '#fd7e14' : (Math.abs(dC) >= 0.2 ? '#ffc107' : '#28a745'));
-            return `<div class="sec-sub" style="color:${colC};font-weight:600;">${lC} fark — ${best.cls} vs ${c.cls}</div>`;
+            return `<div class="sec-sub sec-sub-comparison" style="--metric-color:${colC};">${escapeHtml(lC)} fark — ${escapeHtml(best.cls)} vs ${escapeHtml(c.cls)}</div>`;
           }).filter(Boolean);
 
           // Ana değer: en iyi vs en düşük
@@ -1793,9 +1807,9 @@ function rAnl(){
             let labMain = _cohenLabel(dMain);
             let dColorMain = Math.abs(dMain) >= 0.8 ? '#dc3545' : (Math.abs(dMain) >= 0.5 ? '#fd7e14' : (Math.abs(dMain) >= 0.2 ? '#ffc107' : '#28a745'));
             let compHtml = compLines.length > 0
-              ? `<div style="margin-top:4px;max-height:80px;overflow-y:auto;">${compLines.join('')}</div>`
+              ? `<div class="comparison-list">${compLines.join('')}</div>`
               : `<div class="sec-sub">${labMain} fark — ${best.cls} vs ${worst.cls}</div>`;
-            cohenHtml = `<div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div><div class="sec-value" style="color:${dColorMain};">d = ${dMain.toFixed(2)}</div>${compHtml}</div></div></div>`;
+            cohenHtml = `<div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div><div class="sec-value" style="--metric-color:${dColorMain}; color:var(--metric-color);">d = ${dMain.toFixed(2)}</div>${compHtml}</div></div></div>`;
           }
         }
       }
@@ -1811,7 +1825,7 @@ function rAnl(){
         let _dCls = _delta===null?'sec-neutral':(_delta>0?'sec-pos':(_delta<0?'sec-neg':'sec-neutral'));
         let _dSign = _delta!==null?(_delta>0?'+':''):'';
         singleExamSingleBranchHtml = `<div class="row mb-3">
-          <div class="col-md-4 flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-school"></i></div><div class="sec-body"><div class="sec-label">Şube Ortalaması</div><div class="sec-value">${_brAvg.toFixed(2)}</div><div class="sec-sub">${sortedClasses[0]} · ${ls}</div></div></div></div>
+          <div class="col-md-4 flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-school"></i></div><div class="sec-body"><div class="sec-label">Şube Ortalaması</div><div class="sec-value">${_brAvg.toFixed(2)}</div><div class="sec-sub">${escapeHtml(sortedClasses[0])} · ${escapeHtml(ls)}</div></div></div></div>
           ${_instAvg!==null?`<div class="col-md-4 flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-building"></i></div><div class="sec-body"><div class="sec-label">Kurum Ortalaması</div><div class="sec-value">${_instAvg.toFixed(2)}</div><div class="sec-sub">${lvlForAvg?lvlForAvg+'. Sınıflar':''} · ${_instValsForDate.length} kayıt</div></div></div></div>`:''}
           ${_delta!==null?`<div class="col-md-4 flex-fill mb-2"><div class="sec-card ${_dCls} h-100"><div class="sec-icon"><i class="fas fa-exchange-alt"></i></div><div class="sec-body"><div class="sec-label">Şube − Kurum Farkı</div><div class="sec-value">${_dSign}${_delta.toFixed(2)}</div><div class="sec-sub">${_delta>0?'Kurum üstünde':'Kurum altında'}</div></div></div></div>`:''}
         </div>`;
@@ -1873,12 +1887,12 @@ function rAnl(){
       return String(a.name||'').localeCompare(String(b.name||''),'tr',{sensitivity:'base'});
     });
     let top5Stu = stuRankArr.slice(0, 5), bottom5Stu = stuRankArr.slice(-5).reverse();
-    let stuTop5Html = top5Stu.length ? top5Stu.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
-    let stuBottom5Html = bottom5Stu.length ? bottom5Stu.map((s,i) => `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    let stuTop5Html = top5Stu.length ? top5Stu.map((s,i) => `<tr><td>${i+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
+    let stuBottom5Html = bottom5Stu.length ? bottom5Stu.map((s,i) => `<tr><td>${i + 1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted">Veri yok</td></tr>';
     
     let top5Bottom5Html = stuRankArr.length > 0 ? `<div class="row mt-3">
-      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuTop5Html}</tbody></table></div></div></div>
-      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${ls})</th></tr></thead><tbody>${stuBottom5Html}</tbody></table></div></div></div>
+      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy me-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-compact"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${escapeHtml(ls)})</th></tr></thead><tbody>${stuTop5Html}</tbody></table></div></div></div>
+      <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle me-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-compact"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort. (${escapeHtml(ls)})</th></tr></thead><tbody>${stuBottom5Html}</tbody></table></div></div></div>
     </div>` : '';
 
     // 1-D: Tek şube - ilerleme/gerileme kartları (showCompCards=false olsa bile gösterilir)
@@ -1905,8 +1919,8 @@ function rAnl(){
       let _worstProg = _slopeArr.length > 0 && _slopeArr[_slopeArr.length-1].slope < 0 ? _slopeArr[_slopeArr.length-1] : null;
       if(_bestProg || _worstProg) {
         progressRegressionHtml = `<div class="row mb-3">
-          ${_bestProg ? `<div class="col-md-6 mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-rocket"></i></div><div class="sec-body"><div class="sec-label">En Fazla İlerleme</div><div class="sec-value" style="font-size:1.05em;">${_bestProg.name} <small>(${_bestProg.cls})</small></div><div class="sec-sub">Sınav başına +${_bestProg.slope.toFixed(2)} · ${_bestProg.cnt} sınav</div></div></div></div>` : ''}
-          ${_worstProg ? `<div class="col-md-6 mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">En Fazla Gerileme</div><div class="sec-value" style="font-size:1.05em;">${_worstProg.name} <small>(${_worstProg.cls})</small></div><div class="sec-sub">Sınav başına ${_worstProg.slope.toFixed(2)} · ${_worstProg.cnt} sınav</div></div></div></div>` : ''}
+          ${_bestProg ? `<div class="col-md-6 mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-rocket"></i></div><div class="sec-body"><div class="sec-label">En Fazla İlerleme</div><div class="sec-value sec-value-compact">${_bestProg.name} <small>(${_bestProg.cls})</small></div><div class="sec-sub">Sınav başına +${_bestProg.slope.toFixed(2)} · ${_bestProg.cnt} sınav</div></div></div></div>` : ''}
+          ${_worstProg ? `<div class="col-md-6 mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">En Fazla Gerileme</div><div class="sec-value sec-value-compact">${_worstProg.name} <small>(${_worstProg.cls})</small></div><div class="sec-sub">Sınav başına ${_worstProg.slope.toFixed(2)} · ${_worstProg.cnt} sınav</div></div></div></div>` : ''}
         </div>`;
       }
     }
@@ -1949,32 +1963,32 @@ function rAnl(){
 
         clsTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
           <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Sınıf ortalamasının zaman içindeki yönü">
-            <span class="trend-indicator ${clsTClass}"><i class="fas ${clsTIcon} mr-1"></i>${clsTText}</span>
+            <span class="trend-indicator ${clsTClass}"><i class="fas ${clsTIcon} me-1"></i>${clsTText}</span>
             <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
             <div class="x-small text-muted">Sınıf ortalamasının yönü</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="İlk sınavdan son sınava ortalamadaki net değişim (regresyon)">
-            <div style="font-size:1.4em;font-weight:bold;color:${clsTColor};">${clsTSign}${clsTTotal.toFixed(2)}</div>
+            <div class="trend-metric-value" style="--metric-color:${clsTColor};">${clsTSign}${clsTTotal.toFixed(2)}</div>
             <div class="small text-muted"><strong>Toplam Net Değişimi</strong></div>
             <div class="x-small text-muted">Süreç Boyunca</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Her yeni sınavda beklenen ortalama değişim">
-            <div style="font-size:1.4em;font-weight:bold;color:${clsTColor};">${clsSSign}${clsTSlope.toFixed(2)}</div>
+            <div class="trend-metric-value" style="--metric-color:${clsTColor};">${clsSSign}${clsTSlope.toFixed(2)}</div>
             <div class="small text-muted"><strong>Sınav Başına Değişim</strong></div>
             <div class="x-small text-muted">(Regresyon Analizi)</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Analize dahil edilen toplam sınav sayısı">
-            <div style="font-size:1.4em;font-weight:bold;">${dateAvgSeries.length}</div>
+            <div class="trend-metric-value">${dateAvgSeries.length}</div>
             <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
             <div class="x-small text-muted">Trend hesabına dahil</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrencilerin ortalama etrafındaki dağılımı (örneklem standart sapması, n-1). Düşük = homojen sınıf.">
-            <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${ssVal.toFixed(2)}</div>
+            <div class="trend-metric-value trend-tone-purple">±${ssVal.toFixed(2)}</div>
             <div class="small text-muted"><strong>Sınıf İçi Dağılım</strong></div>
             <div class="x-small text-muted">${_consistencyLabelC}</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="En yüksek ortalamalı sınıf ile en düşük arasındaki fark">
-            <div style="font-size:1.4em;font-weight:bold;color:#fd7e14;">${mmDiff !== null ? mmDiff.toFixed(2) : '—'}</div>
+            <div class="trend-metric-value text-warning">${mmDiff !== null ? mmDiff.toFixed(2) : '—'}</div>
             <div class="small text-muted"><strong>Şubeler Arası Fark</strong></div>
             <div class="x-small text-muted">En iyi − en düşük şube</div>
           </div>
@@ -1982,28 +1996,28 @@ function rAnl(){
         <div class="row mt-2 pt-2 border-top">
           <div class="col-12 text-center" title="R² (determinasyon katsayısı): 1'e yakınsa trend veriye iyi uyuyor, 0'a yakınsa gürültülü. Adaptif eşik: n=${dateAvgSeries.length} sınav için min R²=${clsTR2Thr.toFixed(2)}.">
             <span class="x-small text-muted">Trend Güvenilirliği (R²):&nbsp;</span>
-            <strong style="font-size:0.9em; color:${clsTR2Col};">${clsTR2.toFixed(2)}</strong>
-            <span class="x-small text-muted ml-1">— ${clsTR2Lab}</span>
+            <strong class="trend-r2-value" style="--metric-color:${clsTR2Col};">${clsTR2.toFixed(2)}</strong>
+            <span class="x-small text-muted ms-1">— ${clsTR2Lab}</span>
           </div>
         </div>
         </div>`;
       }
     }
 
-    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-    <div id="pC" class="card shadow-sm" style="border-top:3px solid #28a745;">
+    let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pC','Sinif_Analizi',this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+    <div id="pC" class="card shadow-sm report-card report-card-success">
       <div class="report-header">
-        <span style="font-size:16px;"><i class="fas fa-users mr-2"></i>Sınıf Analizi — ${eT} (${ls})</span>
-        <span style="font-size:13px;">${clsLabel}</span>
+        <span class="report-title-main"><i class="fas fa-users me-2"></i>Sınıf Analizi — ${escapeHtml(eT)} (${escapeHtml(ls)})</span>
+        <span class="report-title-sub">${escapeHtml(clsLabel)}</span>
       </div>
-      <div class="card-body" style="padding-top:5px;">
+      <div class="card-body report-card-body">
         ${clsPerfHtml}
         ${progressRegressionHtml}
         ${clsTrendHtml}
         <div id="clsBoxPlotArea"></div>
         ${top5Bottom5Html}
         <div class="table-responsive"><table class="table table-sm table-hover table-bordered" id="tC"><thead><tr><th>#</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th><th>Ortalama</th></tr></thead><tbody>${tr.join('')}${clsAvgRow}</tbody></table></div>
-        <div class="chart-box avoid-break" style="margin-top:10px;"><canvas id="cA"></canvas></div>
+        <div class="chart-box chart-box-top avoid-break"><canvas id="cA"></canvas></div>
       </div>
     </div>`;
     r.innerHTML=h;
@@ -2037,7 +2051,7 @@ function rAnl(){
         });
         if(Object.keys(classDataMap).length >= 1) {
           let lbl = sb === 'score' ? 'Puan' : (sb === 'totalNet' || !sb ? 'Toplam Net' : toTitleCase(sb.replace('s_','')) + ' Neti');
-          clsBPArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım — ${lbl} (Bireysel Sonuçlar)</div>${mkMultiClassBoxPlot(classDataMap, null, {height:220, title:''}, allGradeValsForBP.length>=3?allGradeValsForBP:null)}</div>`;
+          clsBPArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open me-1 text-success"></i>Sınıflar Arası Dağılım — ${escapeHtml(lbl)} (Bireysel Sonuçlar)</div>${mkMultiClassBoxPlot(classDataMap, null, {height:220, title:''}, allGradeValsForBP.length>=3?allGradeValsForBP:null)}</div>`;
         }
       }
     },100);
@@ -2141,32 +2155,32 @@ function rAnl(){
 
         subjTrendHtml = `<div class="trend-card mb-3"><div class="row align-items-center">
           <div class="col-6 col-md-2 text-center mb-2 mb-md-0" title="Bu dersin ortalamasının zaman içindeki yönü">
-            <span class="trend-indicator ${subjTClass}"><i class="fas ${subjTIcon} mr-1"></i>${subjTText}</span>
+            <span class="trend-indicator ${subjTClass}"><i class="fas ${subjTIcon} me-1"></i>${subjTText}</span>
             <div class="mt-2 small text-muted"><strong>Genel Eğilim</strong></div>
             <div class="x-small text-muted">Ders ortalamasının yönü</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="İlk sınavdan son sınava ders ortalamasındaki değişim (regresyon)">
-            <div style="font-size:1.4em;font-weight:bold;color:${subjTColor};">${subjTSign}${subjTotal.toFixed(2)}</div>
+            <div class="trend-metric-value" style="--metric-color:${subjTColor};">${subjTSign}${subjTotal.toFixed(2)}</div>
             <div class="small text-muted"><strong>Toplam Net Değişimi</strong></div>
             <div class="x-small text-muted">Süreç Boyunca</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Her yeni sınavda derste beklenen değişim">
-            <div style="font-size:1.4em;font-weight:bold;color:${subjTColor};">${subjSSign}${subjSlope.toFixed(2)}</div>
+            <div class="trend-metric-value" style="--metric-color:${subjTColor};">${subjSSign}${subjSlope.toFixed(2)}</div>
             <div class="small text-muted"><strong>Sınav Başına Değişim</strong></div>
             <div class="x-small text-muted">(Regresyon Analizi)</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Trend hesabına dahil edilen toplam sınav sayısı">
-            <div style="font-size:1.4em;font-weight:bold;">${subjDateAvgSeries.length}</div>
+            <div class="trend-metric-value">${subjDateAvgSeries.length}</div>
             <div class="small text-muted"><strong>Sınav Sayısı</strong></div>
             <div class="x-small text-muted">Bu dersi içeren sınavlar</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Öğrenci netlerinin ortalama etrafındaki dağılımı (örneklem standart sapması, n-1)">
-            <div style="font-size:1.4em;font-weight:bold;color:#6f42c1;">±${subjSS.toFixed(2)}</div>
+            <div class="trend-metric-value trend-tone-purple">±${subjSS.toFixed(2)}</div>
             <div class="small text-muted"><strong>Öğrenciler Arası Dağılım</strong></div>
             <div class="x-small text-muted">${_consistencyLabelS}</div>
           </div>
           <div class="col-6 col-md-2 text-center border-left mb-2 mb-md-0" title="Bu derste en yüksek ve en düşük sınıf ortalaması arasındaki fark">
-            <div style="font-size:1.4em;font-weight:bold;color:#fd7e14;">${subjMMDiff !== null ? subjMMDiff.toFixed(2) : '—'}</div>
+            <div class="trend-metric-value text-warning">${subjMMDiff !== null ? subjMMDiff.toFixed(2) : '—'}</div>
             <div class="small text-muted"><strong>Sınıflar Arası Fark</strong></div>
             <div class="x-small text-muted">En iyi − en düşük sınıf</div>
           </div>
@@ -2174,8 +2188,8 @@ function rAnl(){
         <div class="row mt-2 pt-2 border-top">
           <div class="col-12 text-center" title="R² (determinasyon katsayısı): 1'e yakınsa ders trendi güçlü, 0'a yakınsa gürültülü. Adaptif eşik: n=${subjDateAvgSeries.length} sınav için min R²=${subjR2Thr.toFixed(2)}.">
             <span class="x-small text-muted">Trend Güvenilirliği (R²):&nbsp;</span>
-            <strong style="font-size:0.9em; color:${subjR2Col};">${subjR2.toFixed(2)}</strong>
-            <span class="x-small text-muted ml-1">— ${subjR2Lab}</span>
+            <strong class="trend-r2-value" style="--metric-color:${subjR2Col};">${subjR2.toFixed(2)}</strong>
+            <span class="x-small text-muted ms-1">— ${subjR2Lab}</span>
           </div>
         </div>
         </div>`;
@@ -2212,7 +2226,7 @@ function rAnl(){
           if(dC === null || !isFinite(dC)) return null;
           let lC = _cohenLabel(dC);
           let colC = Math.abs(dC) >= 0.8 ? '#dc3545' : (Math.abs(dC) >= 0.5 ? '#fd7e14' : (Math.abs(dC) >= 0.2 ? '#ffc107' : '#28a745'));
-          return `<div class="sec-sub" style="color:${colC};font-weight:600;">${lC} fark — ${subjBestClsN} vs ${c.cls}</div>`;
+          return `<div class="sec-sub sec-sub-comparison" style="--metric-color:${colC};">${escapeHtml(lC)} fark — ${escapeHtml(subjBestClsN)} vs ${escapeHtml(c.cls)}</div>`;
         }).filter(Boolean);
 
         // Ana değer: en iyi vs en zayıf
@@ -2223,9 +2237,9 @@ function rAnl(){
           let subjDLab2 = _cohenLabel(subjD2);
           let subjDCol2 = Math.abs(subjD2) >= 0.8 ? '#dc3545' : (Math.abs(subjD2) >= 0.5 ? '#fd7e14' : (Math.abs(subjD2) >= 0.2 ? '#ffc107' : '#28a745'));
           let subjCompHtml = subjCompLines.length > 0
-            ? `<div style="margin-top:4px;max-height:80px;overflow-y:auto;">${subjCompLines.join('')}</div>`
+            ? `<div class="comparison-list">${subjCompLines.join('')}</div>`
             : `<div class="sec-sub">${subjDLab2} fark — ${subjBestClsN} vs ${subjWorstClsN2}</div>`;
-          subjCohenColHtml = `<div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div><div class="sec-value" style="color:${subjDCol2};">d = ${subjD2.toFixed(2)}</div>${subjCompHtml}</div></div></div>`;
+          subjCohenColHtml = `<div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Şubeler Arası Etki Büyüklüğü (Cohen's d)</div><div class="sec-value" style="--metric-color:${subjDCol2}; color:var(--metric-color);">d = ${subjD2.toFixed(2)}</div>${subjCompHtml}</div></div></div>`;
         }
       }
     }
@@ -2250,29 +2264,31 @@ function rAnl(){
 
     // Satır 3: En İyi Öğrenci | En Zayıf Öğrenci
     let subjRow3Html = `<div class="row mb-2">
-      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${bestStudent ? `${bestStudent.name} (${bestStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
-      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value" style="font-size:0.95em;">${worstStudent ? `${worstStudent.name} (${worstStudent.cls})` : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
+      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Öğrenci</div><div class="sec-value sec-value-small">${bestStudent ? `${escapeHtml(bestStudent.name)} (${escapeHtml(bestStudent.cls)})` : 'Veri Yok'}</div><div class="sec-sub">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
+      <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value sec-value-small">${worstStudent ? `${escapeHtml(worstStudent.name)} (${escapeHtml(worstStudent.cls)})` : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
     </div>`;
 
+    let subjTitle = toTitleCase(subj);
+    let subjReportName = safeFileName(`${subjTitle}_Analizi`);
     let h = `
-    <div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSubj','${toTitleCase(subj)}_Analizi',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-    <div id="pSubj" class="card shadow-sm" style="border-top:3px solid #007bff; background:#f4f6f9;">
+    <div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSubj',${jsArg(subjReportName)},this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+    <div id="pSubj" class="card shadow-sm report-card report-card-primary report-card-soft">
       <div class="report-header">
-        <span style="font-size:16px;"><i class="fas fa-book-open mr-2"></i><strong>${toTitleCase(subj)}</strong> — Ders Analizi</span>
-        <span style="font-size:13px;">${eT} | ${lvlStr} | Toplam ${dates.length} Sınav</span>
+        <span class="report-title-main"><i class="fas fa-book-open me-2"></i><strong>${escapeHtml(subjTitle)}</strong> — Ders Analizi</span>
+        <span class="report-title-sub">${escapeHtml(eT)} | ${escapeHtml(lvlStr)} | Toplam ${dates.length} Sınav</span>
       </div>
-      <div class="card-body" style="padding-top:5px;">
+      <div class="card-body report-card-body">
         ${subjRow1Html}
         ${subjRow2Html}
         ${subjRow3Html}
         ${subjTrendHtml}
         <div id="subjBoxPlotArea"></div>
         <div class="row">
-          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy mr-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
-          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle mr-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${bottom5.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.cls}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
-          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-info text-white"><h3 class="card-title m-0"><i class="fas fa-school mr-1"></i> Sınıf Ortalamaları</h3></div><div class="card-body p-0 table-responsive" style="max-height:200px;"><table class="table table-sm table-striped m-0" style="font-size:0.85em;"><thead><tr><th>#</th><th>Sınıf</th><th>Ort.Net</th><th>Kayıt</th></tr></thead><tbody>${clsArr.map((c,i) => `<tr><td>${i+1}</td><td>${c.cls}</td><td><strong>${c.avg.toFixed(2)}</strong></td><td>${c.count}</td></tr>`).join('')}</tbody></table></div></div></div>
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-trophy me-1"></i> En İyi 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-compact"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${top5.map((s,i) => `<tr><td>${i+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-exclamation-circle me-1"></i> En Düşük 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-compact"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Ort.Net</th></tr></thead><tbody>${bottom5.map((s,i) => `<tr><td>${i+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td><td><strong>${s.avg.toFixed(2)}</strong></td></tr>`).join('')}</tbody></table></div></div></div>
+          <div class="col-lg-4"><div class="card shadow-sm avoid-break"><div class="card-header bg-info text-white"><h3 class="card-title m-0"><i class="fas fa-school me-1"></i> Sınıf Ortalamaları</h3></div><div class="card-body p-0 table-responsive table-scroll-compact"><table class="table table-sm table-striped m-0 table-compact"><thead><tr><th>#</th><th>Sınıf</th><th>Ort.Net</th><th>Kayıt</th></tr></thead><tbody>${clsArr.map((c,i) => `<tr><td>${i+1}</td><td>${escapeHtml(c.cls)}</td><td><strong>${c.avg.toFixed(2)}</strong></td><td>${c.count}</td></tr>`).join('')}</tbody></table></div></div></div>
         </div>
-        <div class="chart-box mt-3 avoid-break" style="height:260px;"><canvas id="cA"></canvas></div>
+        <div class="chart-box chart-box-lg mt-3 avoid-break"><canvas id="cA"></canvas></div>
       </div>
     </div>`;
     r.innerHTML = h;
@@ -2296,7 +2312,7 @@ function rAnl(){
           let allGradeSubjVals = DB.e.filter(e => e.examType===eT && !e.abs && e.subs[toTitleCase(subj)] && (lvlForSubjBP ? getGrade(e.studentClass)===lvlForSubjBP : true)).map(e => e.subs[toTitleCase(subj)].net);
           let multiSVG = mkMultiClassBoxPlot(subjectClassMap, null, {height:220}, allGradeSubjVals.length >= 3 ? allGradeSubjVals : null);
           if(multiSVG) {
-            subjBPArea.innerHTML = `<div class="boxplot-card mt-2 mb-3"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım — ${toTitleCase(subj)}</div>${multiSVG}</div>`;
+            subjBPArea.innerHTML = `<div class="boxplot-card mt-2 mb-3"><div class="boxplot-title"><i class="fas fa-box-open me-1 text-success"></i>Sınıflar Arası Dağılım — ${escapeHtml(toTitleCase(subj))}</div>${multiSVG}</div>`;
           }
         }
       }
@@ -2363,10 +2379,10 @@ function rAnl(){
         let mostFirst = mostFirstArr.length > 0 ? mostFirstArr[0] : null;
         let mostFirstTie = mostFirst && mostFirstArr.length > 1 && mostFirstArr[1].first === mostFirst.first;
         let top5List = Object.values(stuStats).filter(x=>x.top5 > 0).sort((a,b) => b.top5 - a.top5).slice(0,5), bottom5List = Object.values(stuStats).filter(x=>x.bottom5 > 0).sort((a,b) => b.bottom5 - a.bottom5).slice(0,5);
-        let buildRow = (e, i, prop, countLabel) => `<tr><td>${i+1}</td><td>${e.no}</td><td>${e.name}</td><td>${e.cls}</td><td><strong>${e[prop]} ${countLabel}</strong></td><td>${e.avgNet.toFixed(2)}</td><td>${e.avgScore.toFixed(2)}</td></tr>`;
+        let buildRow = (e, i, prop, countLabel) => `<tr><td>${i+1}</td><td>${escapeHtml(e.no)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.cls)}</td><td><strong>${e[prop]} ${escapeHtml(countLabel)}</strong></td><td>${e.avgNet.toFixed(2)}</td><td>${e.avgScore.toFixed(2)}</td></tr>`;
         let top5Html = top5List.length ? top5List.map((e,i) => buildRow(e, i, 'top5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
         let bottom5Html = bottom5List.length ? bottom5List.map((e,i) => buildRow(e, i, 'bottom5', 'kez')).join('') : '<tr><td colspan="7" class="text-center">Veri yok</td></tr>';
-        let lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ', safeName = `${eT}_Genel_Ozet`;
+        let lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ', safeName = safeFileName(`${eT}_Genel_Ozet`);
 
         let eligibleStusGS = DB.s.filter(s => { let m = s.class.match(/^(\d+)/); if(targetLvl && m && m[1] !== targetLvl) return false; if(brFilterED) { let mm = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(mm && mm[2].toLocaleUpperCase('tr-TR') !== brFilterED) return false; } return true; });
         let gsExamGradeMap = {};
@@ -2417,10 +2433,10 @@ function rAnl(){
           // Sınıf bazlı ortalama net (Tüm Sınavlar bağlamı için)
           let _gsClsAvg = {};
           Object.values(stuStats).forEach(s => { if (!_gsClsAvg[s.cls]) _gsClsAvg[s.cls] = []; _gsClsAvg[s.cls].push(s.avgNet); });
-          let _gsClsHtml = Object.keys(_gsClsAvg).sort().map(cls => `<span style="font-size:0.78em;background:#f1f3f5;border-radius:6px;padding:2px 8px;color:#495057;"><strong>${cls}:</strong> ${(_gsClsAvg[cls].reduce((a,b)=>a+b,0)/_gsClsAvg[cls].length).toFixed(2)}</span>`).join('');
+          let _gsClsHtml = Object.keys(_gsClsAvg).sort().map(cls => `<span class="summary-pill"><strong>${escapeHtml(cls)}:</strong> ${(_gsClsAvg[cls].reduce((a,b)=>a+b,0)/_gsClsAvg[cls].length).toFixed(2)}</span>`).join('');
           gsStatsHtml = `
               <div class="row mt-2">
-                <div class="col-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-chart-bar"></i></div><div class="sec-body"><div class="sec-label">Ortalama Net <small style="font-weight:400;color:#6c757d;">(Tüm Sınavlar)</small></div><div class="sec-value">${_gsMean.toFixed(2)} <span style="font-size:0.55em;font-weight:400;color:#6c757d;letter-spacing:0;">(${Object.keys(_gsClsAvg).sort().map(cls=>`${cls}: ${(_gsClsAvg[cls].reduce((a,b)=>a+b,0)/_gsClsAvg[cls].length).toFixed(2)}`).join('  ')})</span></div></div></div></div>
+                <div class="col-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-chart-bar"></i></div><div class="sec-body"><div class="sec-label">Ortalama Net <small class="sec-label-note">(Tüm Sınavlar)</small></div><div class="sec-value">${_gsMean.toFixed(2)} <span class="sec-inline-summary">(${Object.keys(_gsClsAvg).sort().map(cls=>`${escapeHtml(cls)}: ${(_gsClsAvg[cls].reduce((a,b)=>a+b,0)/_gsClsAvg[cls].length).toFixed(2)}`).join('  ')})</span></div></div></div></div>
               </div>
               <div class="row mt-2">
                 <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-arrows-alt-h"></i></div><div class="sec-body"><div class="sec-label">Ortalamadan Uzaklık</div><div class="sec-value">±${_gsStd.toFixed(2)}</div><div class="sec-sub">Standart sapma · ${_gsHomLab}</div>${_explain('Öğrencilerin tüm sınav ortalamalarının genel ortalama etrafındaki yayılımı. Düşükse grup homojen.')}</div></div></div>
@@ -2429,32 +2445,32 @@ function rAnl(){
               </div>`;
         }
 
-        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary','${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-        <div id="pGenSummary" class="card shadow-sm" style="border-top:3px solid #0d6efd; background:#f4f6f9;">
-            <div class="report-header">
-              <span style="font-size:16px;"><i class="fas fa-globe mr-2"></i><strong>${eT}</strong> — Sınav Özeti (Tüm Sınavlar)</span>
-              <span style="font-size:13px;">${lvlStr} | Toplam ${dates.length} Sınav</span>
+        let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pGenSummary',${jsArg(safeName)},this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+        <div id="pGenSummary" class="card shadow-sm report-card report-card-soft">
+          <div class="report-header">
+              <span class="report-title-main"><i class="fas fa-globe me-2"></i><strong>${escapeHtml(eT)}</strong> — Sınav Özeti (Tüm Sınavlar)</span>
+              <span class="report-title-sub">${escapeHtml(lvlStr)} | Toplam ${dates.length} Sınav</span>
             </div>
-            <div class="card-body" style="padding-top:5px;">
+            <div class="card-body report-card-body">
               <div class="row">
-                  <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En Çok Birinci Olan</div><div class="sec-value" style="font-size:1.05em;">${mostFirst ? `${mostFirst.name} <small>(${mostFirst.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu${mostFirstTie ? ' (Puan Üstünlüğü)' : ''}` : ''}</div></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-chart-line"></i></div><div class="sec-body"><div class="sec-label">En Fazla İlerleme Kaydeden</div><div class="sec-value" style="font-size:1.05em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${bestP ? `+${bestP.diff.toFixed(2)} Puan Eğim (${bestP.firstScore.toFixed(2)} ➔ ${bestP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">En Fazla Gerileme Kaydeden</div><div class="sec-value" style="font-size:1.05em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${worstP ? `${worstP.diff.toFixed(2)} Puan Eğim (${worstP.firstScore.toFixed(2)} ➔ ${worstP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En Çok Birinci Olan</div><div class="sec-value sec-value-compact">${mostFirst ? `${escapeHtml(mostFirst.name)} <small>(${escapeHtml(mostFirst.cls)})</small>` : 'Veri Yok'}</div><div class="sec-sub">${mostFirst ? `Toplam ${mostFirst.first} kez birinci oldu${mostFirstTie ? ' (Puan Üstünlüğü)' : ''}` : ''}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-chart-line"></i></div><div class="sec-body"><div class="sec-label">En Fazla İlerleme Kaydeden</div><div class="sec-value sec-value-compact">${bestP ? `${escapeHtml(bestP.name)} <small>(${escapeHtml(bestP.cls)})</small>` : 'Veri Yok'}</div><div class="sec-sub">${bestP ? `+${bestP.diff.toFixed(2)} Puan Eğim (${bestP.firstScore.toFixed(2)} -> ${bestP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">En Fazla Gerileme Kaydeden</div><div class="sec-value sec-value-compact">${worstP ? `${escapeHtml(worstP.name)} <small>(${escapeHtml(worstP.cls)})</small>` : 'Veri Yok'}</div><div class="sec-sub">${worstP ? `${worstP.diff.toFixed(2)} Puan Eğim (${worstP.firstScore.toFixed(2)} -> ${worstP.lastScore.toFixed(2)})` : 'En az 2 sınava giren yok'}</div></div></div></div>
               </div>
               <div class="row mt-2">
-                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-arrow-up"></i></div><div class="sec-body"><div class="sec-label">Genel Ort. En Çok Artan Ders</div><div class="sec-value" style="font-size:1.05em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} ➔ ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value" style="font-size:1.05em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} ➔ ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
-                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Genel Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateGS}</div><div class="sec-sub">${attendedCountGS} / ${baseCountGS} Katılım</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-arrow-up"></i></div><div class="sec-body"><div class="sec-label">Genel Ort. En Çok Artan Ders</div><div class="sec-value sec-value-compact">${bestSub ? escapeHtml(toTitleCase(bestSub.sub)) : 'Veri Yok'}</div><div class="sec-sub">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.fAvg.toFixed(2)} -> ${bestSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value sec-value-compact">${worstSub ? escapeHtml(toTitleCase(worstSub.sub)) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.fAvg.toFixed(2)} -> ${worstSub.lAvg.toFixed(2)})` : 'Karşılaştırma için veri yetersiz'}</div></div></div></div>
+                  <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Genel Katılım Oranı</div><div class="sec-value sec-value-compact">%${partRateGS}</div><div class="sec-sub">${attendedCountGS} / ${baseCountGS} Katılım</div></div></div></div>
               </div>
 
               ${gsStatsHtml}
 
               <div id="genSummaryBPArea"></div>
               <div class="row mt-3">
-                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
-                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> En Çok Son 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up me-1"></i> En Çok İlk 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-readable"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
+                  <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down me-1"></i> En Çok Son 5'e Girenler</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-readable"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Sayı</th><th>Ort.Net</th><th>Ort.Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
               </div>
-              <div id="genSummaryChartArea" class="chart-box avoid-break mt-3" style="display:none; height:280px;"><canvas id="cGenSummaryBar"></canvas></div>
+              <div id="genSummaryChartArea" class="chart-box chart-box-xl avoid-break mt-3" style="display:none;"><canvas id="cGenSummaryBar"></canvas></div>
             </div>
         </div>`; r.innerHTML = h;
         setTimeout(() => {
@@ -2479,7 +2495,7 @@ function rAnl(){
             if(allGradeStuAvgVals.length >= 3 && Object.keys(validClsMap).length >= 1) {
               let multiGSBP = mkMultiClassBoxPlot(validClsMap, null, {height:220}, allGradeStuAvgVals);
               if(multiGSBP) {
-                bpArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Dağılım — Öğrenci Ort. Bazlı</div>${multiGSBP}</div>`;
+                bpArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open me-1 text-success"></i>Sınıflar Arası Dağılım — Öğrenci Ort. Bazlı</div>${multiGSBP}</div>`;
               }
             }
           }
@@ -2554,12 +2570,12 @@ function rAnl(){
       subDiffs.sort((a,b) => b.diff - a.diff);
       let bestSub = subDiffs.length > 0 && subDiffs[0].diff > 0 ? subDiffs[0] : null, worstSub = subDiffs.length > 0 && subDiffs[subDiffs.length-1].diff < 0 ? subDiffs[subDiffs.length-1] : null;
 
-      let buildRow = (e, i) => `<tr><td>${i+1}</td><td>${e.no}</td><td>${getName(e.no)}</td><td>${e.cls}</td><td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td></tr>`;
+      let buildRow = (e, i) => `<tr><td>${i+1}</td><td>${escapeHtml(e.no)}</td><td>${escapeHtml(getName(e.no))}</td><td>${escapeHtml(e.cls)}</td><td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td></tr>`;
       let top5Html = sortedExams.slice(0,5).map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, i)).join('');
       let bottomExams = [...sortedExams].reverse().slice(0,5); 
       let bottom5Html = bottomExams.map((e,i) => buildRow({no:e.studentNo, cls:e.studentClass, totalNet:e.totalNet, score:e.score}, i)).join('');
       
-      let safeName = `${eT}_${dt.replace(/\./g,'-')}_Ozet`, lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ';
+      let safeName = safeFileName(`${eT}_${String(dt).replace(/\./g,'-')}_Ozet`), lvlStr = (targetLvl ? `${targetLvl}. Sınıflar` : '') + (brFilterED ? ` / ${brFilterED} Şubesi` : '') + ' ';
       let pubName = Object.values(EXAM_META).find(m=>m.date===dt&&m.examType===eT)?.publisher || '';
       
       let thisExamMeta = Object.values(EXAM_META).find(m=>m.date===dt && m.examType===eT);
@@ -2611,10 +2627,10 @@ function rAnl(){
         let absentRows = absentStus.map((s, i) => `<tr><td>${i+1}</td><td>${escapeHtml(s.no)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.class)}</td></tr>`).join('');
         absentListHtml = `<div class="card shadow-sm mt-3 avoid-break">
           <div class="card-header bg-warning text-dark">
-            <h3 class="card-title m-0" style="font-size:14px;"><i class="fas fa-user-times mr-1"></i> Sınava Katılmayan Öğrenciler (${absentStus.length} kişi)</h3>
+            <h3 class="card-title card-title-sm m-0"><i class="fas fa-user-times me-1"></i> Sınava Katılmayan Öğrenciler (${absentStus.length} kişi)</h3>
           </div>
           <div class="card-body p-0 table-responsive">
-            <table class="table table-sm table-striped m-0" style="font-size:0.85em;">
+            <table class="table table-sm table-striped m-0 table-compact">
               <thead><tr><th>#</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th></tr></thead>
               <tbody>${absentRows}</tbody>
             </table>
@@ -2622,38 +2638,39 @@ function rAnl(){
         </div>`;
       }
 
-      let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSummary','Sinav_Ozeti_${safeName}',this)"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-      <div id="pSummary" class="card shadow-sm" style="border-top:3px solid #17a2b8; background:#f4f6f9;">
-          <div class="report-header">
-            <span style="font-size:16px;"><i class="fas fa-file-alt mr-2"></i>${dt} Sınav Değerlendirmesi</span>
-            <span style="font-size:13px;">${eT}${pubName ? ' / ' + toTitleCase(pubName) : ''} | ${lvlStr}</span>
+      let summaryReportName = safeFileName(`Sinav_Ozeti_${safeName}`);
+      let h = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('pSummary',${jsArg(summaryReportName)},this)"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+      <div id="pSummary" class="card shadow-sm report-card report-card-info report-card-soft">
+        <div class="report-header">
+            <span class="report-title-main"><i class="fas fa-file-alt me-2"></i>${escapeHtml(dt)} Sınav Değerlendirmesi</span>
+            <span class="report-title-sub">${escapeHtml(eT)}${pubName ? ' / ' + escapeHtml(toTitleCase(pubName)) : ''} | ${escapeHtml(lvlStr)}</span>
           </div>
-          <div class="card-body" style="padding-top:5px;">
+          <div class="card-body report-card-body">
             <div class="row">
-                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">Sınav Birincisi</div><div class="sec-value" style="font-size:1.05em;">${getName(winner.studentNo)} <small>(${winner.studentClass})</small></div><div class="sec-sub">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">Sınav Birincisi</div><div class="sec-value sec-value-compact">${escapeHtml(getName(winner.studentNo))} <small>(${escapeHtml(winner.studentClass)})</small></div><div class="sec-sub">Net: ${winner.totalNet.toFixed(2)} | Puan: ${winner.score.toFixed(2)}</div></div></div></div>
                 ${!isFirstExam ? `
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-chart-line"></i></div><div class="sec-body"><div class="sec-label">Önceki Sınava Göre En Büyük Çıkış</div><div class="sec-value" style="font-size:1.05em;">${bestP ? `${bestP.name} <small>(${bestP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} ➔ ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">Önceki Sınava Göre En Büyük Düşüş</div><div class="sec-value" style="font-size:1.05em;">${worstP ? `${worstP.name} <small>(${worstP.cls})</small>` : 'Veri Yok'}</div><div class="sec-sub">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} ➔ ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-chart-line"></i></div><div class="sec-body"><div class="sec-label">Önceki Sınava Göre En Büyük Çıkış</div><div class="sec-value sec-value-compact">${bestP ? `${escapeHtml(bestP.name)} <small>(${escapeHtml(bestP.cls)})</small>` : 'Veri Yok'}</div><div class="sec-sub">${bestP ? `+${bestP.diff.toFixed(2)} Net (${bestP.prev.toFixed(2)} -> ${bestP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-level-down-alt"></i></div><div class="sec-body"><div class="sec-label">Önceki Sınava Göre En Büyük Düşüş</div><div class="sec-value sec-value-compact">${worstP ? `${escapeHtml(worstP.name)} <small>(${escapeHtml(worstP.cls)})</small>` : 'Veri Yok'}</div><div class="sec-sub">${worstP ? `${worstP.diff.toFixed(2)} Net (${worstP.prev.toFixed(2)} -> ${worstP.cur.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
                 ` : ''}
             </div>
             <div class="row mt-2">
                 ${!isFirstExam ? `
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-arrow-up"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Artan Ders</div><div class="sec-value" style="font-size:1.05em;">${bestSub ? toTitleCase(bestSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} ➔ ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value" style="font-size:1.05em;">${worstSub ? toTitleCase(worstSub.sub) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} ➔ ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-arrow-up"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Artan Ders</div><div class="sec-value sec-value-compact">${bestSub ? escapeHtml(toTitleCase(bestSub.sub)) : 'Veri Yok'}</div><div class="sec-sub">${bestSub ? `+${bestSub.diff.toFixed(2)} Net (${bestSub.prevAvg.toFixed(2)} -> ${bestSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">Ortalaması En Çok Düşen Ders</div><div class="sec-value sec-value-compact">${worstSub ? escapeHtml(toTitleCase(worstSub.sub)) : 'Veri Yok'}</div><div class="sec-sub">${worstSub ? `${worstSub.diff.toFixed(2)} Net (${worstSub.prevAvg.toFixed(2)} -> ${worstSub.curAvg.toFixed(2)})` : 'Önceki sınav bulunamadı'}</div></div></div></div>
                 ` : ''}
-                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Sınav Katılım Oranı</div><div class="sec-value" style="font-size:1.05em;">%${partRateE}</div><div class="sec-sub">${attendedNos.size} katıldı · ${absentStus.length} katılmadı</div></div></div></div>
-                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-chart-bar"></i></div><div class="sec-body"><div class="sec-label">Ortalama Net</div><div class="sec-value">${(currentExams.reduce((s,e)=>s+e.totalNet,0)/currentExams.length).toFixed(2)} <span style="font-size:0.55em;font-weight:400;color:#6c757d;letter-spacing:0;">(${(() => { let _cm={}; currentExams.forEach(e=>{if(!_cm[e.studentClass])_cm[e.studentClass]=[];_cm[e.studentClass].push(e.totalNet);}); return Object.keys(_cm).sort().map(cls=>`${cls}: ${(_cm[cls].reduce((a,b)=>a+b,0)/_cm[cls].length).toFixed(2)}`).join('  '); })()})</span></div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card sec-neutral"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Sınav Katılım Oranı</div><div class="sec-value sec-value-compact">%${partRateE}</div><div class="sec-sub">${attendedNos.size} katıldı · ${absentStus.length} katılmadı</div></div></div></div>
+                <div class="col-md-4 col-sm-12"><div class="sec-card"><div class="sec-icon"><i class="fas fa-chart-bar"></i></div><div class="sec-body"><div class="sec-label">Ortalama Net</div><div class="sec-value">${(currentExams.reduce((s,e)=>s+e.totalNet,0)/currentExams.length).toFixed(2)} <span class="sec-inline-summary">(${(() => { let _cm={}; currentExams.forEach(e=>{if(!_cm[e.studentClass])_cm[e.studentClass]=[];_cm[e.studentClass].push(e.totalNet);}); return Object.keys(_cm).sort().map(cls=>`${escapeHtml(cls)}: ${(_cm[cls].reduce((a,b)=>a+b,0)/_cm[cls].length).toFixed(2)}`).join('  '); })()})</span></div></div></div></div>
             </div>
             ${examStatsHtml}
             
             <div class="row mt-3">
-                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up mr-1"></i> İlk 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
-                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down mr-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0" style="font-size:0.9em;"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
+                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-success text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-up me-1"></i> İlk 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-readable"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${top5Html}</tbody></table></div></div></div>
+                <div class="col-lg-6"><div class="card shadow-sm avoid-break"><div class="card-header bg-danger text-white"><h3 class="card-title m-0"><i class="fas fa-angle-double-down me-1"></i> Son 5 Öğrenci</h3></div><div class="card-body p-0 table-responsive"><table class="table table-sm table-striped m-0 table-readable"><thead><tr><th>Sıra</th><th>No</th><th>Ad Soyad</th><th>Sınıf</th><th>Net</th><th>Puan</th></tr></thead><tbody>${bottom5Html}</tbody></table></div></div></div>
             </div>
 
             ${absentListHtml}
             <div id="examSummaryBPArea"></div>
-            <div id="examSummaryChartArea" class="chart-box avoid-break mt-3" style="display:none; height:280px;"><canvas id="cExamSummaryBar"></canvas></div>
+            <div id="examSummaryChartArea" class="chart-box chart-box-xl avoid-break mt-3" style="display:none;"><canvas id="cExamSummaryBar"></canvas></div>
           </div>
       </div>`; 
       r.innerHTML = h;
@@ -2674,7 +2691,7 @@ function rAnl(){
           if(allGradeNets.length >= 3) {
             let multiClsBP = Object.keys(validClasses).length >= 1 ? mkMultiClassBoxPlot(validClasses, null, {height:220}, allGradeNets) : '';
             if(multiClsBP) {
-              bpArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open mr-1 text-success"></i>Sınıflar Arası Net Dağılımı</div>${multiClsBP}</div>`;
+              bpArea.innerHTML = `<div class="boxplot-card mb-3"><div class="boxplot-title"><i class="fas fa-box-open me-1 text-success"></i>Sınıflar Arası Net Dağılımı</div>${multiClsBP}</div>`;
             }
           }
         }
@@ -2741,13 +2758,13 @@ function rAnl(){
       let absent=rows2.filter(x=>x.abs).sort((a,b)=>String(a.studentName||'').localeCompare(String(b.studentName||''),'tr',{sensitivity:'base'}));
       let sorted=[...attended,...absent], avgNet=attended.length?(attended.reduce((s,x)=>s+x.totalNet,0)/attended.length).toFixed(2):'0.00', avgScoreMeta=attended.length?(attended.reduce((s,x)=>s+(x.score||0),0)/attended.length).toFixed(2):'0.00', metaStr=`Katılan: ${attended.length} | Devamsız: ${absent.length} | Ortalama Puan: ${avgScoreMeta} | Sıralama: Puan`;
       
-      let headCols=subKeys.map(k=>`<th>${toTitleCase(k)}</th>`).join('');
+      let headCols=subKeys.map(k=>`<th>${escapeHtml(toTitleCase(k))}</th>`).join('');
       let _rankIdx = 0;
       let bodyRows=sorted.map((e)=>{
         let isSel=aNo&&e.studentNo===aNo, rCls=isSel?'highlight-row':''; let pub = e.publisher || '—';
-        if(e.abs) return `<tr class="absent-row ${rCls}"><td>—</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td>${subKeys.map(()=>'<td>—</td>').join('')}<td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+        if(e.abs) return `<tr class="absent-row ${rCls}"><td>—</td><td>${escapeHtml(e.studentName)}</td><td>${escapeHtml(e.studentCls)}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(toTitleCase(pub))}</td>${subKeys.map(()=>'<td>—</td>').join('')}<td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
         _rankIdx++;
-        return `<tr class="${rCls}"><td>${_rankIdx}</td><td>${e.studentName}</td><td>${e.studentCls}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td>${subKeys.map(k=>`<td>${e.subs[k]!==undefined?e.subs[k].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td></tr>`;
+        return `<tr class="${rCls}"><td>${_rankIdx}</td><td>${escapeHtml(e.studentName)}</td><td>${escapeHtml(e.studentCls)}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(toTitleCase(pub))}</td>${subKeys.map(k=>`<td>${e.subs[k]!==undefined?e.subs[k].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${escapeHtml(e.cR||'—')}/${escapeHtml(e.cP||'—')}</td><td>${escapeHtml(e.iR||'—')}/${escapeHtml(e.iP||'—')}</td></tr>`;
       }).join('');
 
       // 1-F: Sınıf bazlı ara ortalama satırları (tablo sonuna eklenir)
@@ -2760,7 +2777,7 @@ function rAnl(){
           let _cgSubCols = subKeys.map(k => { let v = _cg.filter(e=>e.subs[k]!==undefined).map(e=>e.subs[k].net); return `<td>${v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2):'—'}</td>`; }).join('');
           let _cgNet = (_cg.reduce((s,x)=>s+x.totalNet,0)/_cg.length).toFixed(2);
           let _cgScore = (_cg.reduce((s,x)=>s+(x.score||0),0)/_cg.length).toFixed(2);
-          classSubtotalRows += `<tr class="avg-row" style="background:#e8f5e9;"><td colspan="5" style="text-align:right;padding-right:15px;font-weight:bold;">${cls} Ortalaması (${_cg.length} kişi)</td>${_cgSubCols}<td>${_cgNet}</td><td>${_cgScore}</td><td colspan="2">—</td></tr>`;
+          classSubtotalRows += `<tr class="avg-row avg-row-subtotal avg-row-strong"><td colspan="5" class="avg-label">${escapeHtml(cls)} Ortalaması (${_cg.length} kişi)</td>${_cgSubCols}<td>${_cgNet}</td><td>${_cgScore}</td><td colspan="2">—</td></tr>`;
         });
       }
 
@@ -2768,17 +2785,17 @@ function rAnl(){
       if (attended.length > 0) {
         let avgSubCols = subKeys.map(k => { let v = attended.filter(e => e.subs[k] !== undefined).map(e => e.subs[k].net); return `<td>${v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '—'}</td>`; }).join('');
         let listAvgScore = (attended.reduce((s,x)=>s+x.score,0)/attended.length).toFixed(2);
-        listAvgRow = `<tr class="avg-row"><td colspan="5" style="text-align:right; padding-right:15px;">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="2">—</td></tr>`;
+        listAvgRow = `<tr class="avg-row"><td colspan="5" class="avg-label">ORTALAMA (${attended.length} Kişi)</td>${avgSubCols}<td>${avgNet}</td><td>${listAvgScore}</td><td colspan="2">—</td></tr>`;
       }
-      let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName=`${eT}_${dt.replace(/\./g,'-')}`;
-      let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tED','Sinav_${safeName}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pED','Sinav_${safeName}',this,'landscape')"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-      <div id="pED" class="card shadow-sm" style="border-top:3px solid #ffc107;">
+      let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '', safeName=safeFileName(`Sinav_${eT}_${String(dt).replace(/\./g,'-')}`);
+      let h=`<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXL('tED',${jsArg(safeName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pED',${jsArg(safeName)},this,'landscape')"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+      <div id="pED" class="card shadow-sm report-card report-card-warning">
         <div class="report-header">
-          <span style="font-size:16px;"><i class="fas fa-list mr-2"></i><strong>${eT}</strong> — ${dt} Toplu Liste</span>
-          <span style="font-size:13px;">${lvlStr ? lvlStr : ""}| ${metaStr}</span>
+          <span class="report-title-main"><i class="fas fa-list me-2"></i><strong>${escapeHtml(eT)}</strong> — ${escapeHtml(dt)} Toplu Liste</span>
+          <span class="report-title-sub">${escapeHtml(lvlStr ? lvlStr : "")}| ${escapeHtml(metaStr)}</span>
         </div>
-        <div class="card-body" style="padding-top:5px;">
-          <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
+        <div class="card-body report-card-body">
+          <div class="scroll-hint"><i class="fas fa-arrows-alt-h me-1"></i>Tabloyu kaydırın</div>
           <div class="scroll"><table class="table table-sm table-hover table-bordered" id="tED"><thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th><th>Tarih</th><th>Yayınevi</th>${headCols}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th></tr></thead><tbody>${bodyRows}${classSubtotalRows}${listAvgRow}</tbody></table></div>
         </div>
       </div>`;
@@ -2848,7 +2865,7 @@ function rAnl(){
       let lvlStr = targetLvl ? `${targetLvl}. Sınıflar ` : '';
       let examDatesAll = [...new Set(allEx.map(x => x.date))].sort(srt);
       let metaStrAll = `Hesaplanan Sınav: ${examDatesAll.length} | Listelenen Öğrenci: ${displayStuArr.length} | Sıralama: Ortalama Puan`;
-      let headColsAll = allSubKeys.map(k => `<th>${toTitleCase(k)}</th>`).join('');
+      let headColsAll = allSubKeys.map(k => `<th>${escapeHtml(toTitleCase(k))}</th>`).join('');
 
       let totalExamCount = examDatesAll.length; // toplam sınav sayısı (unique tarihler)
       let bodyRowsAll = displayStuArr.map((s, idx) => {
@@ -2860,9 +2877,9 @@ function rAnl(){
         // 1-G: Az sınava giren öğrenci için uyarı vurgusu (toplam sınavın yarısından az)
         let examCntWarning = (totalExamCount > 0 && s.examCount < totalExamCount / 2);
         let examCntCell = examCntWarning
-          ? `<td style="background:#fff3cd;color:#856404;font-weight:bold;" title="Toplam ${totalExamCount} sınavdan yalnızca ${s.examCount}'ine katıldı">⚠ ${s.examCount}</td>`
+          ? `<td class="rank-warning-cell" title="Toplam ${totalExamCount} sınavdan yalnızca ${s.examCount}'ine katıldı">! ${s.examCount}</td>`
           : `<td>${s.examCount}</td>`;
-        return `<tr class="${rCls}"><td>${idx+1}</td><td>${s.name}</td><td>${s.cls}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${clsRankCell}</td><td>${schoolRankCell}</td>${examCntCell}</tr>`;
+        return `<tr class="${rCls}"><td>${idx+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${escapeHtml(clsRankCell)}</td><td>${escapeHtml(schoolRankCell)}</td>${examCntCell}</tr>`;
       }).join('');
 
       let allAvgRow = '';
@@ -2874,18 +2891,18 @@ function rAnl(){
         let genAvgNet = (displayStuArr.reduce((a,s)=>a+s.avgNet,0)/displayStuArr.length).toFixed(2);
         let genAvgScore = (displayStuArr.reduce((a,s)=>a+s.avgScore,0)/displayStuArr.length).toFixed(2);
         let genAvgExam = (displayStuArr.reduce((a,s)=>a+s.examCount,0)/displayStuArr.length).toFixed(1);
-        allAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">GENEL ORTALAMA (${displayStuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td><td>${genAvgExam}</td></tr>`;
+        allAvgRow = `<tr class="avg-row"><td colspan="3" class="avg-label">GENEL ORTALAMA (${displayStuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td><td>${genAvgExam}</td></tr>`;
       }
 
-      let safeNameAll = `${eT}_TumSinavlar_Toplu`;
-      let hAll = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXL('tEDAll','${safeNameAll}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pEDAll','${safeNameAll}',this,'landscape')"><i class='fas fa-print mr-1'></i>Yazdır</button></div>
-      <div id="pEDAll" class="card shadow-sm" style="border-top:3px solid #007bff;">
+      let safeNameAll = safeFileName(`${eT}_TumSinavlar_Toplu`);
+      let hAll = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXL('tEDAll',${jsArg(safeNameAll)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('pEDAll',${jsArg(safeNameAll)},this,'landscape')"><i class='fas fa-print me-1'></i>Yazdır</button></div>
+      <div id="pEDAll" class="card shadow-sm report-card report-card-primary">
         <div class="report-header">
-          <span style="font-size:16px;"><i class="fas fa-list-alt mr-2"></i><strong>${eT}</strong> — Tüm Sınavlar Toplu Liste</span>
-          <span style="font-size:13px;">${lvlStr ? lvlStr : ""}| ${metaStrAll}</span>
+          <span class="report-title-main"><i class="fas fa-list-alt me-2"></i><strong>${escapeHtml(eT)}</strong> — Tüm Sınavlar Toplu Liste</span>
+          <span class="report-title-sub">${escapeHtml(lvlStr ? lvlStr : "")}| ${escapeHtml(metaStrAll)}</span>
         </div>
-        <div class="card-body" style="padding-top:5px;">
-          <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
+        <div class="card-body report-card-body">
+          <div class="scroll-hint"><i class="fas fa-arrows-alt-h me-1"></i>Tabloyu kaydırın</div>
           <div class="scroll">
             <table class="table table-sm table-hover table-bordered" id="tEDAll">
               <thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headColsAll}<th>Top.Net Ort.</th><th>Puan Ort.</th><th>Sıra/Sınıf</th><th>Sıra/Okul</th><th>Sınav Say.</th></tr></thead>
@@ -2902,26 +2919,33 @@ function rAnl(){
 
 // ---- raporInit (orig lines 3494-3500) ----
 function raporInit() {
-  let lvlSel = getEl('rLvl'), levels = new Set(); DB.s.forEach(s => { let m = s.class.match(/^(\d+)/); if(m) levels.add(m[1]); });
-  lvlSel.innerHTML = '<option value="">Seçiniz</option>' + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>`<option value="${x}">${x}. Sınıf</option>`).join('');
-  let etSel = getEl('rExType'), types = new Set(); Object.values(EXAM_META).forEach(m => types.add(m.examType));
-  let _curVal = etSel.value; etSel.innerHTML = '<option value="" disabled' + (_curVal?'':' selected') + '>Sınav Seçiniz</option>' + [...types].sort((a,b)=>a.localeCompare(b,'tr')).map(x=>`<option value="${x}">${x}</option>`).join('') + '<option value="ALL">Tüm Sınav Türleri (Genel Karne)</option>'; if(_curVal) etSel.value = _curVal;
+  let lvlSel = getEl('rLvl'), levels = new Set(), prevLvl = lvlSel.value; DB.s.forEach(s => { let m = s.class.match(/^(\d+)/); if(m) levels.add(m[1]); });
+  lvlSel.innerHTML = optionHtml('', 'Seçiniz') + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>optionHtml(x, `${x}. Sınıf`)).join('');
+  if(prevLvl && levels.has(prevLvl)) lvlSel.value = prevLvl;
+  let etSel = getEl('rExType'), types = new Set(); Object.values(EXAM_META).forEach(m => { if(m.examType) types.add(m.examType); });
+  let _curVal = etSel.value;
+  let sortedTypes = [...types].sort((a,b)=>a.localeCompare(b,'tr'));
+  etSel.innerHTML = optionHtml('', 'Sınav Seçiniz', !_curVal, true) + sortedTypes.map(x=>optionHtml(x, x)).join('') + optionHtml('ALL', 'Tüm Sınav Türleri (Genel Karne)', _curVal === 'ALL');
+  if(_curVal && (_curVal === 'ALL' || sortedTypes.includes(_curVal))) etSel.value = _curVal;
   raporFillBranches();
 }
 
 // ---- raporFillBranches (orig lines 3502-3506) ----
 function raporFillBranches() {
-  let lvl = getEl('rLvl').value, brSel = getEl('rBr'), branches = new Set();
+  let lvl = getEl('rLvl').value, brSel = getEl('rBr'), prevBr = brSel.value, branches = new Set();
   DB.s.forEach(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m && (!lvl || m[1] === lvl)) branches.add(m[2].toLocaleUpperCase('tr-TR')); });
-  brSel.innerHTML = '<option value="">Tümü</option>' + [...branches].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+  brSel.innerHTML = optionHtml('', 'Tümü') + [...branches].sort().map(x=>optionHtml(x, x)).join('');
+  if(prevBr && branches.has(prevBr)) brSel.value = prevBr;
+  if(getEl('rExType') && getEl('rExType').value && lvl) generateRapor();
 }
 
 // ---- generateRapor (orig lines 3508-3627) ----
 async function generateRapor() {
   let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value;
   let rType = getEl('rReportType') ? getEl('rReportType').value : 'Karne';
-  if(!eTypeSel) return;
-  if(!lvl) { showToast('Lütfen sınıf seviyesi seçin.','warning'); return; }
+  let r = getEl('raporRes');
+  if(!eTypeSel) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi ve sınav türü seçin.</div>'; return; }
+  if(!lvl) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi seçin.</div>'; return; }
   
   let students = DB.s.filter(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false; if(m[1] !== lvl) return false; if(br && m[2].toLocaleUpperCase('tr-TR') !== br) return false; return true; });
   if(!students.length) { showToast('Bu filtreye uygun öğrenci bulunamadı.','warning'); return; }
@@ -2932,12 +2956,13 @@ async function generateRapor() {
   }
   await fetchBatches(neededBatches);
   
-  let r = getEl('raporRes'); if(window._raporCharts){ window._raporCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});} window._raporCharts=[];
+  if(window._raporCharts){ window._raporCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});} window._raporCharts=[];
   let lvlStr = br ? `${lvl}${br}` : `${lvl}. Sınıflar`;
   
   // --- LİSTE MODU ---
   if (rType === 'Liste') {
-    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm mr-2" onclick="xXLMul('raporCont','Toplu_Liste_${lvlStr}')"><i class='fas fa-file-excel mr-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont','Toplu_Liste_${lvlStr}',this,'landscape')"><i class='fas fa-print mr-1'></i>Tümünü Yazdır</button></div><div id="raporCont">`;
+    let listReportName = safeFileName(`Toplu_Liste_${lvlStr}`);
+    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('raporCont',${jsArg(listReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(listReportName)},this,'landscape')"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont">`;
 
     let typesToProcess =[];
     if (eTypeSel === 'ALL') {
@@ -3002,14 +3027,17 @@ async function generateRapor() {
 
       displayStuArr.sort((a,b) => { let dp = (b.avgScore||0) - (a.avgScore||0); if(dp !== 0) return dp; return (b.avgNet||0) - (a.avgNet||0); });
 
-      let headColsAll = allSubKeys.map(k => `<th title="${toTitleCase(k)}">${toTitleCase(k).length > 6 ? toTitleCase(k).substring(0,3) : toTitleCase(k)}</th>`).join('');
+      let headColsAll = allSubKeys.map(k => {
+        let title = toTitleCase(k);
+        return `<th title="${escapeHtml(title)}">${escapeHtml(title.length > 6 ? title.substring(0,3) : title)}</th>`;
+      }).join('');
 
       let bodyRowsAll = displayStuArr.map((s, idx) => {
         let subCells = allSubKeys.map(k => `<td>${s.subAvgs[k] !== null ? s.subAvgs[k].toFixed(2) : '—'}</td>`).join('');
         let cR = clsSizeMap[s.no]; let gR = gradeSizeMap[s.no];
         let clsRankCell = cR ? `${cR.rank}/${cR.total}` : '—';
         let schoolRankCell = gR ? `${gR.rank}/${gR.total}` : '—';
-        return `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.cls}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${clsRankCell}</td><td>${schoolRankCell}</td><td>${s.examCount}</td></tr>`;
+        return `<tr><td>${idx+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${escapeHtml(clsRankCell)}</td><td>${escapeHtml(schoolRankCell)}</td><td>${s.examCount}</td></tr>`;
       }).join('');
 
       let allAvgRow = '';
@@ -3020,7 +3048,7 @@ async function generateRapor() {
       let genAvgNet = (displayStuArr.reduce((a,s)=>a+s.avgNet,0)/displayStuArr.length).toFixed(2);
       let genAvgScore = (displayStuArr.reduce((a,s)=>a+s.avgScore,0)/displayStuArr.length).toFixed(2);
       let genAvgExam = (displayStuArr.reduce((a,s)=>a+s.examCount,0)/displayStuArr.length).toFixed(1);
-      allAvgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right; padding-right:15px;">ORTALAMA (${displayStuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td><td>${genAvgExam}</td></tr>`;
+      allAvgRow = `<tr class="avg-row"><td colspan="3" class="avg-label">ORTALAMA (${displayStuArr.length} Öğrenci)</td>${avgSubCols}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td><td>${genAvgExam}</td></tr>`;
 
       let _rExColorIdx = (typeof examColorIdx === 'function') ? examColorIdx(t) : 0;
       let _rExLabel    = (typeof toExamLabel === 'function') ? toExamLabel(t) : t;
@@ -3028,12 +3056,12 @@ async function generateRapor() {
 
       html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${isFirst?' exam-type-first':''}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
         <div class="card-header bg-light">
-          <h3 class="card-title m-0" style="font-size:15px; font-weight:bold;"><i class="fas fa-list-alt mr-2"></i>${_rExLabel} — Toplu Liste | <span style="font-weight:normal;">${lvlStr}</span></h3>
+          <h3 class="card-title card-title-md m-0"><i class="fas fa-list-alt me-2"></i>${escapeHtml(_rExLabel)} — Toplu Liste | <span class="card-title-subtle">${escapeHtml(lvlStr)}</span></h3>
         </div>
         <div class="card-body p-2">
-          <div class="scroll-hint"><i class="fas fa-arrows-alt-h mr-1"></i>Tabloyu kaydırın</div>
+          <div class="scroll-hint"><i class="fas fa-arrows-alt-h me-1"></i>Tabloyu kaydırın</div>
           <div class="scroll">
-            <table class="table table-sm table-bordered table-striped table-hover" data-sh="${t}">
+            <table class="table table-sm table-bordered table-striped table-hover" data-sh="${escapeHtml(t)}">
               <thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headColsAll}<th>Top.Net Ort.</th><th>Puan Ort.</th><th>Sıra/Sınıf</th><th>Sıra/Okul</th><th>Sınav Say.</th></tr></thead>
               <tbody>${bodyRowsAll}${allAvgRow}</tbody>
             </table>
@@ -3053,7 +3081,8 @@ async function generateRapor() {
       examsByStudent.get(ex.studentNo).push(ex);
     });
     
-    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('raporCont','Toplu_Karne_${lvlStr}',this)"><i class='fas fa-print mr-1'></i>Tümünü Yazdır</button></div><div id="raporCont">`;
+    let karneReportName = safeFileName(`Toplu_Karne_${lvlStr}`);
+    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(karneReportName)},this)"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont">`;
     
     students.forEach((stu, stuIdx) => {
       let stuExams = examsByStudent.get(stu.no) ||[];
@@ -3068,7 +3097,7 @@ async function generateRapor() {
       let stGrade = getGrade(stu.class);
 
       html += `<div class="student-rapor-wrapper">`;
-      html += `<div class="report-header no-print" style="margin-bottom:10px;"><span style="font-size:16px;"><i class="fas fa-user-graduate mr-2"></i><strong>${stu.name}</strong> — Genel Karne Özeti</span><span style="font-size:13px;">Sınıf: ${stu.class} | ${new Date().toLocaleDateString('tr-TR')}</span></div>`;
+      html += `<div class="report-header report-header-tight no-print"><span class="report-title-main"><i class="fas fa-user-graduate me-2"></i><strong>${escapeHtml(stu.name)}</strong> — Genel Karne Özeti</span><span class="report-title-sub">Sınıf: ${escapeHtml(stu.class)} | ${new Date().toLocaleDateString('tr-TR')}</span></div>`;
 
       typs.forEach(t => {
         let el = grp[t].sort((a,b)=>srt(a.date,b.date)); let sb = Array.from(new Set(el.filter(e=>!e.abs).flatMap(e=>Object.keys(e.subs)))).sort();
@@ -3080,8 +3109,9 @@ async function generateRapor() {
         
         let karneRows = '', kIdx = 1;
         el.forEach(e => {
-          if(e.abs) { karneRows += `<tr class="absent-row"><td>—</td><td>${e.date}</td><td>${toTitleCase(e.publisher)||'—'}</td><td colspan="${sb.length+4}" class="text-center font-weight-bold">🔴 Katılmadı</td></tr>`; } else {
-            karneRows += `<tr><td>${kIdx++}</td><td>${e.date}</td><td>${toTitleCase(e.publisher)||'—'}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${e.cR||'—'}/${e.cP||'—'}</td><td>${e.iR||'—'}/${e.iP||'—'}</td></tr>`;
+          let pubLabel = e.publisher ? toTitleCase(e.publisher) : '—';
+          if(e.abs) { karneRows += `<tr class="absent-row"><td>—</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(pubLabel)}</td><td colspan="${sb.length+4}" class="text-center fw-bold">Katılmadı</td></tr>`; } else {
+            karneRows += `<tr><td>${kIdx++}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(pubLabel)}</td>${sb.map(x=>`<td>${e.subs[x]!==undefined?e.subs[x].net.toFixed(2):'—'}</td>`).join('')}<td><strong>${e.totalNet.toFixed(2)}</strong></td><td>${e.score.toFixed(2)}</td><td>${escapeHtml(e.cR||'—')}/${escapeHtml(e.cP||'—')}</td><td>${escapeHtml(e.iR||'—')}/${escapeHtml(e.iP||'—')}</td></tr>`;
           }
         });
         
@@ -3098,23 +3128,23 @@ let genAvgScoreR = allGradeExamsR.length > 0 ? (allGradeExamsR.reduce((a,e)=>a+e
           let avgSubs = sb.map(x => { let v=attended.filter(e=>e.subs[x]!==undefined).map(e=>e.subs[x].net); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2):'—'; });
           let avgNet = (attended.reduce((a,e)=>a+e.totalNet,0)/attended.length).toFixed(2), avgScore = (attended.reduce((a,e)=>a+e.score,0)/attended.length).toFixed(2);
           
-          avgRow = `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
-          avgRow += `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">Sınıf Ortalama (${stu.class})</td>${clsAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNetR}</td><td>${clsAvgScoreR}</td><td colspan="2">—</td></tr>`;
-          avgRow += `<tr class="avg-row"><td colspan="3" style="text-align:right;padding-right:12px;">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNetR}</td><td>${genAvgScoreR}</td><td colspan="2">—</td></tr>`;
+          avgRow = `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
+          avgRow += `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Sınıf Ortalama (${escapeHtml(stu.class)})</td>${clsAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNetR}</td><td>${clsAvgScoreR}</td><td colspan="2">—</td></tr>`;
+          avgRow += `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNetR}</td><td>${genAvgScoreR}</td><td colspan="2">—</td></tr>`;
         }
         
         let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
         let bpId = 'rBP_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
         let _rExColorIdx = (typeof examColorIdx === 'function') ? examColorIdx(t) : 0;
         let _rExLabel    = (typeof toExamLabel === 'function') ? toExamLabel(t) : t;
-        html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${typs.indexOf(t)===0?' exam-type-first':''}" data-stu-name="${stu.name.replace(/"/g,'&quot;')}" data-stu-class="${stu.class}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
-          <div class="card-header bg-light"><h3 class="card-title m-0" style="font-size:15px; font-weight:bold;"><i class="fas fa-book mr-2"></i>${_rExLabel} Sınavları</h3></div>
+        html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${typs.indexOf(t)===0?' exam-type-first':''}" data-stu-name="${escapeHtml(stu.name)}" data-stu-class="${escapeHtml(stu.class)}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
+          <div class="card-header bg-light"><h3 class="card-title card-title-md m-0"><i class="fas fa-book me-2"></i>${escapeHtml(_rExLabel)} Sınavları</h3></div>
           <div class="card-body p-2">
             ${cardsHtml}
             ${riskCardsHtml}
             <div id="${bpId}"></div>
-            <div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${t}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${toTitleCase(x)}">${abbrev(x)}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th></tr></thead><tbody>${karneRows}${avgRow}</tbody></table></div>
-            <div class="chart-box avoid-break" style="height:190px;margin-top:6px;"><canvas id="${chartId}"></canvas></div>
+            <div class="scroll"><table class="table table-sm table-bordered table-striped" data-sh="${escapeHtml(t)}"><thead><tr><th>#</th><th>Tarih</th><th>Yayınevi</th>${sb.map(x=>`<th title="${escapeHtml(toTitleCase(x))}">${escapeHtml(abbrev(x))}</th>`).join('')}<th>Top.Net</th><th>Puan</th><th>Snf(S/K)</th><th>Okul(S/K)</th></tr></thead><tbody>${karneRows}${avgRow}</tbody></table></div>
+            <div class="chart-box chart-box-xs chart-box-top avoid-break"><canvas id="${chartId}"></canvas></div>
           </div></div>`;
       });
       html += `</div>`;
