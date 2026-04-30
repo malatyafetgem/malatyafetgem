@@ -434,9 +434,12 @@ function renderRiskPanel() {
   }
 
   // Filtreler
-  let exTypeF = (getEl('riskExTypeFilter')||{}).value || '';
-  let gradeF  = (getEl('riskGradeFilter')||{}).value  || '';
-  let branchF = (getEl('riskBranchFilter')||{}).value || '';
+  let exTypeRaw = (getEl('riskExTypeFilter')||{}).value || '';
+  let gradeRaw  = (getEl('riskGradeFilter')||{}).value  || '';
+  let branchRaw = (getEl('riskBranchFilter')||{}).value || '';
+  let exTypeF = exTypeRaw === '__ALL__' ? '' : exTypeRaw;
+  let gradeF  = gradeRaw === '__ALL__' ? '' : gradeRaw;
+  let branchF = branchRaw === '__ALL__' ? '' : branchRaw;
   let levelF  = (getEl('riskLevelFilter')||{}).value  || '';
 
   // Sınıf adından grade ve şubeyi ayıkla (örn. "10-A" → grade:"10", branch:"A")
@@ -2919,32 +2922,76 @@ function rAnl(){
 
 // ---- raporInit (orig lines 3494-3500) ----
 function raporInit() {
-  let lvlSel = getEl('rLvl'), levels = new Set(), prevLvl = lvlSel.value; DB.s.forEach(s => { let m = s.class.match(/^(\d+)/); if(m) levels.add(m[1]); });
-  lvlSel.innerHTML = optionHtml('', 'Seçiniz') + [...levels].sort((a,b)=>parseInt(a)-parseInt(b)).map(x=>optionHtml(x, `${x}. Sınıf`)).join('');
-  if(prevLvl && levels.has(prevLvl)) lvlSel.value = prevLvl;
-  let etSel = getEl('rExType'), types = new Set(); Object.values(EXAM_META).forEach(m => { if(m.examType) types.add(m.examType); });
-  let _curVal = etSel.value;
-  let sortedTypes = [...types].sort((a,b)=>a.localeCompare(b,'tr'));
-  etSel.innerHTML = optionHtml('', 'Sınav Seçiniz', !_curVal, true) + sortedTypes.map(x=>optionHtml(x, x)).join('') + optionHtml('ALL', 'Tüm Sınav Türleri (Genel Karne)', _curVal === 'ALL');
-  if(_curVal && (_curVal === 'ALL' || sortedTypes.includes(_curVal))) etSel.value = _curVal;
+  let lvlSel = getEl('rLvl'), prevLvl = lvlSel.value;
+  let levels = (typeof _resultGrades === 'function')
+    ? _resultGrades()
+    : [...new Set((DB.e||[]).filter(e=>e&&!e.abs).map(e=>getGrade(e.studentClass)).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+  lvlSel.innerHTML = optionHtml('', levels.length ? 'Sınıf Seviyesi Seç' : 'Verisi olan sınıf yok', !prevLvl, true)
+    + levels.map(x=>optionHtml(x, `${x}. Sınıf`, prevLvl===x)).join('');
+  if(prevLvl && levels.includes(prevLvl)) lvlSel.value = prevLvl;
+  else lvlSel.value = '';
   raporFillBranches();
 }
 
 // ---- raporFillBranches (orig lines 3502-3506) ----
 function raporFillBranches() {
-  let lvl = getEl('rLvl').value, brSel = getEl('rBr'), prevBr = brSel.value, branches = new Set();
-  DB.s.forEach(s => { let m = s.class.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(m && (!lvl || m[1] === lvl)) branches.add(m[2].toLocaleUpperCase('tr-TR')); });
-  brSel.innerHTML = optionHtml('', 'Tümü') + [...branches].sort().map(x=>optionHtml(x, x)).join('');
-  if(prevBr && branches.has(prevBr)) brSel.value = prevBr;
-  if(getEl('rExType') && getEl('rExType').value && lvl && getEl('rReportType') && getEl('rReportType').value) generateRapor();
+  let lvl = getEl('rLvl').value, brSel = getEl('rBr'), prevBr = brSel.value;
+  let branches = lvl
+    ? (typeof _resultBranches === 'function'
+      ? _resultBranches({ grade:lvl })
+      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl).map(e=>String(e.studentClass||'').replace(/^(\d+)/,'').toLocaleUpperCase('tr-TR')).filter(Boolean))].sort())
+    : [];
+  brSel.innerHTML = optionHtml('', lvl ? (branches.length ? 'Şube Seç' : 'Uygun şube yok') : 'Önce sınıf seviyesi seçin', !prevBr, true)
+    + (branches.length ? optionHtml('__ALL__', 'Tümü', prevBr==='__ALL__') : '')
+    + branches.map(x=>optionHtml(x, x, prevBr===x)).join('');
+  if(prevBr === '__ALL__' && branches.length) brSel.value = prevBr;
+  else if(prevBr && branches.includes(prevBr)) brSel.value = prevBr;
+  else brSel.value = '';
+  raporFillExamTypes();
+}
+
+function raporFillExamTypes() {
+  let lvl = getEl('rLvl') ? getEl('rLvl').value : '';
+  let brRaw = getEl('rBr') ? getEl('rBr').value : '';
+  let br = brRaw === '__ALL__' ? '' : brRaw;
+  let etSel = getEl('rExType'); if(!etSel) return;
+  let prev = etSel.value;
+  let types = (lvl && brRaw)
+    ? (typeof _resultExamTypes === 'function'
+      ? _resultExamTypes({ grade:lvl, branch:br })
+      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl&&(!br||String(e.studentClass||'').toLocaleUpperCase('tr-TR').endsWith(br))).map(e=>e.examType).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr')))
+    : [];
+  etSel.innerHTML = optionHtml('', lvl && brRaw ? (types.length ? 'Sınav Seçiniz' : 'Uygun sınav türü yok') : 'Önce şube seçin', !prev, true)
+    + types.map(x=>optionHtml(x, x, prev===x)).join('')
+    + (types.length ? optionHtml('ALL', 'Tüm Sınav Türleri (Genel Karne)', prev === 'ALL') : '');
+  if(prev && (prev === 'ALL' || types.includes(prev))) etSel.value = prev;
+  else etSel.value = '';
+  raporUpdateLocks();
+  if(etSel.value && getEl('rReportType') && getEl('rReportType').value) generateRapor();
+}
+
+function raporUpdateLocks() {
+  let lvl = getEl('rLvl') ? getEl('rLvl').value : '';
+  let br = getEl('rBr') ? getEl('rBr').value : '';
+  let et = getEl('rExType') ? getEl('rExType').value : '';
+  if(typeof _setSelectLock === 'function') {
+    _setSelectLock('rBr', !lvl, 'Önce sınıf seviyesi seçin');
+    _setSelectLock('rExType', !lvl || !br, !lvl ? 'Önce sınıf seviyesi seçin' : 'Önce şube seçin');
+    _setSelectLock('rReportType', !lvl || !br || !et, !et ? 'Önce sınav türü seçin' : 'Önceki filtreleri seçin');
+  } else {
+    if(getEl('rBr')) getEl('rBr').disabled = !lvl;
+    if(getEl('rExType')) getEl('rExType').disabled = !lvl || !br;
+    if(getEl('rReportType')) getEl('rReportType').disabled = !lvl || !br || !et;
+  }
 }
 
 // ---- generateRapor (orig lines 3508-3627) ----
 async function generateRapor() {
-  let lvl = getEl('rLvl').value, br = getEl('rBr').value, eTypeSel = getEl('rExType').value;
+  let lvl = getEl('rLvl').value, brRaw = getEl('rBr').value, br = brRaw === '__ALL__' ? '' : brRaw, eTypeSel = getEl('rExType').value;
   let rType = getEl('rReportType') ? getEl('rReportType').value : '';
   let r = getEl('raporRes');
   if(!lvl) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi seçin.</div>'; return; }
+  if(!brRaw) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için şube seçin ya da "Tümü" seçeneğini kullanın.</div>'; return; }
   if(!eTypeSel) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınav türü seçin.</div>'; return; }
   if(!rType) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için rapor türü seçin.</div>'; return; }
   

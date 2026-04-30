@@ -371,6 +371,8 @@ async function init(){
     allIds.forEach(bId => { if(CACHED_RESULTS[bId]) allE = allE.concat(CACHED_RESULTS[bId]); });
     DB.e = allE.filter(e => e && e.studentNo && validNos.has(e.studentNo));
     _riskCache = null;
+    if(getEl('sonuclar') && getEl('sonuclar').classList.contains('active-pane') && typeof uUI === 'function') uUI();
+    if(getEl('rapor') && getEl('rapor').classList.contains('active-pane') && typeof raporInit === 'function') raporInit();
     renderRiskPanel();
     ld(0);
   });
@@ -425,15 +427,20 @@ async function reqAnl() {
   }
 
   let lvlF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aLvl') ? getEl('aLvl').value : '';
+  let brRawF = (aT==='class'||aT==='subject'||aT==='examdetail') && getEl('aBr') ? getEl('aBr').value : '';
   if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !lvlF){
     showAnalysisHint('Analiz oluşturmak için sınıf seviyesini seçin.');
+    return;
+  }
+  if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !brRawF){
+    showAnalysisHint('Analiz oluşturmak için şube seçin ya da "Tümü" seçeneğini kullanın.');
     return;
   }
   if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !eT){
     showAnalysisHint('Analiz oluşturmak için sınav türünü seçin.');
     return;
   }
-  if((aT === 'class' || aT === 'subject' || aT === 'examdetail') && !sub){
+  if((aT === 'class' || aT === 'subject') && !sub){
     showAnalysisHint(aT === 'subject' ? 'Analiz oluşturmak için dersi seçin.' : 'Analiz oluşturmak için veri türünü seçin.');
     return;
   }
@@ -441,8 +448,12 @@ async function reqAnl() {
     showAnalysisHint('Analiz oluşturmak için sınav seçin ya da "Tüm Sınavlar" seçeneğini kullanın.');
     return;
   }
-  if(aT === 'examdetail' && (sub === 'summary' || sub === 'list_single') && !hasAnalysisDateSelection()){
-    showAnalysisHint('Tek sınav analizi için sınav seçin.');
+  if(aT === 'examdetail' && !hasAnalysisDateSelection()){
+    showAnalysisHint('Analiz oluşturmak için sınav seçin ya da "Tüm Sınavlar" seçeneğini kullanın.');
+    return;
+  }
+  if(aT === 'examdetail' && !sub){
+    showAnalysisHint('Analiz oluşturmak için veri türünü seçin.');
     return;
   }
 
