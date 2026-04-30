@@ -133,7 +133,6 @@ function checkAuth(){
       getEl('loginScreen').style.display='none';
       getEl('mainApp').style.display='';
       if(getEl('userEmail'))getEl('userEmail').textContent=user.email;
-      if(getEl('sideUserEmail'))getEl('sideUserEmail').textContent=user.email;
       document.body.classList.remove('is-admin');
       if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
       
