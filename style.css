@@ -30,14 +30,128 @@ body.auth-pending .loader-spinner { color:var(--sa-primary) !important; border-w
 .password-toggle { cursor:pointer; background:transparent; border-left:0; }
 .forgot-link { font-size:0.85em; color:var(--sa-primary); }
 #loginError { display:none; }
-.top-user-email { font-size:0.85em; }
+.sa-topbar {
+  min-height: 56px;
+  border-bottom: 1px solid var(--sa-border);
+  box-shadow: 0 1px 0 rgba(15,23,42,0.03);
+}
+.top-icon-link {
+  width: 42px;
+  height: 42px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: #263241 !important;
+}
+.top-icon-link:hover,
+.top-icon-link:focus {
+  background: var(--sa-primary-soft);
+  color: var(--sa-primary) !important;
+}
+.top-user-email {
+  max-width: min(34vw, 360px);
+  min-height: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  color: var(--sa-muted) !important;
+  font-size:0.84rem;
+  overflow: hidden;
+}
+.top-user-email i {
+  color: var(--sa-primary);
+}
+.top-user-email #userEmail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .home-nav-card .progress-description { font-size:0.8em; }
 .search-wrapper { position:relative; }
 .btn-search-clear { border-color:#ced4da; }
 .settings-toolbar { gap:10px; }
 .settings-search { max-width:250px; }
 .selected-student-pill { font-size:0.8em; }
-#connBadge { font-size:0.78em; padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px; }
+#connBadge,
+.conn-badge {
+  min-height: 32px;
+  margin: 0 4px;
+  padding: 4px 10px !important;
+  border-radius: 999px;
+  display:inline-flex !important;
+  align-items:center;
+  gap:7px;
+  border: 1px solid var(--sa-border);
+  background: #fff;
+  color: var(--sa-muted) !important;
+  font-size:0.78rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148,163,184,0.13);
+}
+.conn-badge.is-online {
+  border-color: rgba(5,150,105,0.24);
+  background: rgba(5,150,105,0.08);
+  color: #047857 !important;
+}
+.conn-badge.is-pending {
+  border-color: rgba(100,116,139,0.22);
+  background: #f8fafc;
+  color: #475569 !important;
+}
+.conn-badge.is-pending .conn-dot {
+  background: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148,163,184,0.14);
+}
+.conn-badge.is-online .conn-dot {
+  background: var(--sa-success);
+  box-shadow: 0 0 0 3px rgba(5,150,105,0.16);
+}
+.conn-badge.is-offline {
+  border-color: rgba(220,38,38,0.22);
+  background: rgba(220,38,38,0.08);
+  color: #b91c1c !important;
+}
+.conn-badge.is-offline .conn-dot {
+  background: var(--sa-danger);
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.14);
+}
+.top-action-link {
+  min-height: 34px;
+  margin-left: 2px;
+  padding: 5px 10px !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #334155 !important;
+}
+.top-action-link:hover,
+.top-action-link:focus {
+  background: #f1f5f9;
+  color: var(--sa-primary) !important;
+}
+#installBtn.top-action-link {
+  color: #047857 !important;
+}
+#installBtn.top-action-link:hover,
+#installBtn.top-action-link:focus {
+  background: rgba(5,150,105,0.10);
+  color: #047857 !important;
+}
+.logout-link i {
+  color: var(--sa-primary);
+}
 .mb-3 > label,
 .form-label { font-weight: 600; margin-bottom: 0.35rem; color: #1f2937; }
 .form-control,
@@ -459,8 +573,11 @@ body.is-admin button.w-100.admin-only { display:block !important; }
   .app-content { padding: 0 0.25rem 0.75rem !important; }
   .breadcrumb { font-size: 0.92rem !important; line-height: 1.25; }
   .navbar .nav-link { padding-left: 0.5rem; padding-right: 0.5rem; }
-  #connBadge { padding-left: 4px; padding-right: 4px; }
+  .top-icon-link { width: 38px; height: 38px; }
+  #connBadge { min-width: 30px; justify-content: center; padding-left: 8px !important; padding-right: 8px !important; }
   #connTxt { display: none; }
+  .logout-link span { display: none; }
+  .logout-link { min-width: 34px; justify-content: center; padding-left: 8px !important; padding-right: 8px !important; }
   .table-responsive { font-size: 0.8em; }
   .table th, .table td { padding: 0.4rem 0.3rem !important; white-space: nowrap; }
   .table th { font-size: 0.75em; }

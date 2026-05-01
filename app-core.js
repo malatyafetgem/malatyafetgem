@@ -26,8 +26,9 @@ const auth = firebase.auth();
 // ---- uConn (orig lines 689-693) ----
 function uConn(online){
   const d=document.getElementById('connDot'),t=document.getElementById('connTxt'),b=document.getElementById('connBadge');if(!d||!t||!b)return;
-  if(online){d.textContent='🟢';t.textContent='Bağlı';b.className='nav-link text-success';}
-  else{d.textContent='🔴';t.textContent='Çevrimdışı';b.className='nav-link text-danger';}
+  d.textContent='';
+  if(online){t.textContent='Bağlı';b.className='nav-link conn-badge is-online';b.title='Firebase bağlantısı aktif';}
+  else{t.textContent='Çevrimdışı';b.className='nav-link conn-badge is-offline';b.title='Firebase bağlantısı yok';}
 }
 
 // ---- top-level (orig lines 694-694) ----
