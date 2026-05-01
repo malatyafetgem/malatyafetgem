@@ -553,11 +553,11 @@ function xPR(sourceId, title, btn, orientation) {
 
   // Sınav türü palet sabitleri yeni pencerede de class olarak çalışsın diye CSS bloğu üret
   let paletteCss = _XPR_EXAM_PALETTE.map((c,i) => `.exam-color-${i}{--exam-color:${c};}`).join('\n');
-  let printBaseFont = isCompactListPrint ? '8.2px' : (isLandscape ? '10px' : '10.5px');
-  let printPageMargin = isCompactListPrint ? '5mm 4mm' : '8mm 7mm';
-  let printTableFont = isCompactListPrint ? '6.6px' : (isLandscape ? '8px' : '9px');
-  let printTableHeadFont = isCompactListPrint ? '6.4px' : (isLandscape ? '7.5px' : '8.5px');
-  let printTablePadding = isCompactListPrint ? '1px 2px' : '2px 4px';
+  let printBaseFont = isCompactListPrint ? '10.5px' : (isLandscape ? '10px' : '10.5px');
+  let printPageMargin = isCompactListPrint ? '7mm 6mm' : '8mm 7mm';
+  let printTableFont = isCompactListPrint ? '9px' : (isLandscape ? '8px' : '9px');
+  let printTableHeadFont = isCompactListPrint ? '8.8px' : (isLandscape ? '7.5px' : '8.5px');
+  let printTablePadding = isCompactListPrint ? '3px 4px' : '2px 4px';
 
   let printHtml = `<!DOCTYPE html>
 <html lang="tr">
@@ -685,23 +685,23 @@ ${cssLinks}
   .student-rapor-wrapper{page-break-inside:auto;break-inside:auto;}
 
   /* Toplu Liste: mobil yazdırmada gereksiz sayfa kırmalarını ve boşlukları azalt */
-  body.print-compact-list-mode{line-height:1.12;}
+  body.print-compact-list-mode{line-height:1.25;}
   body.print-compact-list-mode>div{padding:0 !important;}
   body.print-compact-list-mode .rapor-list-report{width:100% !important;margin:0 !important;padding:0 !important;}
-  body.print-compact-list-mode .report-header{padding:4px 6px;margin-bottom:4px;border-radius:3px;}
+  body.print-compact-list-mode .report-header{padding:6px 8px;margin-bottom:6px;border-radius:4px;}
   body.print-compact-list-mode .exam-type-block,
-  body.print-compact-list-mode .karne-bolum{padding:3px 4px;margin-bottom:4px;border-left-width:2px !important;border-right-width:0 !important;border-radius:3px;page-break-before:auto !important;break-before:auto !important;page-break-inside:auto !important;break-inside:auto !important;}
+  body.print-compact-list-mode .karne-bolum{padding:6px 8px;margin-bottom:8px;border-left-width:3px !important;border-right-width:0 !important;border-radius:4px;page-break-before:auto !important;break-before:auto !important;page-break-inside:auto !important;break-inside:auto !important;}
   body.print-compact-list-mode .exam-type-block>h5,
-  body.print-compact-list-mode .karne-bolum>h5{font-size:7.8px !important;margin:0 0 3px 0;padding-bottom:2px;}
-  body.print-compact-list-mode .card{margin-bottom:3px;border-radius:3px;}
-  body.print-compact-list-mode .card-header{padding:2px 5px;font-size:7.2px;line-height:1.1;}
-  body.print-compact-list-mode .card-body{padding:2px 3px;}
-  body.print-compact-list-mode .card-title{font-size:7.6px !important;line-height:1.1;}
+  body.print-compact-list-mode .karne-bolum>h5{font-size:10px !important;margin:0 0 5px 0;padding-bottom:4px;}
+  body.print-compact-list-mode .card{margin-bottom:6px;border-radius:4px;}
+  body.print-compact-list-mode .card-header{padding:5px 8px;font-size:9px;line-height:1.25;}
+  body.print-compact-list-mode .card-body{padding:5px 6px;}
+  body.print-compact-list-mode .card-title{font-size:9.4px !important;line-height:1.25;}
   body.print-compact-list-mode .rapor-list-block{page-break-before:auto !important;break-before:auto !important;page-break-inside:auto !important;break-inside:auto !important;}
-  body.print-compact-list-mode .rapor-list-table{table-layout:fixed !important;font-size:${printTableFont} !important;line-height:1.08 !important;margin:0 !important;page-break-inside:auto !important;break-inside:auto !important;}
+  body.print-compact-list-mode .rapor-list-table{table-layout:fixed !important;font-size:${printTableFont} !important;line-height:1.3 !important;margin:0 !important;page-break-inside:auto !important;break-inside:auto !important;}
   body.print-compact-list-mode .rapor-list-table th,
-  body.print-compact-list-mode .rapor-list-table td{padding:${printTablePadding} !important;line-height:1.08 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:clip !important;border-color:#cfd6df !important;}
-  body.print-compact-list-mode .rapor-list-table thead th{font-size:${printTableHeadFont} !important;line-height:1.08 !important;font-weight:800 !important;}
+  body.print-compact-list-mode .rapor-list-table td{padding:${printTablePadding} !important;line-height:1.3 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:clip !important;border-color:#cfd6df !important;}
+  body.print-compact-list-mode .rapor-list-table thead th{font-size:${printTableHeadFont} !important;line-height:1.25 !important;font-weight:800 !important;}
   body.print-compact-list-mode .rapor-list-table tbody,
   body.print-compact-list-mode .rapor-list-table tr{page-break-inside:auto !important;break-inside:auto !important;}
   body.print-compact-list-mode .rapor-list-table .rl-name{text-align:left !important;font-weight:600;}
@@ -719,11 +719,11 @@ ${cssLinks}
   body.print-compact-list-mode .rapor-list-table col.rl-col-score{width:5.9%;}
   body.print-compact-list-mode .rapor-list-table col.rl-col-rank{width:5.2%;}
   body.print-compact-list-mode .rapor-list-table col.rl-col-count{width:4.4%;}
-  body.print-compact-list-mode .avg-row td{font-size:6.4px !important;line-height:1.08 !important;}
-  body.print-compact-list-mode .mb-4{margin-bottom:5px !important;}
-  body.print-compact-list-mode .mb-3{margin-bottom:4px !important;}
-  body.print-compact-list-mode h4{font-size:8.2px !important;margin:2px 0;}
-  body.print-compact-list-mode h5{font-size:7.8px !important;margin:2px 0;}
+  body.print-compact-list-mode .avg-row td{font-size:8.6px !important;line-height:1.3 !important;}
+  body.print-compact-list-mode .mb-4{margin-bottom:8px !important;}
+  body.print-compact-list-mode .mb-3{margin-bottom:6px !important;}
+  body.print-compact-list-mode h4{font-size:10px !important;margin:4px 0;}
+  body.print-compact-list-mode h5{font-size:9.6px !important;margin:4px 0;}
 
   /* Gizle */
   .no-print,button:not(.risk-badge),.btn:not(.risk-badge),.scroll-hint,.d-flex.justify-content-end,#riskPanel,
