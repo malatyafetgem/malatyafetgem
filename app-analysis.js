@@ -2966,14 +2966,44 @@ function raporFillExamTypes() {
     + (types.length ? optionHtml('ALL', 'Tüm Sınav Türleri (Genel Karne)', prev === 'ALL') : '');
   if(prev && (prev === 'ALL' || types.includes(prev))) etSel.value = prev;
   else etSel.value = '';
+  if(etSel.value === 'ALL') raporFillReportTypes(true);
   raporUpdateLocks();
-  if(etSel.value && getEl('rReportType') && getEl('rReportType').value) generateRapor();
+  if(etSel.value && etSel.value !== 'ALL' && getEl('rReportType') && getEl('rReportType').value) generateRapor();
+}
+
+function raporFillReportTypes(resetGeneralSelection) {
+  let reportSel = getEl('rReportType');
+  if(!reportSel) return;
+  let et = getEl('rExType') ? getEl('rExType').value : '';
+  let prev = reportSel.value;
+  let generalTranscript = et === 'ALL';
+  let keepKarne = generalTranscript ? (!resetGeneralSelection && prev === 'Karne') : prev === 'Karne';
+  reportSel.innerHTML = optionHtml('', 'Rapor Türü Seçiniz', !keepKarne && prev !== 'Liste', true)
+    + optionHtml('Karne', 'Karne (Öğrenci Bazlı)', keepKarne)
+    + (generalTranscript ? '' : optionHtml('Liste', 'Liste (Toplu Netler)', prev === 'Liste'));
+  if(generalTranscript) reportSel.value = keepKarne ? 'Karne' : '';
+  else if(prev === 'Karne' || prev === 'Liste') reportSel.value = prev;
+  else reportSel.value = '';
+}
+
+function raporExamTypeChanged() {
+  let et = getEl('rExType') ? getEl('rExType').value : '';
+  if(et === 'ALL') {
+    raporFillReportTypes(true);
+    raporUpdateLocks();
+    let r = getEl('raporRes');
+    if(r) r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Genel karne için yalnızca Karne (Öğrenci Bazlı) raporu kullanılabilir. Raporu oluşturmak için rapor türünden Karne seçin.</div>';
+    return;
+  }
+  raporUpdateLocks();
+  if(et && getEl('rReportType') && getEl('rReportType').value) generateRapor();
 }
 
 function raporUpdateLocks() {
   let lvl = getEl('rLvl') ? getEl('rLvl').value : '';
   let br = getEl('rBr') ? getEl('rBr').value : '';
   let et = getEl('rExType') ? getEl('rExType').value : '';
+  raporFillReportTypes();
   if(typeof _setSelectLock === 'function') {
     _setSelectLock('rBr', !lvl, 'Önce sınıf seviyesi seçin');
     _setSelectLock('rExType', !lvl || !br, !lvl ? 'Önce sınıf seviyesi seçin' : 'Önce şube seçin');
@@ -2990,6 +3020,11 @@ async function generateRapor() {
   let lvl = getEl('rLvl').value, brRaw = getEl('rBr').value, br = brRaw === '__ALL__' ? '' : brRaw, eTypeSel = getEl('rExType').value;
   let rType = getEl('rReportType') ? getEl('rReportType').value : '';
   let r = getEl('raporRes');
+  if(eTypeSel === 'ALL' && rType !== 'Karne') {
+    raporFillReportTypes(true);
+    if(r) r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Genel karne için yalnızca Karne (Öğrenci Bazlı) raporu kullanılabilir. Raporu oluşturmak için rapor türünden Karne seçin.</div>';
+    return;
+  }
   if(!lvl) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınıf seviyesi seçin.</div>'; return; }
   if(!brRaw) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için şube seçin ya da "Tümü" seçeneğini kullanın.</div>'; return; }
   if(!eTypeSel) { r.innerHTML = '<div class="alert alert-default-info"><i class="fas fa-info-circle me-2"></i>Rapor oluşturmak için sınav türü seçin.</div>'; return; }
@@ -3010,7 +3045,7 @@ async function generateRapor() {
   // --- LİSTE MODU ---
   if (rType === 'Liste') {
     let listReportName = safeFileName(`Toplu_Liste_${lvlStr}`);
-    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('raporCont',${jsArg(listReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(listReportName)},this,'landscape')"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont" class="print-compact-list">`;
+    let html = `<div class="d-flex justify-content-end mb-2 no-print"><button class="btn btn-success btn-sm me-2" onclick="xXLMul('raporCont',${jsArg(listReportName)})"><i class='fas fa-file-excel me-1'></i>Excel</button><button class="btn-print no-print" onclick="xPR('raporCont',${jsArg(listReportName)},this,'landscape')"><i class='fas fa-print me-1'></i>Tümünü Yazdır</button></div><div id="raporCont" class="print-compact-list rapor-list-report">`;
 
     let typesToProcess =[];
     if (eTypeSel === 'ALL') {
@@ -3082,11 +3117,11 @@ async function generateRapor() {
       }).join('');
 
       let bodyRowsAll = displayStuArr.map((s, idx) => {
-        let subCells = allSubKeys.map(k => `<td>${s.subAvgs[k] !== null ? s.subAvgs[k].toFixed(2) : '—'}</td>`).join('');
+        let subCells = allSubKeys.map(k => `<td class="rl-sub">${s.subAvgs[k] !== null ? s.subAvgs[k].toFixed(2) : '—'}</td>`).join('');
         let cR = clsSizeMap[s.no]; let gR = gradeSizeMap[s.no];
         let clsRankCell = cR ? `${cR.rank}/${cR.total}` : '—';
         let schoolRankCell = gR ? `${gR.rank}/${gR.total}` : '—';
-        return `<tr><td>${idx+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.cls)}</td>${subCells}<td><strong>${s.avgNet.toFixed(2)}</strong></td><td>${s.avgScore.toFixed(2)}</td><td>${escapeHtml(clsRankCell)}</td><td>${escapeHtml(schoolRankCell)}</td><td>${s.examCount}</td></tr>`;
+        return `<tr><td class="rl-idx">${idx+1}</td><td class="rl-name">${escapeHtml(s.name)}</td><td class="rl-class">${escapeHtml(s.cls)}</td>${subCells}<td class="rl-net"><strong>${s.avgNet.toFixed(2)}</strong></td><td class="rl-score">${s.avgScore.toFixed(2)}</td><td class="rl-rank">${escapeHtml(clsRankCell)}</td><td class="rl-rank">${escapeHtml(schoolRankCell)}</td><td class="rl-count">${s.examCount}</td></tr>`;
       }).join('');
 
       let allAvgRow = '';
@@ -3103,15 +3138,17 @@ async function generateRapor() {
       let _rExLabel    = (typeof toExamLabel === 'function') ? toExamLabel(t) : t;
       let isFirst = renderedTypeCount === 0;
       renderedTypeCount++;
+      let colGroupAll = `<colgroup><col class="rl-col-idx"><col class="rl-col-name"><col class="rl-col-class">${allSubKeys.map(()=>'<col class="rl-col-sub">').join('')}<col class="rl-col-net"><col class="rl-col-score"><col class="rl-col-rank"><col class="rl-col-rank"><col class="rl-col-count"></colgroup>`;
 
-      html += `<div class="card shadow-sm mb-4 exam-type-block exam-color-${_rExColorIdx}${isFirst?' exam-type-first':''}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
+      html += `<div class="card shadow-sm mb-4 exam-type-block rapor-list-block exam-color-${_rExColorIdx}${isFirst?' exam-type-first':''}" data-exam-color-idx="${_rExColorIdx}" data-exam-color="${_rExColorIdx}">
         <div class="card-header bg-light">
           <h3 class="card-title card-title-md m-0"><i class="fas fa-list-alt me-2"></i>${escapeHtml(_rExLabel)} — Toplu Liste | <span class="card-title-subtle">${escapeHtml(lvlStr)}</span></h3>
         </div>
         <div class="card-body p-2">
           <div class="scroll-hint"><i class="fas fa-arrows-alt-h me-1"></i>Tabloyu kaydırın</div>
           <div class="scroll list-scroll">
-            <table class="table table-sm table-bordered table-striped table-hover" data-sh="${escapeHtml(t)}">
+            <table class="table table-sm table-bordered table-striped table-hover rapor-list-table" data-sh="${escapeHtml(t)}">
+              ${colGroupAll}
               <thead><tr><th>#</th><th>Ad Soyad</th><th>Sınıf</th>${headColsAll}<th>Top.Net Ort.</th><th>Puan Ort.</th><th>Sıra/Sınıf</th><th>Sıra/Okul</th><th>Sınav Say.</th></tr></thead>
               <tbody>${bodyRowsAll}${allAvgRow}</tbody>
             </table>

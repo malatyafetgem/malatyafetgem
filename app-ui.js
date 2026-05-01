@@ -68,6 +68,12 @@ window.addEventListener('popstate', function(e) {
   if(loginVisible) return; // Giriş ekranındaysa doğal davranışa bırak
 
   if(isMobile) {
+    let hashPane = String(window.location.hash || '').replace('#', '');
+    let statePane = e.state && e.state.pane ? e.state.pane : '';
+    if(hashPane || statePane) {
+      executeTabSwitch(normalizePaneId(statePane || hashPane), true);
+      return;
+    }
     if(currentPane === 'anasayfa_genel') {
       // Ana sayfadayken geri → uygulamadan çık (tarayıcıya bırak)
       // history.back() sonsuz döngüye girmemek için kontrol
@@ -679,16 +685,41 @@ ${cssLinks}
   .student-rapor-wrapper{page-break-inside:auto;break-inside:auto;}
 
   /* Toplu Liste: mobil yazdırmada gereksiz sayfa kırmalarını ve boşlukları azalt */
+  body.print-compact-list-mode{line-height:1.12;}
+  body.print-compact-list-mode>div{padding:0 !important;}
+  body.print-compact-list-mode .rapor-list-report{width:100% !important;margin:0 !important;padding:0 !important;}
   body.print-compact-list-mode .report-header{padding:4px 6px;margin-bottom:4px;border-radius:3px;}
   body.print-compact-list-mode .exam-type-block,
-  body.print-compact-list-mode .karne-bolum{padding:3px 4px;margin-bottom:4px;border-left-width:2px !important;border-right-width:0 !important;border-radius:3px;page-break-before:auto !important;break-before:auto !important;}
+  body.print-compact-list-mode .karne-bolum{padding:3px 4px;margin-bottom:4px;border-left-width:2px !important;border-right-width:0 !important;border-radius:3px;page-break-before:auto !important;break-before:auto !important;page-break-inside:auto !important;break-inside:auto !important;}
   body.print-compact-list-mode .exam-type-block>h5,
   body.print-compact-list-mode .karne-bolum>h5{font-size:7.8px !important;margin:0 0 3px 0;padding-bottom:2px;}
   body.print-compact-list-mode .card{margin-bottom:3px;border-radius:3px;}
-  body.print-compact-list-mode .card-header{padding:2px 5px;font-size:7.2px;}
+  body.print-compact-list-mode .card-header{padding:2px 5px;font-size:7.2px;line-height:1.1;}
   body.print-compact-list-mode .card-body{padding:2px 3px;}
-  body.print-compact-list-mode .card-title{font-size:7.6px !important;}
-  body.print-compact-list-mode .avg-row td{font-size:6.4px !important;}
+  body.print-compact-list-mode .card-title{font-size:7.6px !important;line-height:1.1;}
+  body.print-compact-list-mode .rapor-list-block{page-break-before:auto !important;break-before:auto !important;page-break-inside:auto !important;break-inside:auto !important;}
+  body.print-compact-list-mode .rapor-list-table{table-layout:fixed !important;font-size:${printTableFont} !important;line-height:1.08 !important;margin:0 !important;page-break-inside:auto !important;break-inside:auto !important;}
+  body.print-compact-list-mode .rapor-list-table th,
+  body.print-compact-list-mode .rapor-list-table td{padding:${printTablePadding} !important;line-height:1.08 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:clip !important;border-color:#cfd6df !important;}
+  body.print-compact-list-mode .rapor-list-table thead th{font-size:${printTableHeadFont} !important;line-height:1.08 !important;font-weight:800 !important;}
+  body.print-compact-list-mode .rapor-list-table tbody,
+  body.print-compact-list-mode .rapor-list-table tr{page-break-inside:auto !important;break-inside:auto !important;}
+  body.print-compact-list-mode .rapor-list-table .rl-name{text-align:left !important;font-weight:600;}
+  body.print-compact-list-mode .rapor-list-table .rl-idx,
+  body.print-compact-list-mode .rapor-list-table .rl-class,
+  body.print-compact-list-mode .rapor-list-table .rl-sub,
+  body.print-compact-list-mode .rapor-list-table .rl-net,
+  body.print-compact-list-mode .rapor-list-table .rl-score,
+  body.print-compact-list-mode .rapor-list-table .rl-rank,
+  body.print-compact-list-mode .rapor-list-table .rl-count{text-align:center !important;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-idx{width:3.2%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-name{width:18%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-class{width:4.3%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-net{width:6.2%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-score{width:5.9%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-rank{width:5.2%;}
+  body.print-compact-list-mode .rapor-list-table col.rl-col-count{width:4.4%;}
+  body.print-compact-list-mode .avg-row td{font-size:6.4px !important;line-height:1.08 !important;}
   body.print-compact-list-mode .mb-4{margin-bottom:5px !important;}
   body.print-compact-list-mode .mb-3{margin-bottom:4px !important;}
   body.print-compact-list-mode h4{font-size:8.2px !important;margin:2px 0;}

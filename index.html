@@ -11,8 +11,8 @@
 <link rel="manifest" href="./manifest.json">
 <title>Sınav Analiz Sistemi</title>
 <script>
-window.SA_APP_VERSION = 'adminlte4-r40';
-window.SA_CACHE_NAME = 'sinav-analizi-adminlte4-r40';
+window.SA_APP_VERSION = 'adminlte4-r46';
+window.SA_CACHE_NAME = 'sinav-analizi-adminlte4-r46';
 window.SA_CACHE_READY = (async function(){
   try {
     const markerKey = 'sinavAnalizi.cacheReadyVersion';
@@ -52,7 +52,7 @@ window.SA_CACHE_READY = (async function(){
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
-<link rel="stylesheet" href="./style.css?v=adminlte4-r40">
+<link rel="stylesheet" href="./style.css?v=adminlte4-r46">
 </head>
 <body class="layout-fixed sidebar-expand-lg sidebar-mini" data-active-pane="anasayfa_genel">
 
@@ -245,7 +245,7 @@ window.SA_CACHE_READY = (async function(){
               <div class="row">
                 <div class="col-sm-6 col-md-3"><div class="mb-3"><label>Sınıf Seviyesi</label><select id="rLvl" class="form-select" onchange="raporFillBranches()"><option value="">Seçiniz</option></select></div></div>
                 <div class="col-sm-6 col-md-2"><div class="mb-3"><label>Şube</label><select id="rBr" class="form-select" onchange="raporFillExamTypes()"><option value="">Tümü</option></select></div></div>
-                <div class="col-sm-6 col-md-3"><div class="mb-3"><label>Sınav Türü</label><select id="rExType" class="form-select" onchange="raporUpdateLocks();generateRapor()"><option value="" disabled selected>Sınav Seçiniz</option></select></div></div>
+                <div class="col-sm-6 col-md-3"><div class="mb-3"><label>Sınav Türü</label><select id="rExType" class="form-select" onchange="raporExamTypeChanged()"><option value="" disabled selected>Sınav Seçiniz</option></select></div></div>
                 <div class="col-sm-6 col-md-3"><div class="mb-3"><label>Rapor Türü</label><select id="rReportType" class="form-select" onchange="generateRapor()"><option value="" disabled selected>Rapor Türü Seçiniz</option><option value="Karne">Karne (Öğrenci Bazlı)</option><option value="Liste">Liste (Toplu Netler)</option></select></div></div>
               </div>
             </div>
@@ -415,7 +415,7 @@ window.SA_CACHE_READY = (async function(){
 
 <script>
 (async function loadAppScripts(){
-  const version = window.SA_APP_VERSION || 'adminlte4-r40';
+  const version = window.SA_APP_VERSION || 'adminlte4-r46';
   const scripts = ['app-core.js','app-ui.js','app-analysis.js','app-settings.js'];
   const refreshLocalStyle = () => {
     const current = document.querySelector('link[href*="style.css"]');
