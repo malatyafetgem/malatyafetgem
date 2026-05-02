@@ -2001,3 +2001,198 @@ body.sidebar-collapse .app-sidebar.sa-sidebar:hover .sidebar-brand .brand-text {
 .sec-card[title] { cursor: help; }
 
 /* Trend kartı içinde Performans Tutarlılığı sütunu için aynı x-small kuralı zaten var. */
+
+/* ===================================================================
+   BOTTOM NAVIGATION BAR — Mobil navigasyon (≤991px)
+   Her sekme ana sayfadaki info-box kartlarıyla aynı gradient renkleri
+   taşır. Aktif: dolu gradient + beyaz ikon/etiket. Pasif: soluk ton.
+   =================================================================== */
+
+/* ===================================================================
+   BOTTOM NAVIGATION BAR — Renk değişkenleri
+   Ana sayfadaki home-nav-card renkleriyle birebir eşleşir.
+   --bnav-color: ikon ve metin rengi; --bnav-soft: pasif hover arka planı
+   =================================================================== */
+#bnav-anasayfa_genel {
+  --bnav-color: #0d6efd;
+  --bnav-soft:  rgba(13, 110, 253, 0.08);
+}
+#bnav-anasayfa {
+  --bnav-color: #198754;
+  --bnav-soft:  rgba(25, 135, 84, 0.08);
+}
+#bnav-sonuclar {
+  --bnav-color: #0891b2;
+  --bnav-soft:  rgba(8, 145, 178, 0.08);
+}
+#bnav-rapor {
+  --bnav-color: #d97706;
+  --bnav-soft:  rgba(217, 119, 6, 0.08);
+}
+#bnav-ayarlar {
+  --bnav-color: #d97706;
+  --bnav-soft:  rgba(217, 119, 6, 0.08);
+}
+
+.bottom-nav {
+  display: none; /* Masaüstünde gizli */
+}
+
+@media (max-width: 991px) {
+  /* Barın kendisi */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    height: 64px;
+    background: #ffffff;
+    border-top: 1px solid var(--sa-border);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.10);
+    align-items: stretch;
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* İçeriğin barın altına kaymaması için */
+  .app-main,
+  .app-content,
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Hamburger butonu ve sidebar toggle — mobilde gizle */
+  .app-header .nav-link[data-lte-toggle="sidebar"],
+  .app-header [data-lte-toggle="sidebar"] {
+    display: none !important;
+  }
+
+  /* Her sekme öğesi — pasif durum
+     Ana sayfadaki home-nav-card gibi: beyaz zemin, kare köşe,
+     üst kenarda ince şeffaf çizgi hazır ama görünmez */
+  .bnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px 6px;
+    text-decoration: none;
+    color: var(--sa-muted);
+    position: relative;
+    border-radius: 0;
+    min-width: 0;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.18s ease, color 0.18s ease;
+    /* Üst kenar çizgisi: pasif = şeffaf, aktif = renkli */
+    border-top: 3px solid transparent;
+  }
+
+  /* Üst kenardaki renkli çizginin arkasındaki pseudo — aynı şeride
+     içe doğru azalan gradient (home-nav-card ::after mantığı) */
+  .bnav-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      var(--bnav-soft, rgba(13, 110, 253, 0.08)) 0%,
+      transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  /* Pasif hover */
+  .bnav-item:hover,
+  .bnav-item:focus-visible {
+    color: var(--bnav-color, var(--sa-primary));
+    outline: none;
+  }
+  .bnav-item:hover::before,
+  .bnav-item:focus-visible::before {
+    opacity: 0.6;
+  }
+
+  /* İkon — pasif: gri, aktif: renkli (renk değişkeni) */
+  .bnav-icon {
+    font-size: 1.18rem;
+    line-height: 1;
+    color: inherit;
+    transition: color 0.18s ease, transform 0.15s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Etiket */
+  .bnav-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    color: inherit;
+    transition: color 0.15s ease, font-weight 0.15s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── AKTİF SEKME ──
+     home-nav-card ile aynı dil:
+     • üst kenar 3px renkli çizgi  (border-top)
+     • içe doğru azalan soft gradient (::before)
+     • ikon renklenir
+     Oval pill yok, kare köşe korunur */
+  .bnav-item.active {
+    color: var(--bnav-color, var(--sa-primary));
+    border-top-color: var(--bnav-color, var(--sa-primary));
+  }
+
+  .bnav-item.active::before {
+    opacity: 1;
+  }
+
+  .bnav-item.active .bnav-icon {
+    color: var(--bnav-color, var(--sa-primary));
+    transform: translateY(-1px);
+  }
+
+  .bnav-item.active .bnav-label {
+    font-weight: 800;
+  }
+
+  /* Admin-only sekme */
+  .bnav-item.admin-only {
+    display: none !important;
+  }
+  body.is-admin .bnav-item.admin-only {
+    display: flex !important;
+  }
+
+  /* Toast container'ı barın üzerinde tut */
+  #toastContainer {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    top: auto;
+  }
+
+  /* PWA popup da barın üzerinde */
+  #pwaInstallPopup {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    top: auto;
+    transform: translateX(-50%);
+  }
+}
+
+/* Print: bottom nav hiç basılmasın */
+@media print {
+  .bottom-nav { display: none !important; }
+}

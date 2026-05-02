@@ -174,6 +174,11 @@ function executeTabSwitch(id, isPopState) {
   if(matchLink && !matchLink.classList.contains('nav-link')) matchLink = matchLink.querySelector('.nav-link');
   if (matchLink) matchLink.classList.add('active');
 
+  // Bottom nav aktif item güncelle
+  document.querySelectorAll('.bnav-item').forEach(x => x.classList.remove('active'));
+  let bnavItem = document.getElementById('bnav-' + id);
+  if(bnavItem) bnavItem.classList.add('active');
+
   const titles={anasayfa_genel:'Ana Sayfa',anasayfa:'Öğrenci',sonuclar:'Sonuçlar & Analizler',rapor:'Toplu Rapor',ayarlar:'Ayarlar'};
   if(getEl('breadcrumb')) getEl('breadcrumb').textContent = titles[id] || id;
 
