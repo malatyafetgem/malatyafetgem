@@ -861,7 +861,7 @@ function buildKarneExamCards(summary, examType, metricLabel) {
       </div>`;
     }
 
-    trendHtml = `<div class="trend-card mt-2 mb-1"><div class="row flex-nowrap align-items-center text-center trend-row">
+    trendHtml = `<div class="trend-card mt-2 mb-1"><div class="scroll-hint trend-scroll-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla gösterge görebilirsiniz</div><div class="row flex-nowrap align-items-center text-center trend-row">
       <div class="col border-right mb-1 trend-metric" title="${r2Tooltip}">
         <span class="trend-indicator trend-indicator-sm ${trend.trendClass}"><i class="fas ${trend.trendIcon} me-1"></i>${trend.trendText}</span>
         <div class="small text-muted mt-1 trend-label"><strong>Genel Yön (Trend)</strong></div>
@@ -894,7 +894,7 @@ function buildKarneExamCards(summary, examType, metricLabel) {
   let avgLabel = isScore ? 'Ortalama Puan' : `Ortalama ${metricLabel}`;
   let genOrtLabel = isScore ? 'Genel Puan Ort' : 'Genel Ort';
 
-  let cardsHtml = `<div class="row mb-2">
+  let cardsHtml = `<div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mb-2">
     <div class="col-md-3 col-sm-6">
       <div class="sec-card">
         <div class="sec-icon"><i class="fas fa-chart-bar"></i></div>
@@ -1661,7 +1661,7 @@ function rAnl(){
       DB.e.forEach(x => { if(x.studentNo===no && x.examType===eT && !x.abs) attendedKeys2.add(x.date+'||'+(x.publisher||'')); });
       let attendedCnt2 = attendedKeys2.size;
       let partRate2 = totalGradeExams2 > 0 ? Math.max(0, Math.min(100, Math.round(attendedCnt2 / totalGradeExams2 * 100))) : 0;
-      perfHtml = `<div class="row mt-3 mb-2">
+      perfHtml = `<div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mt-3 mb-2">
         <div class="col-md-3 col-sm-6"><div class="sec-card sec-pos"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Sıra</div><div class="sec-value">${bestRank}</div><div class="sec-sub">Düşük = daha iyi</div></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="sec-card sec-neg"><div class="sec-icon"><i class="fas fa-arrow-down"></i></div><div class="sec-body"><div class="sec-label">En Kötü Sıra</div><div class="sec-value">${worstRank}</div></div></div></div>
         <div class="col-md-3 col-sm-6"><div class="sec-card"><div class="sec-icon"><i class="fas fa-balance-scale"></i></div><div class="sec-body"><div class="sec-label">Ortalama Sıra</div><div class="sec-value">${avgRank}</div></div></div></div>
@@ -1841,7 +1841,7 @@ function rAnl(){
         // Satır 1: Katılım Oranı | Kurum Ort. | Ort. Üstü Sınıf
         // Satır 2: En İyi Sınıf | En Düşük Sınıf | Şubeler Arası Etki Büyüklüğü
         clsPerfHtml = `
-          <div class="row mb-2">
+          <div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mb-2">
             <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neutral h-100"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Katılım Oranı</div><div class="sec-value">%${partRate}</div><div class="sec-sub">${attendedCount} / ${baseCount} Katılım</div></div></div></div>
             <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-calculator"></i></div><div class="sec-body"><div class="sec-label">Kurum Ort. (${lvlLabel})</div><div class="sec-value">${genAvgPerf.toFixed(2)}</div></div></div></div>
             <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-star"></i></div><div class="sec-body"><div class="sec-label">Ort. Üstü Sınıf</div><div class="sec-value">${aboveAvg} / ${topCls.length}</div></div></div></div>
@@ -2248,7 +2248,7 @@ function rAnl(){
     }
 
     // Satır 1: Toplam Kayıt | Katılım Oranı | Genel Ortalama
-    let subjRow1Html = `<div class="row mb-2">
+    let subjRow1Html = `<div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mb-2">
       <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-users"></i></div><div class="sec-body"><div class="sec-label">Toplam Kayıt</div><div class="sec-value">${ex.length} Sonuç</div></div></div></div>
       <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neutral h-100"><div class="sec-icon"><i class="fas fa-chart-pie"></i></div><div class="sec-body"><div class="sec-label">Katılım Oranı</div><div class="sec-value">%${partRateS}</div><div class="sec-sub">${attendedCountS} / ${baseCountS} Katılım</div></div></div></div>
       <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card h-100"><div class="sec-icon"><i class="fas fa-calculator"></i></div><div class="sec-body"><div class="sec-label">Genel Ortalama</div><div class="sec-value">${genAvg.toFixed(2)} Net</div></div></div></div>
@@ -2258,7 +2258,7 @@ function rAnl(){
     // En İyi Sınıf | En Zayıf Sınıf | Şubeler Arası Etki Büyüklüğü (Cohen's d)
     let subjRow2Html = '';
     if(!br && clsArr.length > 1) {
-      subjRow2Html = `<div class="row mb-2">
+      subjRow2Html = `<div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mb-2">
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-school"></i></div><div class="sec-body"><div class="sec-label">En İyi Sınıf</div><div class="sec-value">${subjBestClsObj.cls}</div><div class="sec-sub">Ort: ${subjBestClsObj.avg.toFixed(2)} Net</div></div></div></div>
         <div class="col-md-4 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-circle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Sınıf</div><div class="sec-value">${subjWorstClsObj.cls}</div><div class="sec-sub">Ort: ${subjWorstClsObj.avg.toFixed(2)} Net</div></div></div></div>
         ${subjCohenColHtml}
@@ -2266,7 +2266,7 @@ function rAnl(){
     }
 
     // Satır 3: En İyi Öğrenci | En Zayıf Öğrenci
-    let subjRow3Html = `<div class="row mb-2">
+    let subjRow3Html = `<div class="scroll-hint sec-cards-row-hint"><i class="fas fa-hand-point-right me-1"></i>Sağa kaydırarak daha fazla kart görebilirsiniz</div><div class="sec-cards-row row mb-2">
       <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-pos h-100"><div class="sec-icon"><i class="fas fa-trophy"></i></div><div class="sec-body"><div class="sec-label">En İyi Öğrenci</div><div class="sec-value sec-value-small">${bestStudent ? `${escapeHtml(bestStudent.name)} (${escapeHtml(bestStudent.cls)})` : 'Veri Yok'}</div><div class="sec-sub">${bestStudent ? `${bestStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
       <div class="col-md-6 col-lg flex-fill mb-2"><div class="sec-card sec-neg h-100"><div class="sec-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="sec-body"><div class="sec-label">En Zayıf Öğrenci</div><div class="sec-value sec-value-small">${worstStudent ? `${escapeHtml(worstStudent.name)} (${escapeHtml(worstStudent.cls)})` : 'Veri Yok'}</div><div class="sec-sub">${worstStudent ? `${worstStudent.avg.toFixed(2)} Net (Ort)` : ''}</div></div></div></div>
     </div>`;
@@ -2931,6 +2931,17 @@ function raporInit() {
   if(prevLvl && levels.includes(prevLvl)) lvlSel.value = prevLvl;
   else lvlSel.value = '';
   raporFillBranches();
+}
+
+// ---- resetRapor ----
+function resetRapor() {
+  let lvlSel = getEl('rLvl'), brSel = getEl('rBr'), etSel = getEl('rExType'), rtSel = getEl('rReportType');
+  if(lvlSel) lvlSel.value = '';
+  if(brSel) { brSel.innerHTML = '<option value="">Tümü</option>'; brSel.value = ''; }
+  if(etSel) { etSel.innerHTML = '<option value="" disabled selected>Sınav Seçiniz</option>'; etSel.value = ''; }
+  if(rtSel) { rtSel.innerHTML = '<option value="" disabled selected>Rapor Türü Seçiniz</option><option value="Karne">Karne (Öğrenci Bazlı)</option><option value="Liste">Liste (Toplu Netler)</option>'; rtSel.value = ''; }
+  let res = getEl('raporRes'); if(res) res.innerHTML = '';
+  raporInit();
 }
 
 // ---- raporFillBranches (orig lines 3502-3506) ----

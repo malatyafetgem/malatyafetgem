@@ -5,7 +5,7 @@ function rTabS(){
   let t=getEl('tStu').querySelector('tbody');
   t.innerHTML=DB.s.map((s,idx)=>{
     let safeNo   = escapeHtml(s.no);
-    let safeName = escapeHtml(s.name);
+    let safeName = escapeHtml(toTitleCase(s.name));
     let safeCls  = escapeHtml(s.class);
     let noArg    = jsArg(s.no);
     let delMsgArg= jsArg(`${s.no} numaralı öğrenci ve tüm sonuçları silinecek. Onaylıyor musunuz?`);
@@ -83,7 +83,7 @@ function cMod(id){hideModal(id);}
 function oModAdd(){getEl('mSTit').textContent='Öğrenci Ekle';getEl('mSNo').value='';getEl('mSNo').disabled=false;getEl('mSNa').value='';getEl('mSCl').value='';oMod('mStu');}
 
 // ---- eStu (orig lines 3694-3694) ----
-function eStu(n){let s=getStuMap().get(n);if(s){getEl('mSTit').textContent='Öğrenci Düzenle';getEl('mSNo').value=s.no;getEl('mSNo').disabled=true;getEl('mSNa').value=s.name;getEl('mSCl').value=s.class;oMod('mStu');}}
+function eStu(n){let s=getStuMap().get(n);if(s){getEl('mSTit').textContent='Öğrenci Düzenle';getEl('mSNo').value=s.no;getEl('mSNo').disabled=true;getEl('mSNa').value=toTitleCase(s.name);getEl('mSCl').value=s.class;oMod('mStu');}}
 
 // ---- cDel (orig lines 3695-3695) ----
 function cDel(t,m,id=null){dInf={t,id};getEl('cTxt').textContent=m;oMod('mConf');}
