@@ -475,7 +475,7 @@ window.SA_CACHE_READY = (async function(){
 
 <script>
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('/sw.js?v=' + (window.SA_APP_VERSION || 'dev'), { scope: '/', updateViaCache: 'none' }).catch(() => {});
+  navigator.serviceWorker.register('/sinav/sw.js?v=' + (window.SA_APP_VERSION || 'dev'), { scope: '/sinav/', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
 
