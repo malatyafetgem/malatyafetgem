@@ -1095,20 +1095,7 @@ function rH(){
   },150);
 }
 
-// ---- _buildSingleMetricSparkline: Tek bir metrik için (Toplam Net, Puan, ders neti, sıralama) eğilim kartı ----
-// metric: 'totalNet' | 'score' | 'rank_c'/'rank_i'/'rank_g' | 's_<dersAdı>'
-// NOT (Madde 10): Tüm çağrı noktaları temizlendi. Fonksiyon tanımı da silinebilir; şimdilik bırakıldı.
-function _buildSingleMetricSparkline(stuNo, examType, curExam, metric, label){
-  // Eğilim (sparkline) grafiği kullanıcı isteğiyle kaldırıldı.
-  return '';
-}
-
-// ---- buildSubjectSparklines: Tek sınav modu — Ders Eğilimi mini-grafik paneli ----
-// NOT (Madde 10): Tüm çağrı noktaları temizlendi. Fonksiyon tanımı da silinebilir; şimdilik bırakıldı.
-function buildSubjectSparklines(stuNo, examType, curExam, subjects){
-  // Ders Eğilimi sparkline paneli kullanıcı isteğiyle kaldırıldı.
-  return '';
-}
+// _buildSingleMetricSparkline ve buildSubjectSparklines kaldırıldı (ölü kod — hiçbir yerden çağrılmıyor).
 
 // ---- buildSingleExamCards: Tek sınav modu için genel bilgi kartları ----
 // (1) Puan & Sıra  (2) Önceki Sınava Fark  (3) En Başarılı Ders  (4) En Zayıf Ders  (5) Genel Katılım
@@ -3098,6 +3085,10 @@ function resetRapor() {
   if(rtSel) { rtSel.innerHTML = '<option value="" disabled selected>Rapor Türü Seçiniz</option><option value="Karne">Karne (Öğrenci Bazlı)</option><option value="Liste">Liste (Toplu Netler)</option>'; rtSel.value = ''; }
   let res = getEl('raporRes'); if(res) res.innerHTML = '';
   raporInit();
+  // Sıfırlama sonrası filtre kartını görünür konuma getir
+  let scrollTarget = lvlSel ? lvlSel.closest('.card, .sa-panel, section') : null;
+  if(!scrollTarget) scrollTarget = getEl('raporRes') ? getEl('raporRes').closest('.card, .sa-panel, section') : null;
+  if(scrollTarget) scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function raporFillBranches() {

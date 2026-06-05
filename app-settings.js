@@ -213,7 +213,11 @@ async function expDB(){
 }
 
 async function impDB(e){
-  if(auth.currentUser.uid !== ADMIN_UID){ showToast('Bu işlem sadece admin tarafından yapılabilir.', 'error'); e.target.value = ''; return; }
+  if(!document.body.classList.contains('is-admin')){
+  showToast('Bu işlem sadece admin tarafından yapılabilir.', 'error');
+  e.target.value = '';
+  return;
+}
   let f = e.target.files[0]; if(!f){ e.target.value=''; return; }
   if(!ensureOnlineForWrite('Geri yükleme')){ e.target.value=''; return; }
   appConfirm('Mevcut tüm verinin üzerine yazılacak. Bu işlem geri alınamaz. Devam edilsin mi?', () => restoreBackupFile(f), {
@@ -226,10 +230,35 @@ async function impDB(e){
 function restoreBackupFile(f){
   if(!f) return;
   if(!ensureOnlineForWrite('Geri yükleme')) return;
+  // Yaklaşık boyut limiti: 50 MB
+  if(f.size > 50 * 1024 * 1024){ showToast('Yedek dosyası çok büyük (>50 MB). Geçerli bir yedek dosyası seçin.', 'error'); return; }
   let rd = new FileReader();
   rd.onload = async ev => {
     try {
-      let p = JSON.parse(ev.target.result); if(typeof p !== 'object' || !Array.isArray(p.students)) throw new Error('Geçersiz yedek dosyası. students alanı bulunamadı.'); if(!p.examMeta || typeof p.examMeta !== 'object') throw new Error('Geçersiz yedek dosyası. examMeta alanı bulunamadı.');
+      let p;
+      try { p = JSON.parse(ev.target.result); } catch(pe){ throw new Error('Dosya geçerli JSON değil: ' + pe.message); }
+      if(typeof p !== 'object' || p === null) throw new Error('Geçersiz yedek: kök nesne bekleniyor.');
+      // Zorunlu alan kontrolleri
+      if(!Array.isArray(p.students))         throw new Error('Geçersiz yedek dosyası. students alanı bulunamadı ya da dizi değil.');
+      if(!p.examMeta || typeof p.examMeta !== 'object') throw new Error('Geçersiz yedek dosyası. examMeta alanı bulunamadı ya da nesne değil.');
+      if(p.examResults !== undefined && (typeof p.examResults !== 'object' || p.examResults === null)) throw new Error('Geçersiz yedek dosyası. examResults beklenen formatta değil.');
+      // Makul limit kontrolleri
+      const MAX_STUDENTS = 5000;
+      const MAX_EXAM_META = 2000;
+      const MAX_RESULT_BATCHES = 2000;
+      const MAX_RECORDS_PER_BATCH = 5000;
+      if(p.students.length > MAX_STUDENTS) throw new Error(`Yedek dosyasında çok fazla öğrenci (${p.students.length} > ${MAX_STUDENTS}). Dosya geçerli bir yedek olmayabilir.`);
+      let metaCount = Object.keys(p.examMeta).length;
+      if(metaCount > MAX_EXAM_META) throw new Error(`Yedek dosyasında çok fazla sınav meta kaydı (${metaCount} > ${MAX_EXAM_META}).`);
+      if(p.examResults){
+        let batchCount = Object.keys(p.examResults).length;
+        if(batchCount > MAX_RESULT_BATCHES) throw new Error(`Yedek dosyasında çok fazla sonuç paketi (${batchCount} > ${MAX_RESULT_BATCHES}).`);
+        for(let bId of Object.keys(p.examResults)){
+          let batch = p.examResults[bId];
+          if(!Array.isArray(batch)) throw new Error(`Sonuç paketi "${bId}" dizi değil.`);
+          if(batch.length > MAX_RECORDS_PER_BATCH) throw new Error(`Sonuç paketi "${bId}" çok büyük (${batch.length} > ${MAX_RECORDS_PER_BATCH}).`);
+        }
+      }
       ld(1,'Veriler geri yükleniyor...'); await database.ref('db_v2').remove(); await database.ref('db_v2/students').set(p.students); await database.ref('db_v2/examMeta').set(p.examMeta); if(p.examResults && Object.keys(p.examResults).length > 0) await database.ref('db_v2/examResults').set(p.examResults);
       CACHED_RESULTS = {}; showToast('Geri yükleme tamamlandı. Sayfa yenileniyor...', 'success', 2500); setTimeout(() => location.reload(), 700);
     } catch(err) { showToast('Geri yükleme başarısız: ' + err.message, 'error'); ld(0); }
@@ -468,9 +497,16 @@ function processMappings() {
   getEl('uploadPreviewBody').innerHTML = previewHtml; hideModal('mMappings'); showModal('mUploadPreview', {backdrop: 'static'});
 }
 
+let UPLOAD_IN_PROGRESS = false;
+
 async function confirmUpload() {
+  if(UPLOAD_IN_PROGRESS) return;
   if(!PENDING_UPLOAD) return cancelUpload();
   if(!ensureOnlineForWrite('Veri yükleme')) return;
+  // Çift tıklama koruması: butonu disable et ve yükleme bayrağını kur
+  UPLOAD_IN_PROGRESS = true;
+  let _btn = getEl('btnConfirmUpload');
+  if(_btn){ _btn.disabled = true; _btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Kaydediliyor…'; }
   hideModal('mUploadPreview'); ld(1, 'Veriler buluta gönderiliyor, lütfen bekleyin...');
   try {
     if(PENDING_UPLOAD.type === 's') { DB.s = DB.s.concat(PENDING_UPLOAD.data); _stuMapCache = null; await database.ref('db_v2/students').set(DB.s); rTabS(); uStat(); showToast(`${PENDING_UPLOAD.data.length} yeni öğrenci sisteme başarıyla eklendi.`, 'success'); } 
@@ -480,7 +516,12 @@ async function confirmUpload() {
       await database.ref('db_v2/examMeta/' + PENDING_UPLOAD.bId).set({ date: PENDING_UPLOAD.bD, examType: PENDING_UPLOAD.bT, publisher: PENDING_UPLOAD.bPub, count: PENDING_UPLOAD.newResults.length, subjects: PENDING_UPLOAD.subjects, grades: PENDING_UPLOAD.grades }); _riskCache = null; // Risk cache'i geçersiz kıl
 showToast('Sınav sonuçları sisteme başarıyla kaydedildi.', 'success');
     }
-  } catch(err) { showToast('Kayıt sırasında hata oluştu: ' + err.message, 'error'); } cancelUpload(); ld(0);
+  } catch(err) { showToast('Kayıt sırasında hata oluştu: ' + err.message, 'error'); }
+  finally {
+    UPLOAD_IN_PROGRESS = false;
+    if(_btn){ _btn.disabled = false; _btn.innerHTML = 'Kaydet'; }
+    cancelUpload(); ld(0);
+  }
 }
 
 const APP_CACHE_NAME = window.SA_CACHE_NAME; // version.js → index.html üzerinden gelir
@@ -503,11 +544,8 @@ function bootApp(){
       }
     }
   });
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=' + window.SA_APP_VERSION, { scope: './', updateViaCache: 'none' })
-      .then(reg => { reg.update(); })
-      .catch(err => console.error('SW hatası:', err));
-  }
+  // Service Worker kaydı index.html'deki tek kayıt üzerinden yönetilmektedir.
+  // Burada yalnızca eski cache'lerin temizlenmesi yapılır.
   if (window.caches) {
     caches.keys()
       .then(keys => Promise.all(keys.filter(key => key.startsWith('sinav-analizi-') && key !== APP_CACHE_NAME).map(key => caches.delete(key))))

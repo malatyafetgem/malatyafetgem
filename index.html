@@ -43,6 +43,10 @@ window.SA_CACHE_READY = (async function(){
 })();
 </script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc7/dist/css/adminlte.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -353,7 +357,7 @@ window.SA_CACHE_READY = (async function(){
       <div class="modal-body" id="uploadPreviewBody"></div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="backToMapping()">Geri</button>
-        <button type="button" class="btn btn-success ms-auto" onclick="confirmUpload()">Kaydet</button>
+        <button type="button" id="btnConfirmUpload" class="btn btn-success ms-auto" onclick="confirmUpload()">Kaydet</button>
       </div>
     </div>
   </div>

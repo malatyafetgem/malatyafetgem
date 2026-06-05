@@ -60,8 +60,6 @@ window.addEventListener('offline', () => {
   showToast('İnternet bağlantısı kesildi. Veri yazma işlemleri bağlantı gelene kadar durduruldu.', 'warning', 5000);
 });
 
-const ADMIN_UID="YLozrXC5w4OmD4HRzjlgF80qPCp1";
-
 function showStartup(message){
   document.body.classList.add('auth-pending');
   const loader = getEl('loader'), txt = getEl('l-txt');
@@ -158,7 +156,7 @@ function checkAuth(){
       login.style.display = 'flex';
     }
   }, 7000);
-  auth.onAuthStateChanged(user=>{
+  auth.onAuthStateChanged(async user=>{
     settled = true;
     clearTimeout(loaderDelay);
     clearTimeout(authTimeout);
@@ -168,7 +166,14 @@ function checkAuth(){
       getEl('mainApp').style.display='';
       if(getEl('userEmail'))getEl('userEmail').textContent=user.email;
       document.body.classList.remove('is-admin');
-      if(user.uid===ADMIN_UID)document.body.classList.add('is-admin');
+      try {
+  const tokenResult = await user.getIdTokenResult(true);
+  if (tokenResult.claims.admin === true) {
+    document.body.classList.add('is-admin');
+  }
+} catch (e) {
+  console.warn('Admin claim okunamadı:', e);
+}
       
       // Yenileme sonrası mevcut URL hash'ini oku ve o sekmede kal
       setTimeout(() => { 
@@ -245,14 +250,13 @@ function sendPasswordReset() {
   });
 }
 
+// chart görünüm varsayılanları — Chart.js renk ayarı ve açık grafikleri günceller
 function applyTheme(){
   Chart.defaults.color='#475569';
   if(c.h)c.h.update();if(c.a)c.a.update();
   if(window._karneCharts) window._karneCharts.forEach(ch=>ch.update());
   if(window._raporCharts) window._raporCharts.forEach(ch=>ch.update());
 }
-
-function toggleTheme(){ /* no-op: dark mode removed */ }
 
 function getEl(i){return document.getElementById(i);}
 

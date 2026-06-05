@@ -752,7 +752,7 @@ function xPR(sourceId, title, btn, orientation) {
 ${cssLinks}
 <style>
   *,*::before,*::after{box-sizing:border-box;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  html,body{width:100%;margin:0;padding:0;background:#fff;color:#212529;font-family:'Source Sans Pro',Arial,sans-serif;font-size:${printBaseFont};}
+  html,body{width:100%;margin:0;padding:0;background:#fff;color:#212529;font-family:'Source Sans 3','Source Sans Pro',"Segoe UI",Arial,sans-serif;font-size:${printBaseFont};}
   @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:${printPageMargin};}
 
   /* Sınav türü paleti (yeni pencerede style.css yok) */
@@ -1162,6 +1162,14 @@ function execAnlStuSearch(){
 
 function anlStuSelect(no){
   getEl('anlStuRes').style.display='none';
+  // Öğrenci değişince önceki öğrenciye ait sınav/tarih/veri türü seçimlerini temizle
+  if(aNo !== no){
+    ['aEx','aExDate','aSub'].forEach(id => {
+      let el = getEl(id); if(!el) return;
+      el.innerHTML = '';   // option listesini temizle (reqUI yeniden dolduracak)
+      el.value = '';
+    });
+  }
   // Öğrenci seçilince arama kutusu temizlenir; seçili öğrenci rozette gösterilir.
   getEl('anlStuInp').value=''; aNo = no; let s=getStuMap().get(no);
   let ab=getEl('anlStuBadge'); if(ab) ab.innerHTML=s?`<span class="badge rounded-pill px-2 py-1 sa-selected-pill selected-student-pill"><i class="fas fa-check-circle me-1"></i>Seçili Öğrenci: ${escapeHtml(s.name)} (${escapeHtml(s.class)})</span>`:'';
@@ -1171,6 +1179,50 @@ function anlStuSelect(no){
 function anlStuClear(){ getEl('anlStuInp').value=''; getEl('anlStuRes').style.display='none'; getEl('anlStuRes').innerHTML=''; getEl('anlStuBadge').innerHTML=''; sAct(null,false); }
 
 document.addEventListener('click',e=>{ let res=getEl('anlStuRes'),inp=getEl('anlStuInp'); if(res&&inp&&!res.contains(e.target)&&e.target!==inp)res.style.display='none'; let res2=getEl('sRes'),inp2=getEl('sInp'); if(res2&&inp2&&!res2.contains(e.target)&&e.target!==inp2)res2.style.display='none'; });
+
+// ---- Klavye gezintisi: sRes ve anlStuRes için ArrowDown/Up/Enter/Escape ----
+(function _initSearchKeyNav(){
+  function _navList(inpId, resId, e){
+    let res = getEl(resId); if(!res || res.style.display==='none') return;
+    let items = Array.from(res.querySelectorAll('[role="option"]'));
+    if(!items.length) return;
+    let focused = res.querySelector('[role="option"]:focus');
+    let idx = focused ? items.indexOf(focused) : -1;
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      let next = idx < items.length-1 ? items[idx+1] : items[0];
+      next.focus();
+    } else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      let prev = idx > 0 ? items[idx-1] : items[items.length-1];
+      prev.focus();
+    } else if(e.key==='Escape'){
+      e.preventDefault();
+      res.style.display='none';
+      let inp = getEl(inpId); if(inp) inp.focus();
+    }
+  }
+  // sInp → sRes
+  document.addEventListener('keydown', e => {
+    let inp = getEl('sInp'); if(!inp) return;
+    let res = getEl('sRes'); if(!res) return;
+    if(document.activeElement === inp){
+      if(e.key==='ArrowDown'){ e.preventDefault(); let first=res.querySelector('[role="option"]'); if(first) first.focus(); return; }
+      if(e.key==='Escape'){ res.style.display='none'; return; }
+    }
+    if(res.contains(document.activeElement)) _navList('sInp','sRes',e);
+  });
+  // anlStuInp → anlStuRes
+  document.addEventListener('keydown', e => {
+    let inp = getEl('anlStuInp'); if(!inp) return;
+    let res = getEl('anlStuRes'); if(!res) return;
+    if(document.activeElement === inp){
+      if(e.key==='ArrowDown'){ e.preventDefault(); let first=res.querySelector('[role="option"]'); if(first) first.focus(); return; }
+      if(e.key==='Escape'){ res.style.display='none'; return; }
+    }
+    if(res.contains(document.activeElement)) _navList('anlStuInp','anlStuRes',e);
+  });
+}());
 
 // ---- examColorIdx: sınav türü adından deterministik renk index'i (0-7) üretir ----
 function examColorIdx(name){
@@ -1214,6 +1266,18 @@ function uStat(){
   const ic = ['fas fa-file-alt','fas fa-check-circle','fas fa-star','fas fa-trophy','fas fa-bookmark','fas fa-graduation-cap','fas fa-clipboard-list','fas fa-chart-line'];
   const entries = Object.entries(u).sort((a,b)=> a[0].localeCompare(b[0],'tr'));
   let h = '';
+
+  if(entries.length === 0){
+    // Boş durum kartı: admin ve normal kullanıcı için ayrı metin
+    const isAdm = document.body.classList.contains('is-admin');
+    const emptyMsg = isAdm
+      ? 'Henüz sınav verisi yok. <strong>Ayarlar</strong> bölümünden Excel ile veri yükleyebilirsiniz.'
+      : 'Sınav verileri yüklendiğinde burada görünecek.';
+    h = `<div class="col-12"><div class="stat-empty-state"><i class="fas fa-inbox stat-empty-icon"></i><span class="stat-empty-text">${emptyMsg}</span></div></div>`;
+    g.innerHTML = h;
+    return;
+  }
+
   entries.forEach(([t, info]) => {
     const colorIdx = examColorIdx(t);
     const label = toExamLabel(t);
@@ -1236,53 +1300,68 @@ function uStat(){
 }
 
 // ---- goToAnaliz: Sistem Özeti'nden Sınav Analizi sayfasına yönlendirme ----
-function goToAnaliz(examType, grade) {
-  // 1. Sınav Analizi sayfasına geç
+// _waitTick: sabit bekleme (sekme geçişi gibi DOM dışı gecikmeler için)
+function _waitTick(ms){ return new Promise(res => setTimeout(res, ms || 0)); }
+// _waitForOption: belirtilen select'te value option'ı görünene kadar bekle (max ~200ms)
+function _waitForOption(selectId, value, maxMs){
+  return new Promise(res => {
+    const deadline = Date.now() + (maxMs || 200);
+    (function check(){
+      const el = getEl(selectId);
+      if(!el || Date.now() >= deadline){ res(); return; }
+      if(Array.from(el.options).some(o => o.value === value)){ res(); return; }
+      setTimeout(check, 16);
+    }());
+  });
+}
+
+async function goToAnaliz(examType, grade) {
+  try {
+  // 1. Sınav Analizi sekmesine geç
   sTab('sonuclar', document.getElementById('nav-sonuclar'));
 
-  // 2. Filtreleri doldur (reqUI() çağrıldıktan sonra DOM hazır olur)
-  setTimeout(() => {
-    // Analiz Türü: Sınav Analizi (examdetail)
-    let aTypeEl = getEl('aType');
-    if (aTypeEl) { aTypeEl.value = 'examdetail'; }
+  // 2. Sekme geçiş animasyonu — sabit bekleme (DOM dışı)
+  await _waitTick(150);
 
-    // reqUI çağrısı → sınıf ve şube dropdown'larını oluşturur
-    uUI();
+  // Analiz Türü: Sınav Analizi (examdetail)
+  let aTypeEl = getEl('aType');
+  if (aTypeEl) aTypeEl.value = 'examdetail';
 
-    setTimeout(() => {
-      // Sınıf Seviyesi
-      let aLvlEl = getEl('aLvl');
-      if (aLvlEl) { aLvlEl.value = String(grade); }
+  // Sınıf/şube dropdown'larını yenile; aLvl option'larını bekle
+  uUI();
+  await _waitForOption('aLvl', String(grade));
+  let aLvlEl = getEl('aLvl');
+  if (aLvlEl) aLvlEl.value = String(grade);
 
-      // Şube: Tümü (__ALL__)
-      uBranches();
-      setTimeout(() => {
-        let aBrEl = getEl('aBr');
-        if (aBrEl) { aBrEl.value = '__ALL__'; }
+  // Şube dropdown'unu doldur; __ALL__ option'ını bekle
+  uBranches();
+  await _waitForOption('aBr', '__ALL__');
+  let aBrEl = getEl('aBr');
+  if (aBrEl) aBrEl.value = '__ALL__';
 
-        // Sınav Türü
-        uExamTypes();
-        setTimeout(() => {
-          let aExEl = getEl('aEx');
-          if (aExEl) { aExEl.value = examType; }
-          applyExamColorToFilters();
+  // Sınav türü dropdown'unu doldur; istenen examType option'ını bekle
+  uExamTypes();
+  await _waitForOption('aEx', examType);
+  let aExEl = getEl('aEx');
+  if (aExEl) aExEl.value = examType;
+  applyExamColorToFilters();
 
-          // Sınav Seç: Tüm Sınavlar, ardından Veri: Genel Sınav Özeti
-          uExamDates();
-          setTimeout(() => {
-            let aDateEl = getEl('aDate');
-            if (aDateEl) { aDateEl.value = '__ALL__'; }
-            uSub();
-            let aSubEl = getEl('aSub');
-            if (aSubEl) { aSubEl.value = 'general_summary'; }
-            _updateGDateVisibility();
-            _updateAnalysisFilterLocks();
-            reqAnl();
-          }, 80);
-        }, 80);
-      }, 80);
-    }, 80);
-  }, 150);
+  // Sınav tarihleri dropdown'unu doldur; __ALL__ option'ını bekle
+  uExamDates();
+  await _waitForOption('aDate', '__ALL__');
+  let aDateEl = getEl('aDate');
+  if (aDateEl) aDateEl.value = '__ALL__';
+
+  // Veri türü: Genel Sınav Özeti
+  uSub();
+  await _waitForOption('aSub', 'general_summary');
+  let aSubEl = getEl('aSub');
+  if (aSubEl) aSubEl.value = 'general_summary';
+
+  _updateGDateVisibility();
+  _updateAnalysisFilterLocks();
+  reqAnl();
+  } catch(e) { console.warn('goToAnaliz hatası:', e); }
 }
 
 function uDrp(){

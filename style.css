@@ -3669,3 +3669,61 @@ body.desktop-site-mode .bottom-nav {
   padding-right: inherit !important;
 }
 
+
+/* ===== Madde 2: Sistem Özeti boş durum kartı ===== */
+.stat-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px dashed var(--sa-border);
+  border-radius: 10px;
+  padding: 22px 24px;
+  color: var(--sa-muted);
+  min-height: 72px;
+}
+.stat-empty-icon {
+  font-size: 1.6rem;
+  color: #cbd5e1;
+  flex-shrink: 0;
+}
+.stat-empty-text {
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+@media print {
+  .stat-empty-state { display: none !important; }
+}
+
+/* ===== Madde 3: Ana sayfa kısayol kartları hover/focus iyileştirmesi ===== */
+.home-nav-card {
+  will-change: transform, box-shadow;
+}
+.home-nav-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.13) !important;
+  filter: none !important;
+  border-left-width: 5px !important;
+}
+.home-nav-card:focus {
+  outline: none !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 24px rgba(15,23,42,0.10) !important;
+}
+.home-nav-card:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.32), 0 8px 20px rgba(15,23,42,0.10) !important;
+}
+.home-nav-card.home-nav-primary:hover  { border-left-color: var(--sa-primary-600) !important; }
+.home-nav-card.home-nav-success:hover  { border-left-color: #047857 !important; }
+.home-nav-card.home-nav-info:hover     { border-left-color: #0e7490 !important; }
+.home-nav-card.home-nav-warning:hover  { border-left-color: #b45309 !important; }
+.home-nav-card .home-nav-icon {
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.home-nav-card:hover .home-nav-icon {
+  transform: scale(1.08);
+}
+@media print {
+  .home-nav-card:hover, .home-nav-card:focus { transform: none !important; box-shadow: none !important; }
+}
