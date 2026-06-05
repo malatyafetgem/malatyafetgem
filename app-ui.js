@@ -285,7 +285,9 @@ async function sAct(no,clr=false){
   }
 }
 
-function getGrade(cls){ let m=String(cls||'').match(/^(\d+)/); return m?m[1]:''; }
+function getGrade(cls){
+  return typeof getClassParts === 'function' ? getClassParts(cls).grade : (String(cls||'').match(/^(\d+)/)?.[1] || '');
+}
 
 function getBrVal(){ let el=getEl('aBr'); if(!el) return ''; let v=el.value; return (v==='__ALL__'||!v)?'':v; }
 
@@ -1369,8 +1371,7 @@ function uDrp(){
 }
 
 function _classParts(cls){
-  let m = String(cls||'').match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);
-  return m ? { grade:m[1], branch:m[2].toLocaleUpperCase('tr-TR') } : { grade:getGrade(cls), branch:'' };
+  return typeof getClassParts === 'function' ? getClassParts(cls) : { grade:getGrade(cls), branch:'' };
 }
 
 function _hasScoreData(e){

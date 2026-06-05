@@ -345,7 +345,9 @@ function rebuildDbFromCache(){
     if(Array.isArray(CACHED_RESULTS[bId])) allE = allE.concat(CACHED_RESULTS[bId]);
   });
   let validNos = new Set((DB.s || []).map(s => s.no));
-  DB.e = allE.filter(e => e && e.studentNo && validNos.has(e.studentNo));
+  DB.e = allE
+    .filter(e => e && e.studentNo && validNos.has(e.studentNo))
+    .map(e => ({...e, studentClass: normalizeClassName(e.studentClass)}));
   _riskCache = null;
 }
 
@@ -367,7 +369,7 @@ async function init(){
   // ld(1,'Sistem altyapısı hazırlanıyor...'); // Bu satırı sildik/kapattık
 
   database.ref('db_v2/students').on('value', snap => { 
-    let sData = snap.val(); DB.s = (sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : []).map(s => s ? {...s, name: toTitleCase(s.name)} : s);
+    let sData = snap.val(); DB.s = (sData ? (Array.isArray(sData) ? sData.filter(x => x) : Object.values(sData).filter(x => x)) : []).map(s => s ? {...s, name: toTitleCase(s.name), class: normalizeClassName(s.class)} : s);
     _stuMapCache = null; // Map index'i yenile
     rebuildDbFromCache();
     rTabS(); uStat(); uDrp();
@@ -602,9 +604,16 @@ async function reqUI() {
 function normTR(s){return String(s||'').toLocaleLowerCase('tr-TR').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');}
 
 function pN(v){
+  let n = parseNumberStrict(v);
+  return n === null ? 0 : n;
+}
+
+function parseNumberStrict(v){
+  if(v === null || v === undefined) return null;
   // Türkçe: binlik ayraç nokta, ondalık ayraç virgül → 1.234,56 veya 12,5
   // İngilizce: 12.5 → doğrudan geçer
-  let s = String(v === null || v === undefined ? 0 : v).trim();
+  let s = String(v).trim().replace(/\s+/g, '').replace(/\u00a0/g, '');
+  if(!s) return null;
   // Hem nokta hem virgül varsa: son gelen ondalık ayraçtır
   let hasDot   = s.includes('.');
   let hasComma = s.includes(',');
@@ -617,21 +626,63 @@ function pN(v){
     // 12,5 → ondalık virgül
     s = s.replace(',','.');
   }
-  // Tek nokta → İngilizce ondalık veya binlik nokta; parseFloat halleder
-  let n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
+  if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(s)) return null;
+  let n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseExamDate(value){
+  let s = String(value || '').trim();
+  let day, month, year;
+  if(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.test(s)){
+    let p = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    day = parseInt(p[1], 10); month = parseInt(p[2], 10); year = parseInt(p[3], 10);
+  } else {
+    let p = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(!p) return null;
+    year = parseInt(p[1], 10); month = parseInt(p[2], 10); day = parseInt(p[3], 10);
+  }
+  if(year < 1900 || year > 2100) return null;
+  let d = new Date(year, month - 1, day);
+  if(d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return {
+    day,
+    month,
+    year,
+    value: `${String(day).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}`
+  };
+}
+
+function normalizeExamDate(value){
+  let parsed = parseExamDate(value);
+  return parsed ? parsed.value : '';
+}
+
+function isValidExamDate(value){
+  return !!parseExamDate(value);
+}
+
+function getClassParts(cls){
+  let raw = String(cls || '').trim();
+  let m = raw.match(/^(\d+)\s*[-/.]?\s*([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/);
+  if(m) return { grade:m[1], branch:m[2].toLocaleUpperCase('tr-TR') };
+  let gradeOnly = raw.match(/^(\d+)/);
+  return { grade: gradeOnly ? gradeOnly[1] : '', branch: '' };
+}
+
+function normalizeClassName(cls){
+  let raw = String(cls || '').trim().replace(/\s+/g, ' ');
+  let parts = getClassParts(raw);
+  return parts.grade && parts.branch ? `${parts.grade}${parts.branch}` : raw.toLocaleUpperCase('tr-TR');
 }
 
 function srt(a,b){
   // === FIX: Tarihler her zaman GG.AA.YYYY -> Date olarak karşılaştırılır (string sıralama yok) ===
   let parseDate = (dStr) => {
     if(!dStr) return new Date(0);
-    let s = String(dStr).trim();
-    let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-    if(m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
-    let m2 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if(m2) return new Date(parseInt(m2[1]), parseInt(m2[2])-1, parseInt(m2[3]));
-    let d = new Date(s); return isNaN(d.getTime()) ? new Date(0) : d;
+    let parsed = parseExamDate(dStr);
+    if(parsed) return new Date(parsed.year, parsed.month - 1, parsed.day);
+    let d = new Date(String(dStr).trim()); return isNaN(d.getTime()) ? new Date(0) : d;
   };
   return parseDate(a) - parseDate(b);
 }

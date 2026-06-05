@@ -681,7 +681,7 @@ function mkBoxPlotSVG(groups, studentVal, options) {
     }
 
     // X ekseni etiketi
-    boxes += `<text x="${cx.toFixed(1)}" y="${(H - marginBottom + 15).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#343a40">${g.label}</text>`;
+    boxes += `<text x="${cx.toFixed(1)}" y="${(H - marginBottom + 15).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#343a40">${escapeHtml(g.label)}</text>`;
     // Medyan değeri
     boxes += `<text x="${cx.toFixed(1)}" y="${(H - marginBottom + 27).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#6c757d">Md:${bp.median.toFixed(1)}</text>`;
   });
@@ -706,7 +706,7 @@ function mkBoxPlotSVG(groups, studentVal, options) {
     legendParts += `<text x="${(lxCur + 2).toFixed(1)}" y="${(marginTop - 6).toFixed(1)}" font-size="9" fill="#6c757d">Öğrenci</text>`;
   }
 
-  let titleText = options.title ? `<text x="${marginLeft}" y="${marginTop - 10}" font-size="10" font-weight="700" fill="#3a5a9a">${options.title}</text>` : '';
+  let titleText = options.title ? `<text x="${marginLeft}" y="${marginTop - 10}" font-size="10" font-weight="700" fill="#3a5a9a">${escapeHtml(options.title)}</text>` : '';
 
   return `<div class="boxplot-wrap"><svg class="boxplot-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -940,6 +940,7 @@ function buildKarneExamCards(summary, examType, metricLabel) {
   }
 
   let avgLabel = isScore ? 'Ortalama Puan' : `Ortalama ${metricLabel}`;
+  let avgLabelSafe = escapeHtml(avgLabel);
   let genOrtLabel = isScore ? 'Genel Puan Ort' : 'Genel Ort';
 
   let cardsHtml = `<div class="student-profile-part student-profile-info-part"><div class="row g-2 sec-cards-row analysis-info-cards student-profile-info-cards mb-2">
@@ -947,7 +948,7 @@ function buildKarneExamCards(summary, examType, metricLabel) {
       <div class="sec-card">
         <div class="sec-icon"><i class="fas fa-chart-bar"></i></div>
         <div class="sec-body">
-          <div class="sec-label">${avgLabel}</div>
+          <div class="sec-label">${avgLabelSafe}</div>
           <div class="sec-value">${stuAvg.toFixed(2)}</div>
           <div class="sec-sub">${genOrtLabel}: ${genAvg!==null?genAvg.toFixed(2):'—'}</div>
         </div>
@@ -1064,7 +1065,7 @@ function rH(){
       
       h += `<tr class="avg-row"><td colspan="3" class="avg-label">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
       h += `<tr class="avg-row"><td colspan="3" class="avg-label">Sınıf Ortalama (${stuClassSafe})</td>${clsAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNet}</td><td>${clsAvgScore}</td><td colspan="2">—</td></tr>`;
-      h += `<tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td></tr>`;
+      h += `<tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${escapeHtml(stGrade)}. Sınıflar)</td>${genAvgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNet}</td><td>${genAvgScore}</td><td colspan="2">—</td></tr>`;
     }
 
     h+=`</tbody></table></div></div><div class="student-profile-part student-profile-chart-part"><div class="chart-box chart-box-sm chart-box-tight avoid-break"><div class="chart-title">${escapeHtml(t)} — Toplam Net Gelişimi</div><canvas id="${canvasId}"></canvas></div></div></div>`;
@@ -1106,8 +1107,8 @@ function buildSingleExamCards(stu, examType, curExam, prevExam, stGrade){
   let scoreTxt = (curExam.score!==undefined && curExam.score!==null) ? curExam.score.toFixed(2) : '—';
   let netTxt   = (curExam.totalNet!==undefined && curExam.totalNet!==null) ? curExam.totalNet.toFixed(2) : '—';
   let rankBits =[];
-  if(curExam.cR) rankBits.push(`Sınıf ${curExam.cR}/${curExam.cP||'—'}`);
-  if(curExam.iR) rankBits.push(`Okul ${curExam.iR}/${curExam.iP||'—'}`);
+  if(curExam.cR) rankBits.push(`Sınıf ${escapeHtml(curExam.cR)}/${escapeHtml(curExam.cP||'—')}`);
+  if(curExam.iR) rankBits.push(`Okul ${escapeHtml(curExam.iR)}/${escapeHtml(curExam.iP||'—')}`);
   let card1 = `<div class="${cardCol}"><div class="sec-card">
     <div class="sec-icon"><i class="fas fa-star"></i></div>
     <div class="sec-body">
@@ -1126,12 +1127,13 @@ function buildSingleExamCards(stu, examType, curExam, prevExam, stGrade){
     let sign = dN > 0 ? '+' : '';
     let signS = dS > 0 ? '+' : '';
     let _pubP = prevExam.publisher ? ` (${toTitleCase(prevExam.publisher)})` : '';
+    let prevExamLabel = `${escapeHtml(prevExam.date)}${escapeHtml(_pubP)}`;
     prevCard = `<div class="${cardCol}"><div class="sec-card ${cls}">
       <div class="sec-icon"><i class="fas ${icon}"></i></div>
       <div class="sec-body">
         <div class="sec-label">Önceki Sınava Fark</div>
         <div class="sec-value">${sign}${dN.toFixed(2)} <small class="sec-unit">net</small></div>
-        <div class="sec-sub">Puan: ${signS}${dS.toFixed(2)} · ${prevExam.date}${_pubP}</div>
+        <div class="sec-sub">Puan: ${signS}${dS.toFixed(2)} · ${prevExamLabel}</div>
       </div></div></div>`;
   } else {
     prevCard = `<div class="${cardCol}"><div class="sec-card sec-neutral">
@@ -1173,7 +1175,7 @@ function buildSingleExamCards(stu, examType, curExam, prevExam, stGrade){
         <div class="sec-icon"><i class="fas ${icon}"></i></div>
         <div class="sec-body">
           <div class="sec-label">${label}</div>
-          <div class="sec-value">${toTitleCase(it.name)}</div>
+          <div class="sec-value">${escapeHtml(toTitleCase(it.name))}</div>
           <div class="sec-sub">Net: ${it.net.toFixed(2)} · Sınıf ${dCstr} · Kurum ${dIstr}</div>
         </div></div></div>`;
     };
@@ -1384,7 +1386,7 @@ function rAnl(){
           let dIns = (net !== null && insA !== null) ? (net - insA) : null;
           let fmt = v => v === null ? '—' : (v>0?'+':'') + v.toFixed(2);
           let cls = v => v === null ? '' : (v > 0 ? 'text-success' : (v < 0 ? 'text-danger' : ''));
-          return `<tr><td>${i+1}</td><td>${toTitleCase(s)}</td><td>${dog}</td><td>${yan}</td><td><strong>${net===null?'—':net.toFixed(2)}</strong></td><td>${clsA===null?'—':clsA.toFixed(2)}</td><td class="${cls(dCls)} fw-bold">${fmt(dCls)}</td><td>${insA===null?'—':insA.toFixed(2)}</td><td class="${cls(dIns)} fw-bold">${fmt(dIns)}</td></tr>`;
+          return `<tr><td>${i+1}</td><td>${escapeHtml(toTitleCase(s))}</td><td>${escapeHtml(dog)}</td><td>${escapeHtml(yan)}</td><td><strong>${net===null?'—':net.toFixed(2)}</strong></td><td>${clsA===null?'—':clsA.toFixed(2)}</td><td class="${cls(dCls)} fw-bold">${fmt(dCls)}</td><td>${insA===null?'—':insA.toFixed(2)}</td><td class="${cls(dIns)} fw-bold">${fmt(dIns)}</td></tr>`;
         }).join('');
         // Toplam Net satırı (vurgulu)
         let _tnStu = curExam.totalNet, _tnCls = clsVals[clsVals.length-1], _tnIns = insVals[insVals.length-1];
@@ -1670,7 +1672,7 @@ function rAnl(){
       } else { dfStr = '-'; }
       let pub = e.publisher || '—';
       let nDisplay = n === null ? '—' : (isRank ? n : n.toFixed(2));
-      rows+=`<tr><td>${i+1}</td><td>${e.date}</td><td>${toTitleCase(pub)}</td><td>${nDisplay}</td><td class="${cl} fw-bold">${dfStr}</td></tr>`; dD.push(n);
+      rows+=`<tr><td>${i+1}</td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(toTitleCase(pub))}</td><td>${escapeHtml(nDisplay)}</td><td class="${cl} fw-bold">${escapeHtml(dfStr)}</td></tr>`; dD.push(n);
       if(!isRank){
         let cn=DB.e.filter(x=>x.date===e.date&&x.examType===eT&&x.studentClass===st.class&&!x.abs).map(getVal).filter(v=>v!==null);
         clsArr.push(cn.length?(cn.reduce((a,b)=>a+b,0)/cn.length):null);
@@ -1689,7 +1691,7 @@ function rAnl(){
       let displayStu = isRank ? Math.round(stuAvg) : stuAvg.toFixed(2);
       let displayCls = clsAvg !== null ? (isRank ? Math.round(clsAvg) : clsAvg.toFixed(2)) : '—';
       let displayGen = genAvg !== null ? (isRank ? Math.round(genAvg) : genAvg.toFixed(2)) : '—';
-      avgRowHtml = `<tr class="avg-row"><td colspan="3" class="avg-label">Öğrenci Ortalama</td><td>${displayStu}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Sınıf Ortalama (${stClassSafe})</td><td>${displayCls}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${stGrade}. Sınıflar)</td><td>${displayGen}</td><td>—</td></tr>`;
+      avgRowHtml = `<tr class="avg-row"><td colspan="3" class="avg-label">Öğrenci Ortalama</td><td>${displayStu}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Sınıf Ortalama (${stClassSafe})</td><td>${displayCls}</td><td>—</td></tr><tr class="avg-row"><td colspan="3" class="avg-label">Kurum Ortalama (${escapeHtml(stGrade)}. Sınıflar)</td><td>${displayGen}</td><td>—</td></tr>`;
     }
 
     // sb'ye göre görünen metrik etiketi — istatistik kartlarında ve trend bloğunda kullanılır
@@ -1765,9 +1767,9 @@ function rAnl(){
     let l=getEl('aLvl').value, b=getBrVal(), dateFilter = typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : (getEl('aDate') ? getEl('aDate').value : '');
     let ex=DB.e.filter(x=>{
       if(x.examType!==eT||x.abs) return false;
-      let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); if(!m) return false;
-      if(l&&l!==m[1]) return false;
-      if(b&&b!==m[2].toLocaleUpperCase('tr-TR')) return false;
+      let parts = getClassParts(x.studentClass); if(!parts.grade || !parts.branch) return false;
+      if(l&&l!==parts.grade) return false;
+      if(b&&b!==parts.branch) return false;
       return true;
     }), d={};
     ex.forEach(e=>{ 
@@ -1782,7 +1784,7 @@ function rAnl(){
       Object.keys(cl).sort().forEach(cc=>{ 
         cs.add(cc); 
         let n=cl[cc].map(x=>{ if(sb === 'score') return x.score; if(sb === 'totalNet' || !sb) return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net || 0; }); 
-        let pub = cl[cc][0]?.publisher || '—'; tr.push(`<tr><td>${cIdx++}</td><td>${cc}</td><td>${dt}</td><td>${toTitleCase(pub)}</td><td>${n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0}</td></tr>`); 
+        let pub = cl[cc][0]?.publisher || '—'; tr.push(`<tr><td>${cIdx++}</td><td>${escapeHtml(cc)}</td><td>${escapeHtml(dt)}</td><td>${escapeHtml(toTitleCase(pub))}</td><td>${n.length?(n.reduce((x,y)=>x+y,0)/n.length).toFixed(2):0}</td></tr>`); 
       }); 
     });
 
@@ -1791,11 +1793,11 @@ function rAnl(){
     let classAvgRows = '', sortedClasses = [...cs].sort();
     sortedClasses.forEach(clsName => {
       let clsExams = ex.filter(x => x.studentClass === clsName), clsVals = clsExams.map(x => { if(sb==='score')return x.score; if(sb==='totalNet'||!sb)return x.totalNet; return x.subs[toTitleCase(sb.replace('s_',''))]?.net||0; });
-      if(clsVals.length > 0) { let clsAvg = (clsVals.reduce((a,b)=>a+b,0)/clsVals.length).toFixed(2); classAvgRows += `<tr class="avg-row"><td colspan="4" class="avg-label">${clsName} Ortalama</td><td>${clsAvg}</td></tr>`; }
+      if(clsVals.length > 0) { let clsAvg = (clsVals.reduce((a,b)=>a+b,0)/clsVals.length).toFixed(2); classAvgRows += `<tr class="avg-row"><td colspan="4" class="avg-label">${escapeHtml(clsName)} Ortalama</td><td>${clsAvg}</td></tr>`; }
     });
     
     let clsAvgRow = classAvgRows, lvlLabel = lvlForAvg ? `${lvlForAvg}. Sınıflar` : 'Tüm Sınıflar';
-    if (allVals.length > 0) { let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2); clsAvgRow += `<tr class="avg-row"><td colspan="4" class="avg-label">Kurum Ortalama (${lvlLabel})</td><td>${genAvg}</td></tr>`; }
+    if (allVals.length > 0) { let genAvg = (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2); clsAvgRow += `<tr class="avg-row"><td colspan="4" class="avg-label">Kurum Ortalama (${escapeHtml(lvlLabel)})</td><td>${genAvg}</td></tr>`; }
     let clsLabel=''; {let lv=getEl('aLvl').value,br=getBrVal(); if(lv&&br)clsLabel=lv+br; else if(lv)clsLabel=lv+'. Sınıflar'; else if(br)clsLabel=br; else clsLabel='Hepsi';}
     
     let clsPerfHtml = '';
@@ -2149,7 +2151,7 @@ function rAnl(){
     let lvl = getEl('aLvl').value, br = getBrVal(), dateFilterS = typeof getAnalysisDateValue === 'function' ? getAnalysisDateValue() : (getEl('aDate') ? getEl('aDate').value : '');
     let ex = DB.e.filter(x => x.examType === eT && !x.abs && x.subs[toTitleCase(subj)] && (!dateFilterS || x.date === dateFilterS));
     if(lvl) ex = ex.filter(x => getGrade(x.studentClass) === lvl);
-    if(br) ex = ex.filter(x => { let m=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return m && m[2].toLocaleUpperCase('tr-TR')===br; });
+    if(br) ex = ex.filter(x => getClassParts(x.studentClass).branch === br);
     
     if(!ex.length){r.innerHTML='<div class="alert alert-default-warning">Bu ders için veri bulunamadı.</div>';return;}
     
@@ -2427,7 +2429,7 @@ function rAnl(){
     let targetLvl = lvl; if (!targetLvl && aNo) { let st = getStuMap().get(aNo); if(st) targetLvl = getGrade(st.class); }
     if (targetLvl) { baseExams = baseExams.filter(x => getGrade(x.studentClass) === targetLvl); }
     let brFilterED = getBrVal();
-    if (brFilterED) { baseExams = baseExams.filter(x => { let mm = x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR') === brFilterED; }); }
+    if (brFilterED) { baseExams = baseExams.filter(x => getClassParts(x.studentClass).branch === brFilterED); }
 
     let getName = (no) => getStuMap().get(no)?.name || 'Bilinmiyor';
 
@@ -2605,7 +2607,7 @@ function rAnl(){
             });
             let validClsMap = Object.fromEntries(Object.entries(genClassMap).filter(([c,v])=>v.length>=3));
             let lvlForGenBP = targetLvl || '';
-            let allGradeStus = DB.e.filter(x => x.examType===eT && !x.abs && (lvlForGenBP ? getGrade(x.studentClass)===lvlForGenBP : true) && (!brFilterED || (() => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; })()));
+            let allGradeStus = DB.e.filter(x => x.examType===eT && !x.abs && (lvlForGenBP ? getGrade(x.studentClass)===lvlForGenBP : true) && (!brFilterED || getClassParts(x.studentClass).branch===brFilterED));
             let gradeStudentAvgs = {};
             allGradeStus.forEach(e => {
               if(!gradeStudentAvgs[e.studentNo]) gradeStudentAvgs[e.studentNo] = [];
@@ -2672,7 +2674,7 @@ function rAnl(){
       let isFirstExam = (currentIndex === 0 || prevDate === null);
       let prevBatch = prevDate ? DB.e.filter(x => x.examType === eT && x.date === prevDate) :[];
       if(targetLvl) prevBatch = prevBatch.filter(x => getGrade(x.studentClass) === targetLvl);
-      if(brFilterED) prevBatch = prevBatch.filter(x => { let mm = x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR') === brFilterED; });
+      if(brFilterED) prevBatch = prevBatch.filter(x => getClassParts(x.studentClass).branch === brFilterED);
       let prevExams = prevBatch.filter(x => !x.abs), sortedExams = [...currentExams].sort((a,b) => { let dp=(b.score||0)-(a.score||0); if(dp!==0) return dp; return (b.totalNet||0)-(a.totalNet||0); }), winner = sortedExams[0], progress =[];
       
       let _validNosSum = new Set(DB.s.map(s=>s.no));
@@ -2833,7 +2835,7 @@ function rAnl(){
             examClassMap[e.studentClass].push(e.totalNet);
           });
           let lvlForExBP = targetLvl || (currentExams.length > 0 ? getGrade(currentExams[0].studentClass) : '');
-          let allGradeNets = DB.e.filter(e => e.examType===eT && e.date===dt && !e.abs && (lvlForExBP ? getGrade(e.studentClass)===lvlForExBP : true) && (!brFilterED || (() => { let mm=e.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; })())).map(e => e.totalNet);
+          let allGradeNets = DB.e.filter(e => e.examType===eT && e.date===dt && !e.abs && (lvlForExBP ? getGrade(e.studentClass)===lvlForExBP : true) && (!brFilterED || getClassParts(e.studentClass).branch===brFilterED)).map(e => e.totalNet);
           let validClasses = Object.fromEntries(Object.entries(examClassMap).filter(([c,v])=>v.length>=3));
           if(allGradeNets.length >= 3) {
             let multiClsBP = Object.keys(validClasses).length >= 1 ? mkMultiClassBoxPlot(validClasses, null, {height:220}, allGradeNets) : '';
@@ -2890,7 +2892,7 @@ function rAnl(){
 
     } else if (subSel === 'list_single') {
       let batch = baseExams.filter(x => x.date === dt);
-      if(brFilterED) batch = batch.filter(x => { let mm=x.studentClass.match(/^(\d+)([a-zA-ZğüşıöçĞÜŞİÖÇ]+)$/); return mm && mm[2].toLocaleUpperCase('tr-TR')===brFilterED; });
+      if(brFilterED) batch = batch.filter(x => getClassParts(x.studentClass).branch === brFilterED);
       
       if(!batch.length){r.innerHTML='<div class="alert alert-default-info">Bu sınava ait veri yok.</div>';return;}
 
@@ -3096,7 +3098,7 @@ function raporFillBranches() {
   let branches = lvl
     ? (typeof _resultBranches === 'function'
       ? _resultBranches({ grade:lvl })
-      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl).map(e=>String(e.studentClass||'').replace(/^(\d+)/,'').toLocaleUpperCase('tr-TR')).filter(Boolean))].sort())
+      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl).map(e=>getClassParts(e.studentClass).branch).filter(Boolean))].sort())
     : [];
   brSel.innerHTML = optionHtml('', lvl ? (branches.length ? 'Şube Seç' : 'Uygun şube yok') : 'Önce sınıf seviyesi seçin', !prevBr, true)
     + (branches.length ? optionHtml('__ALL__', 'Tümü', prevBr==='__ALL__') : '')
@@ -3116,7 +3118,7 @@ function raporFillExamTypes() {
   let types = (lvl && brRaw)
     ? (typeof _resultExamTypes === 'function'
       ? _resultExamTypes({ grade:lvl, branch:br })
-      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl&&(!br||String(e.studentClass||'').toLocaleUpperCase('tr-TR').endsWith(br))).map(e=>e.examType).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr')))
+      : [...new Set((DB.e||[]).filter(e=>e&&!e.abs&&getGrade(e.studentClass)===lvl&&(!br||getClassParts(e.studentClass).branch===br)).map(e=>e.examType).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr')))
     : [];
   etSel.innerHTML = optionHtml('', lvl && brRaw ? (types.length ? 'Sınav Seçiniz' : 'Uygun sınav türü yok') : 'Önce şube seçin', !prev, true)
     + types.map(x=>optionHtml(x, x, prev===x)).join('')
@@ -3405,7 +3407,7 @@ let genAvgScoreR = allGradeExamsR.length > 0 ? (allGradeExamsR.reduce((a,e)=>a+e
           
           avgRow = `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Öğrenci Ortalama</td>${avgSubs.map(v=>`<td>${v}</td>`).join('')}<td>${avgNet}</td><td>${avgScore}</td><td colspan="2">—</td></tr>`;
           avgRow += `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Sınıf Ortalama (${escapeHtml(stu.class)})</td>${clsAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${clsAvgNetR}</td><td>${clsAvgScoreR}</td><td colspan="2">—</td></tr>`;
-          avgRow += `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Kurum Ortalama (${stGrade}. Sınıflar)</td>${genAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNetR}</td><td>${genAvgScoreR}</td><td colspan="2">—</td></tr>`;
+          avgRow += `<tr class="avg-row"><td colspan="3" class="avg-label-sm">Kurum Ortalama (${escapeHtml(stGrade)}. Sınıflar)</td>${genAvgSubsR.map(v=>`<td>${v}</td>`).join('')}<td>${genAvgNetR}</td><td>${genAvgScoreR}</td><td colspan="2">—</td></tr>`;
         }
         
         let chartId = 'rKarneChart_' + stu.no.replace(/[^a-zA-Z0-9]/g,'_') + '_' + t.replace(/[^a-zA-Z0-9]/g,'_');
